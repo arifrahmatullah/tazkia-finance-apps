@@ -84,4 +84,36 @@ class User extends Authenticatable
             ->where(fn($q) => $q->where('organization_id', $organizationId)->orWhereNull('organization_id'))
             ->exists();
     }
+
+    /**
+     * Kembalikan array organization_id milik user.
+     * Superadmin mengembalikan null (berarti tidak ada filter / lihat semua).
+     */
+    public function organizationIds(): ?array
+    {
+        if ($this->isSuperAdmin()) {
+            return null;
+        }
+
+        return $this->organizationRoles()
+            ->whereNotNull('organization_id')
+            ->pluck('organization_id')
+            ->unique()
+            ->values()
+            ->toArray();
+    }
+
+    /**
+     * Cek apakah user boleh mengakses organisasi tertentu.
+     * Superadmin selalu boleh.
+     */
+    public function canAccessOrganization(int $orgId): bool
+    {
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
+        $ids = $this->organizationIds();
+        return $ids !== null && in_array($orgId, $ids);
+    }
 }

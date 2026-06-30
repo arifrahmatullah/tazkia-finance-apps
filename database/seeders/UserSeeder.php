@@ -12,25 +12,77 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        $superadminRole = Role::where('slug', 'superadmin')->first();
+        $roles = Role::pluck('id', 'slug');
+        $orgs  = \App\Models\Organization::pluck('id', 'code');
 
-        $superadmin = User::updateOrCreate(
-            ['email' => 'superadmin@tazkia.ac.id'],
+        $users = [
             [
-                'name'      => 'Super Admin',
-                'password'  => Hash::make('password'),
-                'role_id'   => $superadminRole->id,
-                'is_active' => true,
-            ]
-        );
+                'name'    => 'Super Admin',
+                'email'   => 'superadmin@tazkia.ac.id',
+                'role'    => 'superadmin',
+                'org'     => null, // akses semua
+            ],
+            [
+                'name'    => 'Keuangan Yayasan',
+                'email'   => 'keuangan.yayasan@tazkia.ac.id',
+                'role'    => 'keuangan',
+                'org'     => 'YAYASAN',
+            ],
+            [
+                'name'    => 'Keuangan Tazkia',
+                'email'   => 'keuangan.tazkia@tazkia.ac.id',
+                'role'    => 'keuangan',
+                'org'     => 'TAZKIA',
+            ],
+            [
+                'name'    => 'Keuangan STMIK',
+                'email'   => 'keuangan.stmik@tazkia.ac.id',
+                'role'    => 'keuangan',
+                'org'     => 'STMIK',
+            ],
+            [
+                'name'    => 'Akunting Tazkia',
+                'email'   => 'akunting.tazkia@tazkia.ac.id',
+                'role'    => 'akunting',
+                'org'     => 'TAZKIA',
+            ],
+            [
+                'name'    => 'Akunting STMIK',
+                'email'   => 'akunting.stmik@tazkia.ac.id',
+                'role'    => 'akunting',
+                'org'     => 'STMIK',
+            ],
+            [
+                'name'    => 'Staf Tazkia',
+                'email'   => 'staf.tazkia@tazkia.ac.id',
+                'role'    => 'staf',
+                'org'     => 'TAZKIA',
+            ],
+            [
+                'name'    => 'Staf STMIK',
+                'email'   => 'staf.stmik@tazkia.ac.id',
+                'role'    => 'staf',
+                'org'     => 'STMIK',
+            ],
+        ];
 
-        // superadmin tidak terikat ke org tertentu (organization_id = null)
-        UserOrganizationRole::updateOrCreate(
-            [
-                'user_id'         => $superadmin->id,
-                'organization_id' => null,
-                'role_id'         => $superadminRole->id,
-            ]
-        );
+        foreach ($users as $data) {
+            $roleId = $roles[$data['role']];
+            $orgId  = $data['org'] ? $orgs[$data['org']] : null;
+
+            $user = User::updateOrCreate(
+                ['email' => $data['email']],
+                [
+                    'name'      => $data['name'],
+                    'password'  => Hash::make('password'),
+                    'role_id'   => $roleId,
+                    'is_active' => true,
+                ]
+            );
+
+            UserOrganizationRole::updateOrCreate(
+                ['user_id' => $user->id, 'organization_id' => $orgId, 'role_id' => $roleId]
+            );
+        }
     }
 }
