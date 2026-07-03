@@ -1,73 +1,32 @@
 <x-layouts.app title="Manajemen User">
-<style>
-    .page-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
-    .page-title { font-size:1.1rem; font-weight:700; color:#0f172a; margin:0 0 3px; }
-    .page-sub { font-size:0.78rem; color:#94a3b8; margin:0; }
-    .btn-primary { display:inline-flex; align-items:center; gap:7px; padding:9px 16px; border-radius:9px; background:linear-gradient(135deg,#ea580c,#f97316); color:#fff; font-size:0.83rem; font-weight:600; text-decoration:none; box-shadow:0 3px 10px rgba(234,88,12,.3); transition:all .15s; }
-    .btn-primary:hover { box-shadow:0 6px 16px rgba(234,88,12,.4); transform:translateY(-1px); }
-    /* Filter bar */
-    .filter-bar { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:16px; }
-    .search-wrap { position:relative; flex:1; min-width:200px; }
-    .search-wrap svg { position:absolute; left:11px; top:50%; transform:translateY(-50%); pointer-events:none; }
-    .fi { padding:8px 12px; border:1.5px solid #e2e8f0; border-radius:9px; font-size:0.845rem; color:#374151; background:#fff; outline:none; transition:border-color .15s; }
-    .fi:focus { border-color:#f97316; }
-    .fi-search { padding-left:34px; width:100%; }
-    .btn-filter { padding:8px 18px; border-radius:9px; border:none; cursor:pointer; font-size:0.845rem; font-weight:600; background:linear-gradient(135deg,#f97316,#ea580c); color:#fff; }
-    .btn-reset { padding:8px 14px; border-radius:9px; border:1.5px solid #e2e8f0; font-size:0.845rem; color:#64748b; text-decoration:none; background:#fff; }
-    /* Table card */
-    .card { background:#fff; border-radius:14px; border:1px solid #f1f5f9; box-shadow:0 1px 4px rgba(0,0,0,.04); overflow:hidden; }
-    .card-header { padding:14px 20px; border-bottom:1px solid #f1f5f9; display:flex; align-items:center; justify-content:space-between; }
-    .card-title { font-size:0.875rem; font-weight:700; color:#0f172a; }
-    .count-badge { background:#f1f5f9; color:#64748b; font-size:0.72rem; font-weight:600; padding:3px 9px; border-radius:99px; }
-    table { width:100%; border-collapse:collapse; }
-    th { padding:11px 16px; text-align:left; font-size:0.72rem; font-weight:600; color:#64748b; text-transform:uppercase; letter-spacing:.06em; border-bottom:1px solid #f1f5f9; background:#fafbfc; white-space:nowrap; }
-    td { padding:13px 16px; font-size:0.845rem; color:#334155; border-bottom:1px solid #f8fafc; vertical-align:middle; }
-    tr:last-child td { border-bottom:none; }
-    tr:hover td { background:#fafbff; }
-    .user-avatar { width:34px; height:34px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; font-weight:700; color:#fff; background:linear-gradient(135deg,#f97316,#ea580c); flex-shrink:0; }
-    .user-name { font-weight:600; color:#0f172a; }
-    .user-email { font-size:0.77rem; color:#94a3b8; margin-top:1px; }
-    .role-badge { display:inline-flex; align-items:center; gap:5px; padding:3px 10px; border-radius:99px; font-size:0.72rem; font-weight:600; }
-    .org-pill { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; background:#eff6ff; color:#2563eb; border-radius:6px; font-size:0.73rem; font-weight:500; margin:2px; }
-    .badge-green { background:#dcfce7; color:#16a34a; }
-    .badge-red { background:#fee2e2; color:#dc2626; }
-    .action-btn { display:inline-flex; align-items:center; gap:4px; padding:5px 11px; border-radius:7px; font-size:0.78rem; font-weight:500; text-decoration:none; cursor:pointer; border:none; transition:all .15s; }
-    .btn-edit { background:#eff6ff; color:#2563eb; }
-    .btn-edit:hover { background:#dbeafe; }
-    .btn-del { background:#fff1f2; color:#e11d48; }
-    .btn-del:hover { background:#ffe4e6; }
-    .alert-success { display:flex; align-items:center; gap:10px; padding:12px 16px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; margin-bottom:18px; font-size:0.83rem; color:#15803d; }
-    .empty-state { padding:56px 20px; text-align:center; color:#94a3b8; }
-</style>
 
-<div class="page-header">
+<div class="flex items-center justify-between mb-5">
     <div>
-        <h2 class="page-title">Manajemen User</h2>
-        <p class="page-sub">Kelola akun dan hak akses pengguna</p>
+        <h2 class="text-lg font-bold text-slate-900 m-0 mb-0.5">Manajemen User</h2>
+        <p class="text-xs text-slate-400 m-0">Kelola akun dan hak akses pengguna</p>
     </div>
-    <a href="{{ route('users.create') }}" class="btn-primary">
+    <a href="{{ route('users.create') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-br from-orange-400 to-orange-500 text-white text-sm font-semibold shadow-sm hover:-translate-y-px transition-all no-underline">
         <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
         Tambah User
     </a>
 </div>
 
 @if(session('success'))
-<div class="alert-success">
-    <svg width="16" height="16" fill="#16a34a" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+<div class="flex items-center gap-2.5 px-4 py-3 bg-green-50 border border-green-200 rounded-xl mb-4 text-sm text-green-700">
+    <svg width="16" height="16" fill="#16a34a" viewBox="0 0 20 20" class="shrink-0"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
     {{ session('success') }}
 </div>
 @endif
 
 {{-- Filter --}}
-<form method="GET" action="{{ route('users.index') }}" class="filter-bar">
-    <div class="search-wrap">
-        <svg width="15" height="15" fill="none" stroke="#94a3b8" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-        <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama atau email..." class="fi fi-search"
-            onfocus="this.style.borderColor='#f97316'" onblur="this.style.borderColor='#e2e8f0'">
+<form method="GET" action="{{ route('users.index') }}" class="flex gap-2.5 flex-wrap items-center mb-4">
+    <div class="relative flex-1 min-w-[200px]">
+        <svg width="15" height="15" fill="none" stroke="#94a3b8" stroke-width="2" viewBox="0 0 24 24" class="absolute left-[11px] top-1/2 -translate-y-1/2 pointer-events-none"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama atau email..."
+            class="w-full pl-[34px] px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors">
     </div>
 
-    <select name="role_id" class="fi" style="min-width:150px;"
-        onfocus="this.style.borderColor='#f97316'" onblur="this.style.borderColor='#e2e8f0'">
+    <select name="role_id" class="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors min-w-[150px]">
         <option value="">Semua Role</option>
         @foreach($roles as $role)
             <option value="{{ $role->id }}" {{ request('role_id') == $role->id ? 'selected' : '' }}>{{ $role->name }}</option>
@@ -75,8 +34,7 @@
     </select>
 
     @if($organizations->count() > 1)
-    <select name="organization_id" class="fi" style="min-width:160px;"
-        onfocus="this.style.borderColor='#f97316'" onblur="this.style.borderColor='#e2e8f0'">
+    <select name="organization_id" class="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors min-w-[160px]">
         <option value="">Semua Organisasi</option>
         @foreach($organizations as $org)
             <option value="{{ $org->id }}" {{ request('organization_id') == $org->id ? 'selected' : '' }}>{{ $org->name }}</option>
@@ -84,89 +42,91 @@
     </select>
     @endif
 
-    <select name="status" class="fi" style="min-width:130px;"
-        onfocus="this.style.borderColor='#f97316'" onblur="this.style.borderColor='#e2e8f0'">
+    <select name="status" class="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors min-w-[130px]">
         <option value="">Semua Status</option>
         <option value="1" {{ request('status') === '1' ? 'selected' : '' }}>Aktif</option>
         <option value="0" {{ request('status') === '0' ? 'selected' : '' }}>Nonaktif</option>
     </select>
 
-    <button type="submit" class="btn-filter">Cari</button>
+    <button type="submit" class="px-4 py-2 rounded-xl border-0 cursor-pointer text-sm font-semibold bg-gradient-to-br from-orange-400 to-orange-500 text-white">Cari</button>
     @if(request()->hasAny(['search','role_id','organization_id','status']))
-        <a href="{{ route('users.index') }}" class="btn-reset">Reset</a>
+        <a href="{{ route('users.index') }}" class="px-3.5 py-2 rounded-xl border border-slate-200 text-sm text-slate-500 no-underline bg-white">Reset</a>
     @endif
 </form>
 
-<div class="card">
-    <div class="card-header">
-        <span class="card-title">Daftar User</span>
-        <span class="count-badge">{{ $users->count() }} user</span>
+<div class="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
+    <div class="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
+        <span class="text-sm font-bold text-slate-900">Daftar User</span>
+        <span class="text-[11px] font-semibold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full">{{ $users->count() }} user</span>
     </div>
     @if($users->isEmpty())
-        <div class="empty-state">
-            <svg width="40" height="40" fill="none" stroke="#cbd5e1" stroke-width="1.5" viewBox="0 0 24 24" style="margin:0 auto 10px;display:block;"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
-            <p style="font-size:0.83rem;margin:0;">Tidak ada user ditemukan.</p>
+        <div class="py-14 px-5 text-center text-slate-400">
+            <svg width="40" height="40" fill="none" stroke="#cbd5e1" stroke-width="1.5" viewBox="0 0 24 24" class="mx-auto mb-2.5 block"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+            <p class="text-sm m-0">Tidak ada user ditemukan.</p>
         </div>
     @else
-    <table>
+    <table class="w-full border-collapse">
         <thead>
-            <tr>
-                <th>#</th>
-                <th>User</th>
-                <th>Role</th>
-                <th>Organisasi</th>
-                <th>Status</th>
-                <th>Aksi</th>
+            <tr class="bg-slate-50 border-b border-slate-100">
+                <th class="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide w-8">#</th>
+                <th class="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide">User</th>
+                <th class="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Role</th>
+                <th class="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Organisasi</th>
+                <th class="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Status</th>
+                <th class="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Aksi</th>
             </tr>
         </thead>
         <tbody>
             @foreach($users as $i => $user)
-            <tr>
-                <td style="color:#94a3b8;font-size:0.78rem;">{{ $i + 1 }}</td>
-                <td>
-                    <div style="display:flex;align-items:center;gap:10px;">
-                        <div class="user-avatar">{{ strtoupper(substr($user->name, 0, 1)) }}</div>
+            <tr class="border-b border-slate-50 hover:bg-slate-50 transition-colors last:border-b-0">
+                <td class="px-4 py-3 text-xs text-slate-400 align-middle">{{ $i + 1 }}</td>
+                <td class="px-4 py-3 text-sm text-slate-600 align-middle">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-[34px] h-[34px] rounded-full shrink-0 inline-flex items-center justify-center text-sm font-bold text-white" style="background:linear-gradient(135deg,#f97316,#ea580c)">
+                            {{ strtoupper(substr($user->name, 0, 1)) }}
+                        </div>
                         <div>
-                            <div class="user-name">{{ $user->name }}</div>
-                            <div class="user-email">{{ $user->email }}</div>
+                            <div class="text-sm font-semibold text-slate-900">{{ $user->name }}</div>
+                            <div class="text-xs text-slate-400 mt-px">{{ $user->email }}</div>
                         </div>
                     </div>
                 </td>
-                <td>
+                <td class="px-4 py-3 text-sm text-slate-600 align-middle">
                     @if($user->role)
-                        <span class="role-badge" style="background:{{ $user->role->color ? $user->role->color.'20' : '#f1f5f9' }}; color:{{ $user->role->color ?? '#64748b' }};">
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold"
+                            style="background:{{ $user->role->color ? $user->role->color.'20' : '#f1f5f9' }};color:{{ $user->role->color ?? '#64748b' }};">
                             {{ $user->role->name }}
                         </span>
                     @else
-                        <span style="color:#cbd5e1;font-size:0.8rem;">—</span>
+                        <span class="text-slate-300 text-sm">—</span>
                     @endif
                 </td>
-                <td>
+                <td class="px-4 py-3 text-sm text-slate-600 align-middle">
                     @php $orgs = $user->organizationRoles->filter(fn($r) => $r->organization)->unique('organization_id'); @endphp
                     @if($orgs->isEmpty())
-                        <span style="color:#cbd5e1;font-size:0.8rem;">{{ $user->role?->slug === 'superadmin' ? 'Semua organisasi' : '—' }}</span>
+                        <span class="text-slate-300 text-sm">{{ $user->role?->slug === 'superadmin' ? 'Semua organisasi' : '—' }}</span>
                     @else
-                        <div style="display:flex;flex-wrap:wrap;gap:2px;">
+                        <div class="flex flex-wrap gap-1">
                             @foreach($orgs as $uor)
-                                <span class="org-pill">{{ $uor->organization->name }}</span>
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-medium">{{ $uor->organization->name }}</span>
                             @endforeach
                         </div>
                     @endif
                 </td>
-                <td>
+                <td class="px-4 py-3 text-sm text-slate-600 align-middle">
                     @if($user->is_active)
-                        <span class="role-badge badge-green">Aktif</span>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-green-100 text-green-700">Aktif</span>
                     @else
-                        <span class="role-badge badge-red">Nonaktif</span>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-red-100 text-red-600">Nonaktif</span>
                     @endif
                 </td>
-                <td>
-                    <div style="display:flex;gap:6px;">
-                        <a href="{{ route('users.edit', $user) }}" class="action-btn btn-edit">Edit</a>
+                <td class="px-4 py-3 text-sm text-slate-600 align-middle">
+                    <div class="flex gap-1.5">
+                        <a href="{{ route('users.edit', $user) }}" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors no-underline">Edit</a>
                         <form id="del-user-{{ $user->id }}" method="POST" action="{{ route('users.destroy', $user) }}">
                             @csrf @method('DELETE')
                         </form>
-                        <button type="button" class="action-btn btn-del"
+                        <button type="button" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors border-0 cursor-pointer"
                             onclick="confirmDelete('del-user-{{ $user->id }}', '{{ addslashes($user->name) }}')">
                             Hapus
                         </button>

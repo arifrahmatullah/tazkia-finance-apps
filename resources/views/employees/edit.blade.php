@@ -1,32 +1,20 @@
 <x-layouts.app title="Edit Karyawan">
-    <style>
-        .back-link { display:inline-flex; align-items:center; gap:6px; color:#64748b; font-size:0.82rem; text-decoration:none; margin-bottom:20px; }
-        .back-link:hover { color:#f97316; }
-        .page-title { font-size:1.2rem; font-weight:700; color:#0f172a; margin:0 0 4px; }
-        .page-subtitle { font-size:0.82rem; color:#94a3b8; margin-bottom:20px; }
-        .card { background:#fff; border-radius:14px; box-shadow:0 1px 4px rgba(0,0,0,.07); padding:28px; }
-        .form-actions { display:flex; gap:12px; justify-content:flex-end; margin-top:28px; padding-top:20px; border-top:1px solid #f1f5f9; }
-        .btn-submit { padding:10px 24px; border-radius:9px; border:none; cursor:pointer; font-size:0.855rem; font-weight:600; background:linear-gradient(135deg,#f97316,#ea580c); color:#fff; transition:all .15s; }
-        .btn-submit:hover { transform:translateY(-1px); box-shadow:0 4px 12px rgba(249,115,22,.35); }
-        .btn-cancel { padding:10px 20px; border-radius:9px; border:1.5px solid #e2e8f0; background:#fff; color:#64748b; font-size:0.855rem; font-weight:500; text-decoration:none; cursor:pointer; transition:all .15s; }
-        .btn-cancel:hover { background:#f8fafc; border-color:#cbd5e1; }
-    </style>
 
-    <a href="{{ route('employees.show', $employee) }}" class="back-link">
+    <a href="{{ route('employees.show', $employee) }}" class="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-orange-500 mb-5 no-underline">
         <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
         Kembali ke Detail Karyawan
     </a>
 
-    <h1 class="page-title">Edit Karyawan</h1>
-    <p class="page-subtitle">NIK: {{ $employee->nik }}</p>
+    <h1 class="text-xl font-bold text-slate-900 m-0 mb-0.5">Edit Karyawan</h1>
+    <p class="text-sm text-slate-400 mb-5">NIK: {{ $employee->nik }}</p>
 
-    <div class="card">
+    <div class="bg-white rounded-xl shadow-sm p-6">
         <form method="POST" action="{{ route('employees.update', $employee) }}">
             @csrf @method('PUT')
             @include('employees._form')
-            <div class="form-actions">
-                <a href="{{ route('employees.show', $employee) }}" class="btn-cancel">Batal</a>
-                <button type="submit" class="btn-submit">Simpan Perubahan</button>
+            <div class="flex gap-3 justify-end mt-6 pt-5 border-t border-slate-100">
+                <a href="{{ route('employees.show', $employee) }}" class="px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 text-sm font-medium no-underline inline-flex items-center">Batal</a>
+                <button type="submit" class="px-6 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-br from-orange-400 to-orange-500 text-white border-0 cursor-pointer hover:-translate-y-px transition-all">Simpan Perubahan</button>
             </div>
         </form>
     </div>

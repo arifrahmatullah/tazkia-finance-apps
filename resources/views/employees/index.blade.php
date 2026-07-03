@@ -1,118 +1,84 @@
 <x-layouts.app title="Daftar Karyawan">
-    <style>
-        .page-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; }
-        .page-title { font-size:1.35rem; font-weight:700; color:#0f172a; margin:0; }
-        .page-subtitle { font-size:0.82rem; color:#64748b; margin-top:2px; }
-        .btn-primary { display:inline-flex; align-items:center; gap:7px; padding:9px 18px; border-radius:9px; border:none; cursor:pointer; font-size:0.845rem; font-weight:600; text-decoration:none; background:linear-gradient(135deg,#f97316,#ea580c); color:#fff; transition:all .15s; }
-        .btn-primary:hover { background:linear-gradient(135deg,#ea580c,#c2410c); transform:translateY(-1px); box-shadow:0 4px 12px rgba(249,115,22,.35); }
-        .card { background:#fff; border-radius:14px; box-shadow:0 1px 4px rgba(0,0,0,.07); overflow:hidden; }
-        .card-header { padding:16px 22px; border-bottom:1px solid #f1f5f9; display:flex; align-items:center; justify-content:space-between; }
-        .card-header-title { font-size:0.9rem; font-weight:600; color:#334155; }
-        .badge-count { background:#f1f5f9; color:#64748b; font-size:0.72rem; font-weight:600; padding:3px 9px; border-radius:99px; }
-        table { width:100%; border-collapse:collapse; }
-        th { padding:11px 16px; text-align:left; font-size:0.72rem; font-weight:600; color:#94a3b8; text-transform:uppercase; letter-spacing:.06em; border-bottom:1px solid #f1f5f9; background:#fafbfc; white-space:nowrap; }
-        td { padding:13px 16px; font-size:0.845rem; color:#334155; border-bottom:1px solid #f8fafc; vertical-align:middle; }
-        tr:last-child td { border-bottom:none; }
-        tr:hover td { background:#fafbff; }
-        .badge { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:99px; font-size:0.72rem; font-weight:600; }
-        .badge-green { background:#dcfce7; color:#16a34a; }
-        .badge-red { background:#fee2e2; color:#dc2626; }
-        .badge-blue { background:#dbeafe; color:#2563eb; }
-        .badge-gray { background:#f1f5f9; color:#64748b; }
-        .emp-name { font-weight:600; color:#0f172a; }
-        .emp-sub { font-size:0.77rem; color:#94a3b8; margin-top:1px; }
-        .action-btn { display:inline-flex; align-items:center; gap:4px; padding:5px 11px; border-radius:7px; font-size:0.78rem; font-weight:500; text-decoration:none; cursor:pointer; border:none; transition:all .15s; }
-        .btn-detail { background:#eff6ff; color:#2563eb; }
-        .btn-detail:hover { background:#dbeafe; }
-        .btn-edit { background:#f0fdf4; color:#16a34a; }
-        .btn-edit:hover { background:#dcfce7; }
-        .btn-delete { background:#fff1f2; color:#e11d48; }
-        .btn-delete:hover { background:#ffe4e6; }
-        .empty-state { padding:60px 20px; text-align:center; }
-        .empty-icon { font-size:2.5rem; margin-bottom:12px; }
-        .empty-text { color:#94a3b8; font-size:0.9rem; }
-        .alert-success { background:#f0fdf4; border:1px solid #bbf7d0; color:#166534; padding:12px 16px; border-radius:10px; margin-bottom:20px; font-size:0.845rem; }
-    </style>
 
-    <div class="page-header">
+    <div class="flex items-center justify-between mb-5">
         <div>
-            <h1 class="page-title">Daftar Karyawan</h1>
-            <p class="page-subtitle">Manajemen data karyawan aktif</p>
+            <h2 class="text-lg font-bold text-slate-900 m-0 mb-0.5">Daftar Karyawan</h2>
+            <p class="text-xs text-slate-400 m-0">Manajemen data karyawan aktif</p>
         </div>
-        <a href="{{ route('employees.create') }}" class="btn-primary">
+        <a href="{{ route('employees.create') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-br from-orange-400 to-orange-500 text-white text-sm font-semibold shadow-sm hover:-translate-y-px transition-all no-underline">
             <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
             Tambah Karyawan
         </a>
     </div>
 
     @if(session('success'))
-        <div class="alert-success">{{ session('success') }}</div>
+        <div class="flex items-center gap-2.5 px-4 py-3 bg-green-50 border border-green-200 rounded-xl mb-4 text-sm text-green-700">{{ session('success') }}</div>
     @endif
 
-    <div class="card">
-        <div class="card-header">
-            <span class="card-header-title">Karyawan</span>
-            <span class="badge-count">{{ $employees->count() }} data</span>
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div class="px-4 py-3.5 border-b border-slate-100 flex items-center justify-between">
+            <span class="text-sm font-semibold text-slate-700">Karyawan</span>
+            <span class="bg-slate-100 text-slate-500 text-[11px] font-semibold px-2.5 py-0.5 rounded-full">{{ $employees->count() }} data</span>
         </div>
         @if($employees->isEmpty())
-            <div class="empty-state">
-                <div class="empty-icon">👥</div>
-                <p class="empty-text">Belum ada karyawan. Klik "Tambah Karyawan" untuk mulai.</p>
+            <div class="py-12 px-5 text-center text-slate-400">
+                <div class="text-4xl mb-3">👥</div>
+                <p class="text-sm m-0">Belum ada karyawan. Klik "Tambah Karyawan" untuk mulai.</p>
             </div>
         @else
-            <table>
+            <table class="w-full border-collapse">
                 <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Karyawan</th>
-                        <th>NIK</th>
-                        <th>Jabatan Aktif</th>
-                        <th>Organisasi</th>
-                        <th>Kontak</th>
-                        <th>Status</th>
-                        <th>Aksi</th>
+                    <tr class="bg-slate-50 border-b border-slate-100">
+                        <th class="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide">#</th>
+                        <th class="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Karyawan</th>
+                        <th class="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide">NIK</th>
+                        <th class="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Jabatan Aktif</th>
+                        <th class="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Organisasi</th>
+                        <th class="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Kontak</th>
+                        <th class="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Status</th>
+                        <th class="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach($employees as $i => $emp)
-                    <tr>
-                        <td style="color:#94a3b8;font-size:0.78rem;">{{ $i + 1 }}</td>
-                        <td>
-                            <div class="emp-name">
+                    <tr class="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                        <td class="px-4 py-3 text-xs text-slate-400 align-middle">{{ $i + 1 }}</td>
+                        <td class="px-4 py-3 text-sm text-slate-600 align-middle">
+                            <div class="font-semibold text-slate-900">
                                 {{ $emp->name }}
-                                @if($emp->title) <span style="font-weight:400;color:#64748b;font-size:0.8rem;">, {{ $emp->title }}</span> @endif
+                                @if($emp->title) <span class="font-normal text-slate-500 text-sm">, {{ $emp->title }}</span> @endif
                             </div>
-                            <div class="emp-sub">{{ $emp->gender === 'L' ? 'Laki-laki' : ($emp->gender === 'P' ? 'Perempuan' : '-') }}</div>
+                            <div class="text-xs text-slate-400 mt-0.5">{{ $emp->gender === 'L' ? 'Laki-laki' : ($emp->gender === 'P' ? 'Perempuan' : '-') }}</div>
                         </td>
-                        <td style="font-family:monospace;font-size:0.82rem;color:#475569;">{{ $emp->nik }}</td>
-                        <td>
+                        <td class="px-4 py-3 font-mono text-xs text-slate-500 align-middle">{{ $emp->nik }}</td>
+                        <td class="px-4 py-3 text-sm text-slate-600 align-middle">
                             @if($emp->activePosition && $emp->activePosition->position)
-                                <span class="badge badge-blue">{{ $emp->activePosition->position->name }}</span>
-                                <div class="emp-sub">{{ $emp->activePosition->position->department->name ?? '' }}</div>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-100 text-blue-700">{{ $emp->activePosition->position->name }}</span>
+                                <div class="text-xs text-slate-400 mt-0.5">{{ $emp->activePosition->position->department->name ?? '' }}</div>
                             @else
-                                <span style="color:#cbd5e1;font-size:0.8rem;">— belum ada</span>
+                                <span class="text-slate-300 text-xs">— belum ada</span>
                             @endif
                         </td>
-                        <td style="font-size:0.82rem;">{{ $emp->organization->name ?? '-' }}</td>
-                        <td>
-                            <div style="font-size:0.82rem;">{{ $emp->email ?? '-' }}</div>
-                            <div class="emp-sub">{{ $emp->phone ?? '' }}</div>
+                        <td class="px-4 py-3 text-xs text-slate-600 align-middle">{{ $emp->organization->name ?? '-' }}</td>
+                        <td class="px-4 py-3 text-sm text-slate-600 align-middle">
+                            <div class="text-xs">{{ $emp->email ?? '-' }}</div>
+                            <div class="text-xs text-slate-400 mt-0.5">{{ $emp->phone ?? '' }}</div>
                         </td>
-                        <td>
+                        <td class="px-4 py-3 text-sm text-slate-600 align-middle">
                             @if($emp->is_active)
-                                <span class="badge badge-green">Aktif</span>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-green-100 text-green-700">Aktif</span>
                             @else
-                                <span class="badge badge-red">Nonaktif</span>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-red-100 text-red-600">Nonaktif</span>
                             @endif
                         </td>
-                        <td>
-                            <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                                <a href="{{ route('employees.show', $emp) }}" class="action-btn btn-detail">Detail</a>
-                                <a href="{{ route('employees.edit', $emp) }}" class="action-btn btn-edit">Edit</a>
+                        <td class="px-4 py-3 text-sm text-slate-600 align-middle">
+                            <div class="flex gap-1.5 flex-wrap">
+                                <a href="{{ route('employees.show', $emp) }}" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors no-underline">Detail</a>
+                                <a href="{{ route('employees.edit', $emp) }}" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors no-underline">Edit</a>
                                 <form id="del-emp-{{ $emp->id }}" method="POST" action="{{ route('employees.destroy', $emp) }}">
                                     @csrf @method('DELETE')
                                 </form>
-                                <button type="button" class="action-btn btn-delete"
+                                <button type="button" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors border-0 cursor-pointer"
                                     onclick="confirmDelete('del-emp-{{ $emp->id }}', '{{ addslashes($emp->name) }}')">
                                     Hapus
                                 </button>

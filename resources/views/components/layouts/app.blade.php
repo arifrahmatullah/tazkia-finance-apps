@@ -8,124 +8,24 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
-        * { box-sizing: border-box; }
-        body { font-family: 'Inter', sans-serif; margin: 0; background: #f1f5f9; }
+        body { font-family: 'Inter', sans-serif; }
 
-        /* Sidebar */
-        .sidebar {
-            width: 260px; height: 100vh;
-            background: linear-gradient(180deg, #040f2e 0%, #0d2d6b 100%);
-            position: fixed; top: 0; left: 0; z-index: 50;
-            display: flex; flex-direction: column;
-            overflow: hidden;
-            transition: transform 0.3s ease;
-        }
-        .sidebar-logo {
-            padding: 20px 20px 16px;
-            border-bottom: 1px solid rgba(255,255,255,0.07);
-        }
-        .sidebar-nav { flex: 1; padding: 12px 0; overflow-y: auto; }
-        .nav-section-label {
-            padding: 16px 20px 6px;
-            font-size: 0.65rem; font-weight: 600;
-            color: rgba(148,163,184,0.7);
-            letter-spacing: 0.1em; text-transform: uppercase;
-        }
-        .nav-item {
-            display: flex; align-items: center; gap: 10px;
-            padding: 9px 16px 9px 20px; margin: 1px 10px;
-            border-radius: 8px; cursor: pointer;
-            text-decoration: none;
-            color: rgba(203,213,225,0.85);
-            font-size: 0.835rem; font-weight: 450;
-            transition: all 0.15s;
-            position: relative;
-        }
-        .nav-item:hover {
-            background: rgba(255,255,255,0.07);
-            color: #ffffff;
-        }
-        .nav-item.active {
-            background: rgba(249,115,22,0.15);
-            color: #ffffff;
-            font-weight: 550;
-        }
+        /* Active nav indicator bar */
         .nav-item.active::before {
             content: '';
             position: absolute; left: -10px; top: 50%; transform: translateY(-50%);
             width: 3px; height: 18px;
             background: #f97316; border-radius: 0 3px 3px 0;
         }
-        .nav-item svg { flex-shrink: 0; opacity: 0.8; }
-        .nav-item.active svg { opacity: 1; color: #fb923c; }
-        .nav-item:hover svg { opacity: 1; }
 
-        /* Badge di nav */
-        .nav-badge {
-            margin-left: auto;
-            background: rgba(249,115,22,0.2);
-            color: #fb923c;
-            font-size: 0.65rem; font-weight: 600;
-            padding: 2px 7px; border-radius: 999px;
-        }
-
-        /* Sub menu */
-        .nav-submenu { display: none; }
-        .nav-submenu.open { display: block; }
-        .nav-subitem {
-            display: flex; align-items: center; gap: 8px;
-            padding: 7px 16px 7px 46px; margin: 1px 10px;
-            border-radius: 7px; cursor: pointer;
-            text-decoration: none;
-            color: rgba(148,163,184,0.8);
-            font-size: 0.8rem;
-            transition: all 0.15s;
-        }
-        .nav-subitem:hover { background: rgba(255,255,255,0.05); color: #ffffff; }
-        .nav-subitem.active { color: #93c5fd; }
+        /* Sub-menu dot */
         .nav-subitem::before {
             content: ''; width: 5px; height: 5px;
             border-radius: 50%; background: currentColor;
             opacity: 0.5; flex-shrink: 0;
         }
 
-        /* Sidebar footer */
-        .sidebar-footer {
-            padding: 16px;
-            border-top: 1px solid rgba(255,255,255,0.07);
-        }
-        .user-card {
-            display: flex; align-items: center; gap: 10px;
-            padding: 10px 12px; border-radius: 10px;
-            background: rgba(255,255,255,0.06);
-            cursor: pointer; transition: background 0.15s;
-        }
-        .user-card:hover { background: rgba(255,255,255,0.1); }
-        .user-avatar {
-            width: 34px; height: 34px; border-radius: 9px;
-            background: linear-gradient(135deg, #ea580c, #f97316);
-            display: flex; align-items: center; justify-content: center;
-            font-weight: 700; font-size: 0.8rem; color: white;
-            flex-shrink: 0;
-        }
-
-        /* Main */
-        .main-wrapper { margin-left: 260px; min-height: 100vh; display: flex; flex-direction: column; }
-
-        /* Header */
-        .header {
-            background: #ffffff;
-            border-bottom: 1px solid #e2e8f0;
-            padding: 0 24px;
-            height: 60px;
-            display: flex; align-items: center; justify-content: space-between;
-            position: sticky; top: 0; z-index: 40;
-        }
-
-        /* Content */
-        .page-content { padding: 28px 28px; flex: 1; }
-
-        /* Scrollbar sidebar */
+        /* Sidebar scrollbar */
         .sidebar-nav { scrollbar-width: thin; scrollbar-color: rgba(249,115,22,0.4) transparent; }
         .sidebar-nav::-webkit-scrollbar { width: 3px; }
         .sidebar-nav::-webkit-scrollbar-track { background: transparent; }
@@ -133,188 +33,220 @@
             background: linear-gradient(180deg, rgba(249,115,22,0.6), rgba(234,88,12,0.3));
             border-radius: 99px;
         }
-        .sidebar-nav::-webkit-scrollbar-thumb:hover {
-            background: linear-gradient(180deg, #f97316, #ea580c);
-        }
 
-        /* Mobile overlay */
-        .sidebar-overlay {
-            display: none; position: fixed; inset: 0;
-            background: rgba(0,0,0,0.5); z-index: 49;
-        }
+        /* Mobile sidebar */
         @media (max-width: 1024px) {
             .sidebar { transform: translateX(-100%); }
             .sidebar.open { transform: translateX(0); }
             .sidebar-overlay.show { display: block; }
-            .main-wrapper { margin-left: 0; }
+            .main-wrapper { margin-left: 0 !important; }
         }
     </style>
 </head>
-<body>
+<body class="m-0 bg-slate-100">
 
 {{-- Sidebar Overlay (mobile) --}}
-<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+<div class="sidebar-overlay hidden fixed inset-0 bg-black/50 z-[49]"
+     id="sidebar-overlay" onclick="closeSidebar()"></div>
 
 {{-- SIDEBAR --}}
-<aside class="sidebar" id="sidebar">
+<aside class="sidebar w-[260px] h-screen fixed top-0 left-0 z-50 flex flex-col overflow-hidden transition-transform duration-300"
+    id="sidebar"
+    style="background: linear-gradient(180deg, #040f2e 0%, #0d2d6b 100%);">
 
     {{-- Logo --}}
-    <div class="sidebar-logo">
-        <div style="display:flex; align-items:center; gap:10px;">
-            <div style="
-                width:36px; height:36px; border-radius:9px;
-                background: linear-gradient(135deg, #ea580c, #f97316);
-                display:flex; align-items:center; justify-content:center;
-                box-shadow: 0 3px 10px rgba(234,88,12,0.35);
-                flex-shrink: 0;
-            ">
+    <div class="px-5 py-5 border-b border-white/[0.07]">
+        <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-[9px] flex items-center justify-center flex-shrink-0 shadow-lg"
+                style="background: linear-gradient(135deg, #ea580c, #f97316); box-shadow: 0 3px 10px rgba(234,88,12,0.35);">
                 <svg width="18" height="18" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 11h.01M12 11h.01M15 11h.01M4 19h16a2 2 0 002-2V7a2 2 0 00-2-2H4a2 2 0 00-2 2v10a2 2 0 002 2z"/>
                 </svg>
             </div>
             <div>
-                <div style="color:#fff; font-weight:700; font-size:0.95rem; line-height:1.2;">Tazkia Finance</div>
-                <div style="color:#93c5fd; font-size:0.62rem; letter-spacing:0.08em; text-transform:uppercase; font-weight:500;">Management System</div>
+                <div class="text-white font-bold text-[0.95rem] leading-tight">Tazkia Finance</div>
+                <div class="text-blue-300 text-[0.62rem] tracking-[0.08em] uppercase font-medium">Management System</div>
             </div>
         </div>
     </div>
 
     {{-- Navigation --}}
-    <nav class="sidebar-nav">
+    <nav class="sidebar-nav flex-1 py-3 overflow-y-auto">
 
         {{-- Dashboard --}}
         <a href="{{ route('dashboard') }}"
-           class="nav-item {{ request()->routeIs('dashboard') ? 'active' : '' }}">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+           class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg no-underline text-[0.835rem] transition-all relative
+                  {{ request()->routeIs('dashboard') ? 'active bg-orange-500/[0.15] text-white font-[550]' : 'text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white' }}">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                class="{{ request()->routeIs('dashboard') ? 'text-orange-300' : 'opacity-80' }}">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
             </svg>
             Dashboard
         </a>
 
         {{-- MASTER DATA --}}
-        <div class="nav-section-label">Master Data</div>
+        <div class="px-5 pt-4 pb-1.5 text-[0.65rem] font-semibold text-slate-400/70 tracking-[0.1em] uppercase">Master Data</div>
 
         <div>
-            <div class="nav-item {{ request()->routeIs('organizations.*') ? 'active' : '' }}"
+            <div class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg cursor-pointer text-[0.835rem] transition-all relative
+                        {{ request()->routeIs('organizations.*') ? 'active bg-orange-500/[0.15] text-white font-[550]' : 'text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white' }}"
                  onclick="toggleSubmenu('sub-org')">
-                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                    class="{{ request()->routeIs('organizations.*') ? 'text-orange-300' : 'opacity-80' }}">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                 </svg>
                 Organisasi
-                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-left:auto; transition:transform 0.2s;" id="arrow-org">
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                    class="ml-auto transition-transform duration-200" id="arrow-org">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
                 </svg>
             </div>
-            <div class="nav-submenu {{ request()->routeIs('organizations.*') ? 'open' : '' }}" id="sub-org">
-                <a href="{{ route('organizations.index') }}" class="nav-subitem {{ request()->routeIs('organizations.*') ? 'active' : '' }}">Daftar Organisasi</a>
-                <a href="{{ route('departments.index') }}" class="nav-subitem {{ request()->routeIs('departments.*') ? 'active' : '' }}">Departemen</a>
-                <a href="{{ route('positions.index') }}" class="nav-subitem {{ request()->routeIs('positions.*') ? 'active' : '' }}">Jabatan</a>
+            <div class="nav-submenu {{ request()->routeIs('organizations.*') ? 'open' : '' }} hidden" id="sub-org">
+                <a href="{{ route('organizations.index') }}"
+                   class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
+                          {{ request()->routeIs('organizations.*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Daftar Organisasi</a>
+                <a href="{{ route('departments.index') }}"
+                   class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
+                          {{ request()->routeIs('departments.*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Departemen</a>
+                <a href="{{ route('positions.index') }}"
+                   class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
+                          {{ request()->routeIs('positions.*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Jabatan</a>
             </div>
         </div>
 
-        <a href="{{ route('employees.index') }}" class="nav-item {{ request()->routeIs('employees.*') ? 'active' : '' }}">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <a href="{{ route('employees.index') }}"
+           class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg no-underline text-[0.835rem] transition-all relative
+                  {{ request()->routeIs('employees.*') ? 'active bg-orange-500/[0.15] text-white font-[550]' : 'text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white' }}">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                class="{{ request()->routeIs('employees.*') ? 'text-orange-300' : 'opacity-80' }}">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
             </svg>
             Karyawan
         </a>
 
         {{-- KEUANGAN --}}
-        <div class="nav-section-label">Keuangan</div>
+        <div class="px-5 pt-4 pb-1.5 text-[0.65rem] font-semibold text-slate-400/70 tracking-[0.1em] uppercase">Keuangan</div>
 
         <div>
-            <div class="nav-item {{ request()->routeIs('anggaran.*') ? 'active' : '' }}"
+            <div class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg cursor-pointer text-[0.835rem] transition-all relative
+                        {{ request()->routeIs('budget-periods.*') || request()->routeIs('budget-allocations.*') ? 'active bg-orange-500/[0.15] text-white font-[550]' : 'text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white' }}"
                  onclick="toggleSubmenu('sub-anggaran')">
-                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                    class="{{ request()->routeIs('budget-periods.*') || request()->routeIs('budget-allocations.*') ? 'text-orange-300' : 'opacity-80' }}">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
                 </svg>
                 Anggaran
-                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-left:auto; transition:transform 0.2s;" id="arrow-anggaran">
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                    class="ml-auto transition-transform duration-200" id="arrow-anggaran">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
                 </svg>
             </div>
-            <div class="nav-submenu" id="sub-anggaran">
-                <a href="{{ route('budget-periods.index') }}" class="nav-subitem {{ request()->routeIs('budget-periods.*') ? 'active' : '' }}">Periode Anggaran</a>
-                <a href="{{ route('budget-allocations.index') }}" class="nav-subitem {{ request()->routeIs('budget-allocations.*') ? 'active' : '' }}">Pagu Anggaran</a>
-                <a href="#" class="nav-subitem">Detail Anggaran</a>
+            <div class="nav-submenu {{ request()->routeIs('budget-periods.*') || request()->routeIs('budget-allocations.*') ? 'open' : '' }} hidden" id="sub-anggaran">
+                <a href="{{ route('budget-periods.index') }}"
+                   class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
+                          {{ request()->routeIs('budget-periods.*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Periode Anggaran</a>
+                <a href="{{ route('budget-allocations.index') }}"
+                   class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
+                          {{ request()->routeIs('budget-allocations.*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Pagu Anggaran</a>
+                <a href="#" class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] text-slate-400/80 hover:bg-white/5 hover:text-white transition-all">Detail Anggaran</a>
             </div>
         </div>
 
         <div>
-            <div class="nav-item {{ request()->routeIs('pengajuan.*') ? 'active' : '' }}"
+            <div class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg cursor-pointer text-[0.835rem] transition-all relative
+                        {{ request()->routeIs('fund-requests.*') || request()->routeIs('fund-approvals.*') || request()->routeIs('approval-settings.*') ? 'active bg-orange-500/[0.15] text-white font-[550]' : 'text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white' }}"
                  onclick="toggleSubmenu('sub-pengajuan')">
-                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                    class="{{ request()->routeIs('fund-requests.*') || request()->routeIs('fund-approvals.*') || request()->routeIs('approval-settings.*') ? 'text-orange-300' : 'opacity-80' }}">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
                 Pengajuan Dana
-                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-left:auto; transition:transform 0.2s;" id="arrow-pengajuan">
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                    class="ml-auto transition-transform duration-200" id="arrow-pengajuan">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
                 </svg>
             </div>
-            <div class="nav-submenu" id="sub-pengajuan">
-                <a href="#" class="nav-subitem">Buat Pengajuan</a>
-                <a href="#" class="nav-subitem">Approval</a>
-                <a href="#" class="nav-subitem">Pencairan Dana</a>
+            <div class="nav-submenu {{ request()->routeIs('fund-requests.*') || request()->routeIs('fund-approvals.*') || request()->routeIs('approval-settings.*') ? 'open' : '' }} hidden" id="sub-pengajuan">
+                <a href="{{ route('fund-requests.index') }}"
+                   class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
+                          {{ request()->routeIs('fund-requests.*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Pengajuan Saya</a>
+                <a href="{{ route('fund-approvals.inbox') }}"
+                   class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
+                          {{ request()->routeIs('fund-approvals.*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Inbox Approval</a>
+                <a href="{{ route('approval-settings.index') }}"
+                   class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
+                          {{ request()->routeIs('approval-settings.*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Setting Approval</a>
             </div>
         </div>
 
-        <a href="#" class="nav-item">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <a href="#" class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg no-underline text-[0.835rem] text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white transition-all relative">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" class="opacity-80">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
             </svg>
             Kas & Bank
         </a>
 
         {{-- AKUNTING --}}
-        <div class="nav-section-label">Akunting</div>
+        <div class="px-5 pt-4 pb-1.5 text-[0.65rem] font-semibold text-slate-400/70 tracking-[0.1em] uppercase">Akunting</div>
 
-        <a href="#" class="nav-item">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <a href="{{ route('journal-entries.index') }}"
+           class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg no-underline text-[0.835rem] transition-all relative
+                  {{ request()->routeIs('journal-entries.*') ? 'active bg-orange-500/[0.15] text-white font-[550]' : 'text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white' }}">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                class="{{ request()->routeIs('journal-entries.*') ? 'text-orange-300' : 'opacity-80' }}">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
             </svg>
             Jurnal Umum
         </a>
 
-        <a href="#" class="nav-item">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <a href="{{ route('accounts.index') }}"
+           class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg no-underline text-[0.835rem] transition-all relative
+                  {{ request()->routeIs('accounts.*') ? 'active bg-orange-500/[0.15] text-white font-[550]' : 'text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white' }}">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                class="{{ request()->routeIs('accounts.*') ? 'text-orange-300' : 'opacity-80' }}">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/>
             </svg>
             Chart of Accounts
         </a>
 
         {{-- LAPORAN --}}
-        <div class="nav-section-label">Laporan</div>
+        <div class="px-5 pt-4 pb-1.5 text-[0.65rem] font-semibold text-slate-400/70 tracking-[0.1em] uppercase">Laporan</div>
 
         <div>
-            <div class="nav-item" onclick="toggleSubmenu('sub-laporan')">
-                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <div class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg cursor-pointer text-[0.835rem] text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white transition-all relative"
+                 onclick="toggleSubmenu('sub-laporan')">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" class="opacity-80">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                 </svg>
                 Laporan Keuangan
-                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-left:auto; transition:transform 0.2s;" id="arrow-laporan">
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                    class="ml-auto transition-transform duration-200" id="arrow-laporan">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
                 </svg>
             </div>
-            <div class="nav-submenu" id="sub-laporan">
-                <a href="#" class="nav-subitem">Realisasi Anggaran</a>
-                <a href="#" class="nav-subitem">Arus Kas</a>
-                <a href="#" class="nav-subitem">Neraca</a>
-                <a href="#" class="nav-subitem">Laba Rugi</a>
+            <div class="nav-submenu hidden" id="sub-laporan">
+                <a href="#" class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] text-slate-400/80 hover:bg-white/5 hover:text-white transition-all">Realisasi Anggaran</a>
+                <a href="#" class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] text-slate-400/80 hover:bg-white/5 hover:text-white transition-all">Arus Kas</a>
+                <a href="#" class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] text-slate-400/80 hover:bg-white/5 hover:text-white transition-all">Neraca</a>
+                <a href="#" class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] text-slate-400/80 hover:bg-white/5 hover:text-white transition-all">Laba Rugi</a>
             </div>
         </div>
 
-        {{-- PENGATURAN --}}
-        <div class="nav-section-label">Sistem</div>
+        {{-- SISTEM --}}
+        <div class="px-5 pt-4 pb-1.5 text-[0.65rem] font-semibold text-slate-400/70 tracking-[0.1em] uppercase">Sistem</div>
 
-        <a href="{{ route('users.index') }}" class="nav-item {{ request()->routeIs('users.*') ? 'active' : '' }}">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <a href="{{ route('users.index') }}"
+           class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg no-underline text-[0.835rem] transition-all relative
+                  {{ request()->routeIs('users.*') ? 'active bg-orange-500/[0.15] text-white font-[550]' : 'text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white' }}">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                class="{{ request()->routeIs('users.*') ? 'text-orange-300' : 'opacity-80' }}">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
             </svg>
             Manajemen User
         </a>
 
-        <a href="#" class="nav-item">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <a href="#" class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg no-underline text-[0.835rem] text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white transition-all relative">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" class="opacity-80">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
             </svg>
@@ -324,23 +256,20 @@
     </nav>
 
     {{-- User card --}}
-    <div class="sidebar-footer">
-        <div class="user-card">
-            <div class="user-avatar">
+    <div class="p-4 border-t border-white/[0.07]">
+        <div class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white/[0.06] cursor-pointer hover:bg-white/10 transition-colors">
+            <div class="w-[34px] h-[34px] rounded-[9px] flex items-center justify-center font-bold text-[0.8rem] text-white flex-shrink-0"
+                style="background: linear-gradient(135deg, #ea580c, #f97316);">
                 {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
             </div>
-            <div style="flex:1; min-width:0;">
-                <div style="color:#fff; font-size:0.8rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                    {{ auth()->user()->name }}
-                </div>
-                <div style="color:#93c5fd; font-size:0.68rem; margin-top:1px;">
-                    {{ ucfirst(auth()->user()->role?->slug ?? '-') }}
-                </div>
+            <div class="flex-1 min-w-0">
+                <div class="text-white text-[0.8rem] font-semibold truncate">{{ auth()->user()->name }}</div>
+                <div class="text-blue-300 text-[0.68rem] mt-px">{{ ucfirst(auth()->user()->role?->slug ?? '-') }}</div>
             </div>
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
-                <button type="submit" title="Logout" style="background:none; border:none; cursor:pointer; color:rgba(148,163,184,0.7); padding:4px; border-radius:6px; display:flex; align-items:center; transition:color 0.15s;"
-                    onmouseover="this.style.color='#f87171';" onmouseout="this.style.color='rgba(148,163,184,0.7)';">
+                <button type="submit" title="Logout"
+                    class="bg-transparent border-0 cursor-pointer text-slate-400/70 p-1 rounded-md flex items-center hover:text-red-400 transition-colors">
                     <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
                     </svg>
@@ -351,13 +280,14 @@
 </aside>
 
 {{-- MAIN WRAPPER --}}
-<div class="main-wrapper">
+<div class="main-wrapper ml-[260px] min-h-screen flex flex-col">
 
     {{-- HEADER --}}
-    <header class="header">
-        <div style="display:flex; align-items:center; gap:14px;">
+    <header class="bg-white border-b border-slate-200 px-6 h-[60px] flex items-center justify-between sticky top-0 z-40">
+        <div class="flex items-center gap-3.5">
             {{-- Mobile hamburger --}}
-            <button onclick="openSidebar()" class="lg:hidden" style="background:none; border:none; cursor:pointer; padding:6px; border-radius:8px; color:#64748b; display:none;">
+            <button onclick="openSidebar()"
+                class="lg:hidden bg-transparent border-0 cursor-pointer p-1.5 rounded-lg text-slate-500">
                 <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
                 </svg>
@@ -365,111 +295,77 @@
 
             {{-- Breadcrumb / Page title --}}
             <div>
-                <h1 style="font-size:0.95rem; font-weight:600; color:#0f172a; margin:0; line-height:1.3;">
-                    {{ $title ?? 'Dashboard' }}
-                </h1>
+                <h1 class="text-[0.95rem] font-semibold text-slate-900 m-0 leading-tight">{{ $title ?? 'Dashboard' }}</h1>
                 @isset($breadcrumb)
-                <div style="font-size:0.72rem; color:#94a3b8; margin-top:1px;">{{ $breadcrumb }}</div>
+                <div class="text-[0.72rem] text-slate-400 mt-px">{{ $breadcrumb }}</div>
                 @endisset
             </div>
         </div>
 
         {{-- Header Right --}}
-        <div style="display:flex; align-items:center; gap:10px;">
-
+        <div class="flex items-center gap-2.5">
             {{-- Org badge --}}
-            <div style="
-                padding: 5px 12px; border-radius:999px;
-                background: #eff6ff; border: 1px solid #bfdbfe;
-                font-size: 0.72rem; font-weight: 600; color: #1d4ed8;
-            ">
+            <div class="px-3 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-[0.72rem] font-semibold text-blue-700">
                 {{ auth()->user()->role?->slug === 'superadmin' ? 'Semua Organisasi' : (auth()->user()->organizationRoles->first()?->organization?->name ?? '-') }}
             </div>
 
             {{-- Notification --}}
-            <button style="
-                width:36px; height:36px; border-radius:9px;
-                background:#f8fafc; border:1px solid #e2e8f0;
-                display:flex; align-items:center; justify-content:center;
-                cursor:pointer; color:#64748b; position:relative;
-            ">
+            <button class="relative w-9 h-9 rounded-[9px] bg-slate-50 border border-slate-200 flex items-center justify-center cursor-pointer text-slate-500 hover:bg-slate-100 transition-colors">
                 <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
                 </svg>
-                <span style="position:absolute; top:7px; right:7px; width:7px; height:7px; background:#f97316; border-radius:50%; border:1.5px solid #fff;"></span>
+                <span class="absolute top-[7px] right-[7px] w-[7px] h-[7px] bg-orange-400 rounded-full border-2 border-white"></span>
             </button>
 
             {{-- Avatar --}}
-            <div style="
-                width:36px; height:36px; border-radius:9px;
-                background: linear-gradient(135deg, #0d2d6b, #1a4fad);
-                display:flex; align-items:center; justify-content:center;
-                font-weight:700; font-size:0.8rem; color:white; cursor:pointer;
-            ">
+            <div class="w-9 h-9 rounded-[9px] flex items-center justify-center font-bold text-[0.8rem] text-white cursor-pointer"
+                style="background: linear-gradient(135deg, #0d2d6b, #1a4fad);">
                 {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
             </div>
         </div>
     </header>
 
     {{-- PAGE CONTENT --}}
-    <main class="page-content">
+    <main class="px-7 py-7 flex-1">
         {{ $slot }}
     </main>
 
 </div>
 
 {{-- CONFIRM MODAL --}}
-<div id="confirm-overlay" style="
-    display:none; position:fixed; inset:0; z-index:999;
-    background:rgba(2,8,23,0.5); backdrop-filter:blur(3px);
-    align-items:center; justify-content:center;
-">
-    <div id="confirm-box" style="
-        background:#fff; border-radius:16px; width:380px; max-width:90vw;
-        box-shadow:0 20px 60px rgba(0,0,0,0.25);
-        transform:scale(0.92); opacity:0;
-        transition:transform 0.18s cubic-bezier(.34,1.56,.64,1), opacity 0.15s ease;
-        overflow:hidden;
-    ">
+<div id="confirm-overlay"
+    class="hidden fixed inset-0 z-[999] bg-slate-900/50 backdrop-blur-sm items-center justify-center">
+    <div id="confirm-box"
+        class="bg-white rounded-2xl w-[380px] max-w-[90vw] shadow-2xl overflow-hidden scale-95 opacity-0 transition-all duration-[180ms]">
         {{-- Header --}}
-        <div style="padding:20px 22px 0; display:flex; align-items:flex-start; gap:14px;">
-            <div id="confirm-icon" style="
-                width:42px; height:42px; border-radius:12px; flex-shrink:0;
-                background:#fef2f2; display:flex; align-items:center; justify-content:center;
-            ">
+        <div class="p-5 pb-0 flex items-start gap-3.5">
+            <div id="confirm-icon" class="w-[42px] h-[42px] rounded-xl flex-shrink-0 bg-red-50 flex items-center justify-center">
                 <svg width="20" height="20" fill="none" stroke="#dc2626" stroke-width="2" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                 </svg>
             </div>
             <div>
-                <div id="confirm-title" style="font-size:0.97rem; font-weight:700; color:#0f172a;">Hapus Data</div>
-                <div id="confirm-message" style="font-size:0.82rem; color:#64748b; margin-top:4px; line-height:1.5;"></div>
+                <div id="confirm-title" class="text-[0.97rem] font-bold text-slate-900">Hapus Data</div>
+                <div id="confirm-message" class="text-[0.82rem] text-slate-500 mt-1 leading-relaxed"></div>
             </div>
         </div>
 
         {{-- Warning note --}}
-        <div style="margin:14px 22px 0; padding:10px 12px; background:#fff7ed; border:1px solid #fed7aa; border-radius:8px; display:flex; align-items:center; gap:8px;">
-            <svg width="14" height="14" fill="none" stroke="#c2410c" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;">
+        <div class="mx-5 mt-3.5 px-3 py-2.5 bg-orange-50 border border-orange-200 rounded-lg flex items-center gap-2">
+            <svg width="14" height="14" fill="none" stroke="#c2410c" stroke-width="2" viewBox="0 0 24 24" class="flex-shrink-0">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
             </svg>
-            <span style="font-size:0.75rem; color:#c2410c; font-weight:500;">Tindakan ini tidak dapat dibatalkan.</span>
+            <span class="text-[0.75rem] text-orange-700 font-medium">Tindakan ini tidak dapat dibatalkan.</span>
         </div>
 
         {{-- Buttons --}}
-        <div style="padding:18px 22px 20px; display:flex; gap:8px; justify-content:flex-end;">
-            <button onclick="closeConfirm()" style="
-                padding:9px 20px; border-radius:9px; font-size:0.83rem; font-weight:500;
-                color:#374151; background:#f1f5f9; border:1.5px solid #e2e8f0; cursor:pointer;
-                font-family:'Inter',sans-serif; transition:background 0.15s;
-            " onmouseover="this.style.background='#e2e8f0';" onmouseout="this.style.background='#f1f5f9';">
+        <div class="px-5 py-4 flex gap-2 justify-end">
+            <button onclick="closeConfirm()"
+                class="px-5 py-2.5 rounded-xl text-[0.83rem] font-medium text-slate-700 bg-slate-100 border border-slate-200 cursor-pointer hover:bg-slate-200 transition-colors">
                 Batal
             </button>
-            <button id="confirm-btn" onclick="submitConfirm()" style="
-                padding:9px 20px; border-radius:9px; font-size:0.83rem; font-weight:600;
-                color:#fff; background:linear-gradient(135deg,#dc2626,#ef4444); border:none; cursor:pointer;
-                font-family:'Inter',sans-serif; box-shadow:0 3px 10px rgba(220,38,38,0.3);
-                display:flex; align-items:center; gap:7px; transition:box-shadow 0.15s;
-            " onmouseover="this.style.boxShadow='0 6px 16px rgba(220,38,38,0.4)';" onmouseout="this.style.boxShadow='0 3px 10px rgba(220,38,38,0.3)';">
+            <button id="confirm-btn" onclick="submitConfirm()"
+                class="px-5 py-2.5 rounded-xl text-[0.83rem] font-semibold text-white bg-gradient-to-br from-red-500 to-red-600 border-0 cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-px transition-all flex items-center gap-1.5">
                 <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                 </svg>
@@ -482,11 +378,28 @@
 <script>
     // ── Confirm Modal ──────────────────────────────────────
     let _confirmForm = null;
+    let _confirmCallback = null;
 
     function confirmDelete(formId, name) {
         _confirmForm = document.getElementById(formId);
+        _confirmCallback = null;
         document.getElementById('confirm-message').innerHTML =
             'Yakin ingin menghapus <strong>"' + name + '"</strong>?';
+        _showConfirm('Hapus Data', '#fef2f2', '#dc2626');
+    }
+
+    function confirmModal(title, message, callback) {
+        _confirmForm = null;
+        _confirmCallback = callback;
+        document.getElementById('confirm-title').textContent = title;
+        document.getElementById('confirm-message').innerHTML = message;
+        _showConfirm(title, '#fffbeb', '#d97706');
+    }
+
+    function _showConfirm(title, iconBg, iconColor) {
+        document.getElementById('confirm-title').textContent = title;
+        document.getElementById('confirm-icon').style.background = iconBg;
+        document.getElementById('confirm-icon').querySelector('svg').style.stroke = iconColor;
         const overlay = document.getElementById('confirm-overlay');
         overlay.style.display = 'flex';
         setTimeout(() => {
@@ -499,22 +412,20 @@
     function closeConfirm() {
         const box     = document.getElementById('confirm-box');
         const overlay = document.getElementById('confirm-overlay');
-        box.style.transform = 'scale(0.92)';
+        box.style.transform = 'scale(0.95)';
         box.style.opacity   = '0';
         setTimeout(() => { overlay.style.display = 'none'; }, 180);
         _confirmForm = null;
     }
 
     function submitConfirm() {
-        if (_confirmForm) _confirmForm.submit();
+        if (_confirmCallback) { closeConfirm(); _confirmCallback(); }
+        else if (_confirmForm) _confirmForm.submit();
     }
 
-    // Close on overlay click
     document.getElementById('confirm-overlay').addEventListener('click', function(e) {
         if (e.target === this) closeConfirm();
     });
-
-    // Close on Escape
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') closeConfirm();
     });
@@ -524,24 +435,26 @@
         const sub = document.getElementById(id);
         const arrowId = id.replace('sub-', 'arrow-');
         const arrow = document.getElementById(arrowId);
-        const isOpen = sub.classList.contains('open');
-        sub.classList.toggle('open');
+        const isOpen = !sub.classList.contains('hidden');
+        sub.classList.toggle('hidden');
         if (arrow) arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
     }
 
     function openSidebar() {
         document.getElementById('sidebar').classList.add('open');
         document.getElementById('sidebar-overlay').classList.add('show');
+        document.getElementById('sidebar-overlay').classList.remove('hidden');
     }
     function closeSidebar() {
         document.getElementById('sidebar').classList.remove('open');
         document.getElementById('sidebar-overlay').classList.remove('show');
+        document.getElementById('sidebar-overlay').classList.add('hidden');
     }
 
     // Auto-open submenu if active
     document.querySelectorAll('.nav-submenu').forEach(sub => {
-        if (sub.querySelector('.nav-subitem.active')) {
-            sub.classList.add('open');
+        if (sub.querySelector('.active')) {
+            sub.classList.remove('hidden');
             const arrowId = sub.id.replace('sub-', 'arrow-');
             const arrow = document.getElementById(arrowId);
             if (arrow) arrow.style.transform = 'rotate(180deg)';

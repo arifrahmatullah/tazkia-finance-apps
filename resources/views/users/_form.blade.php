@@ -1,134 +1,96 @@
 @php $usr = $user ?? null; @endphp
 
 <style>
-    .form-section { margin-bottom:28px; }
-    .section-title { font-size:0.78rem; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:.08em; margin:0 0 14px; padding-bottom:8px; border-bottom:1px solid #f1f5f9; }
-    .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
-    .form-group { display:flex; flex-direction:column; gap:6px; }
-    .form-group.full { grid-column:1/-1; }
-    .form-label { font-size:0.8rem; font-weight:600; color:#374151; }
-    .form-label .req { color:#ef4444; margin-left:2px; }
-    .form-input { padding:9px 13px; border:1.5px solid #e2e8f0; border-radius:9px; font-size:0.865rem; color:#1e293b; background:#fff; outline:none; transition:border-color .15s; width:100%; }
-    .form-input:focus { border-color:#f97316; }
-    .form-error { font-size:0.77rem; color:#dc2626; margin-top:2px; }
-    .form-hint { font-size:0.75rem; color:#94a3b8; margin-top:2px; }
-    /* Org checkbox grid */
-    .org-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:10px; }
-    .org-check-label { display:flex; align-items:center; gap:10px; padding:10px 14px; border:1.5px solid #e2e8f0; border-radius:9px; cursor:pointer; transition:all .15s; }
-    .org-check-label:hover { border-color:#f97316; background:#fff7ed; }
-    .org-check-label input[type=checkbox] { accent-color:#f97316; width:15px; height:15px; flex-shrink:0; }
-    .org-check-label.checked { border-color:#f97316; background:#fff7ed; }
-    .org-check-name { font-size:0.845rem; font-weight:500; color:#374151; }
-    /* Toggle */
-    .toggle-wrap { display:flex; align-items:center; gap:12px; padding:10px 14px; border:1.5px solid #e2e8f0; border-radius:9px; width:fit-content; }
-    .toggle { position:relative; width:42px; height:22px; }
-    .toggle input { opacity:0; width:0; height:0; }
-    .toggle-slider { position:absolute; inset:0; background:#e2e8f0; border-radius:99px; cursor:pointer; transition:.2s; }
-    .toggle-slider::before { content:''; position:absolute; width:16px; height:16px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.2s; }
-    .toggle input:checked + .toggle-slider { background:#f97316; }
-    .toggle input:checked + .toggle-slider::before { transform:translateX(20px); }
-    /* Role card select */
-    .role-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:10px; }
-    .role-card { position:relative; }
-    .role-card input[type=radio] { position:absolute; opacity:0; }
-    .role-card-label { display:flex; flex-direction:column; gap:4px; padding:12px 14px; border:1.5px solid #e2e8f0; border-radius:10px; cursor:pointer; transition:all .15s; }
-    .role-card-label:hover { border-color:#f97316; background:#fff7ed; }
-    .role-card input:checked + .role-card-label { border-color:#f97316; background:#fff7ed; box-shadow:0 0 0 3px rgba(249,115,22,.12); }
-    .role-card-name { font-size:0.855rem; font-weight:600; color:#1e293b; }
-    .role-card-desc { font-size:0.73rem; color:#94a3b8; line-height:1.4; }
-    .role-dot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:6px; }
-    #org-section { transition:all .2s; }
+.toggle input:checked + .toggle-slider { background:#f97316; }
+.toggle input:checked + .toggle-slider::before { transform:translateX(20px); }
+.toggle-slider::before { content:''; position:absolute; width:16px; height:16px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.2s; }
 </style>
 
 {{-- Info Akun --}}
-<div class="form-section">
-    <p class="section-title">Informasi Akun</p>
-    <div class="form-grid">
-        <div class="form-group">
-            <label class="form-label">Nama Lengkap <span class="req">*</span></label>
-            <input type="text" name="name" class="form-input" value="{{ old('name', $usr?->name) }}"
-                placeholder="Nama user"
-                onfocus="this.style.borderColor='#f97316'" onblur="this.style.borderColor='#e2e8f0'">
-            @error('name') <span class="form-error">{{ $message }}</span> @enderror
+<div class="mb-6">
+    <div class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3.5 pb-2 border-b border-slate-100">Informasi Akun</div>
+    <div class="grid grid-cols-2 gap-4">
+        <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-semibold text-slate-600">Nama Lengkap <span class="text-red-500 ml-0.5">*</span></label>
+            <input type="text" name="name" class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors"
+                value="{{ old('name', $usr?->name) }}" placeholder="Nama user">
+            @error('name') <span class="text-xs text-red-500 mt-0.5">{{ $message }}</span> @enderror
         </div>
-        <div class="form-group">
-            <label class="form-label">Email <span class="req">*</span></label>
-            <input type="email" name="email" class="form-input" value="{{ old('email', $usr?->email) }}"
-                placeholder="email@contoh.com"
-                onfocus="this.style.borderColor='#f97316'" onblur="this.style.borderColor='#e2e8f0'">
-            @error('email') <span class="form-error">{{ $message }}</span> @enderror
+        <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-semibold text-slate-600">Email <span class="text-red-500 ml-0.5">*</span></label>
+            <input type="email" name="email" class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors"
+                value="{{ old('email', $usr?->email) }}" placeholder="email@contoh.com">
+            @error('email') <span class="text-xs text-red-500 mt-0.5">{{ $message }}</span> @enderror
         </div>
-        <div class="form-group">
-            <label class="form-label">Password {{ $usr ? '' : '*' }}</label>
-            <input type="password" name="password" class="form-input"
-                placeholder="{{ $usr ? 'Kosongkan jika tidak diubah' : 'Min. 8 karakter' }}"
-                onfocus="this.style.borderColor='#f97316'" onblur="this.style.borderColor='#e2e8f0'">
-            @error('password') <span class="form-error">{{ $message }}</span> @enderror
+        <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-semibold text-slate-600">Password {{ $usr ? '' : '*' }}</label>
+            <input type="password" name="password" class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors"
+                placeholder="{{ $usr ? 'Kosongkan jika tidak diubah' : 'Min. 8 karakter' }}">
+            @error('password') <span class="text-xs text-red-500 mt-0.5">{{ $message }}</span> @enderror
         </div>
-        <div class="form-group">
-            <label class="form-label">Konfirmasi Password {{ $usr ? '' : '*' }}</label>
-            <input type="password" name="password_confirmation" class="form-input"
-                placeholder="Ulangi password"
-                onfocus="this.style.borderColor='#f97316'" onblur="this.style.borderColor='#e2e8f0'">
+        <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-semibold text-slate-600">Konfirmasi Password {{ $usr ? '' : '*' }}</label>
+            <input type="password" name="password_confirmation" class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors"
+                placeholder="Ulangi password">
         </div>
     </div>
 </div>
 
 {{-- Role --}}
-<div class="form-section">
-    <p class="section-title">Role</p>
-    <div class="role-grid" id="roleGrid">
+<div class="mb-6">
+    <div class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3.5 pb-2 border-b border-slate-100">Role</div>
+    <div class="grid grid-cols-[repeat(auto-fill,minmax(170px,1fr))] gap-2.5" id="roleGrid">
         @foreach($roles as $role)
-        <div class="role-card">
+        <label class="relative flex flex-col gap-1 px-3.5 py-3 border rounded-xl cursor-pointer transition-all hover:border-orange-400 hover:bg-orange-50/50 has-[:checked]:border-orange-400 has-[:checked]:bg-orange-50">
             <input type="radio" name="role_id" id="role-{{ $role->id }}" value="{{ $role->id }}"
                 {{ old('role_id', $usr?->role_id) == $role->id ? 'checked' : '' }}
-                onchange="handleRoleChange(this)">
-            <label class="role-card-label" for="role-{{ $role->id }}">
-                <span class="role-card-name">
-                    <span class="role-dot" style="background:{{ $role->color ?? '#64748b' }};"></span>
-                    {{ $role->name }}
-                </span>
-                @if($role->description)
-                    <span class="role-card-desc">{{ $role->description }}</span>
-                @endif
-            </label>
-        </div>
-        @endforeach
-    </div>
-    @error('role_id') <span class="form-error" style="margin-top:6px;display:block;">{{ $message }}</span> @enderror
-</div>
-
-{{-- Organisasi (disembunyikan kalau superadmin) --}}
-<div class="form-section" id="org-section">
-    <p class="section-title">Akses Organisasi</p>
-    @if($organizations->count() === 0)
-        <p style="font-size:0.845rem;color:#94a3b8;">Tidak ada organisasi tersedia.</p>
-    @else
-    <div class="org-grid">
-        @foreach($organizations as $org)
-        @php $checked = in_array($org->id, old('organization_ids', $assignedOrgIds ?? [])); @endphp
-        <label class="org-check-label {{ $checked ? 'checked' : '' }}" id="org-label-{{ $org->id }}">
-            <input type="checkbox" name="organization_ids[]" value="{{ $org->id }}"
-                {{ $checked ? 'checked' : '' }}
-                onchange="this.parentElement.classList.toggle('checked', this.checked)">
-            <span class="org-check-name">{{ $org->name }}</span>
+                onchange="handleRoleChange(this)" class="sr-only">
+            <span class="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
+                <span class="inline-block w-2 h-2 rounded-full shrink-0" style="background:{{ $role->color ?? '#64748b' }};"></span>
+                {{ $role->name }}
+            </span>
+            @if($role->description)
+                <span class="text-xs text-slate-400 leading-snug">{{ $role->description }}</span>
+            @endif
         </label>
         @endforeach
     </div>
-    @error('organization_ids') <span class="form-error" style="margin-top:6px;display:block;">{{ $message }}</span> @enderror
+    @error('role_id') <span class="text-xs text-red-500 mt-1.5 block">{{ $message }}</span> @enderror
+</div>
+
+{{-- Organisasi --}}
+<div class="mb-6" id="org-section">
+    <div class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3.5 pb-2 border-b border-slate-100">Akses Organisasi</div>
+    @if($organizations->count() === 0)
+        <p class="text-sm text-slate-400">Tidak ada organisasi tersedia.</p>
+    @else
+    <div class="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-2.5">
+        @foreach($organizations as $org)
+        @php $checked = in_array($org->id, old('organization_ids', $assignedOrgIds ?? [])); @endphp
+        <label class="flex items-center gap-2.5 px-3.5 py-2.5 border rounded-xl cursor-pointer transition-all hover:border-orange-400 hover:bg-orange-50/50 {{ $checked ? 'border-orange-400 bg-orange-50' : 'border-slate-200' }}">
+            <input type="checkbox" name="organization_ids[]" value="{{ $org->id }}"
+                {{ $checked ? 'checked' : '' }}
+                onchange="toggleOrgLabel(this)"
+                class="w-4 h-4 accent-orange-500 shrink-0">
+            <span class="text-sm font-medium text-slate-700">{{ $org->name }}</span>
+        </label>
+        @endforeach
+    </div>
+    @error('organization_ids') <span class="text-xs text-red-500 mt-1.5 block">{{ $message }}</span> @enderror
     @endif
 </div>
 
 @if($usr)
-<div class="form-section">
-    <p class="section-title">Status</p>
-    <div class="toggle-wrap">
-        <label class="toggle">
+<div class="mb-2">
+    <div class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3.5 pb-2 border-b border-slate-100">Status</div>
+    <div class="flex items-center gap-3 px-3.5 py-2.5 border border-slate-200 rounded-xl w-fit">
+        <label class="toggle relative w-[42px] h-[22px]">
             <input type="hidden" name="is_active" value="0">
-            <input type="checkbox" name="is_active" value="1" {{ old('is_active', $usr?->is_active) ? 'checked' : '' }}>
-            <span class="toggle-slider"></span>
+            <input type="checkbox" name="is_active" value="1" {{ old('is_active', $usr?->is_active) ? 'checked' : '' }}
+                class="opacity-0 w-0 h-0 absolute">
+            <span class="toggle-slider absolute inset-0 bg-slate-200 rounded-full cursor-pointer transition-[.2s]"></span>
         </label>
-        <span style="font-size:0.855rem;color:#374151;">User Aktif</span>
+        <span class="text-sm text-slate-700 font-medium">User Aktif</span>
     </div>
 </div>
 @endif
@@ -147,7 +109,17 @@ function handleRoleChange(radio) {
     }
 }
 
-// Init on load
+function toggleOrgLabel(cb) {
+    const label = cb.closest('label');
+    if (cb.checked) {
+        label.classList.add('border-orange-400', 'bg-orange-50');
+        label.classList.remove('border-slate-200');
+    } else {
+        label.classList.remove('border-orange-400', 'bg-orange-50');
+        label.classList.add('border-slate-200');
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const checked = document.querySelector('input[name=role_id]:checked');
     if (checked) handleRoleChange(checked);

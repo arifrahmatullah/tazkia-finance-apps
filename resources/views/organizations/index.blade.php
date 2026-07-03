@@ -1,22 +1,12 @@
 <x-layouts.app title="Daftar Organisasi" breadcrumb="Master Data / Organisasi">
 
     {{-- Page Header --}}
-    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
+    <div class="flex items-center justify-between mb-5">
         <div>
-            <h2 style="font-size:1.1rem; font-weight:700; color:#0f172a; margin:0 0 3px 0;">Daftar Organisasi</h2>
-            <p style="font-size:0.78rem; color:#94a3b8; margin:0;">Kelola yayasan, kampus, dan unit di bawah naungan Tazkia</p>
+            <h2 class="text-lg font-bold text-slate-900 m-0 mb-0.5">Daftar Organisasi</h2>
+            <p class="text-xs text-slate-400 m-0">Kelola yayasan, kampus, dan unit di bawah naungan Tazkia</p>
         </div>
-        <a href="{{ route('organizations.create') }}" style="
-            display:inline-flex; align-items:center; gap:7px;
-            padding:9px 16px; border-radius:9px;
-            background: linear-gradient(135deg, #ea580c, #f97316);
-            color:#fff; font-size:0.83rem; font-weight:600;
-            text-decoration:none;
-            box-shadow: 0 3px 10px rgba(234,88,12,0.3);
-            transition: all 0.2s;
-        "
-        onmouseover="this.style.boxShadow='0 6px 16px rgba(234,88,12,0.4)'; this.style.transform='translateY(-1px)';"
-        onmouseout="this.style.boxShadow='0 3px 10px rgba(234,88,12,0.3)'; this.style.transform='translateY(0)';">
+        <a href="{{ route('organizations.create') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-br from-orange-400 to-orange-500 text-white text-sm font-semibold shadow-sm hover:-translate-y-px transition-all no-underline">
             <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
             </svg>
@@ -26,93 +16,82 @@
 
     {{-- Alert --}}
     @if(session('success'))
-    <div style="display:flex; align-items:center; gap:10px; padding:12px 16px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; margin-bottom:18px;">
-        <svg width="16" height="16" fill="#16a34a" viewBox="0 0 20 20" style="flex-shrink:0;">
+    <div class="flex items-center gap-2.5 px-4 py-3 bg-green-50 border border-green-200 rounded-xl mb-4 text-sm text-green-700">
+        <svg width="16" height="16" fill="#16a34a" viewBox="0 0 20 20" class="shrink-0">
             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
         </svg>
-        <span style="font-size:0.83rem; color:#15803d; font-weight:500;">{{ session('success') }}</span>
+        <span>{{ session('success') }}</span>
     </div>
     @endif
 
     {{-- Table --}}
-    <div style="background:#fff; border-radius:14px; border:1px solid #f1f5f9; box-shadow:0 1px 4px rgba(0,0,0,0.04); overflow:hidden;">
-        <table style="width:100%; border-collapse:collapse;">
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+        <table class="w-full border-collapse">
             <thead>
-                <tr style="background:#f8fafc; border-bottom:1px solid #f1f5f9;">
-                    <th style="padding:12px 20px; text-align:left; font-size:0.72rem; font-weight:600; color:#64748b; letter-spacing:0.05em; text-transform:uppercase;">#</th>
-                    <th style="padding:12px 16px; text-align:left; font-size:0.72rem; font-weight:600; color:#64748b; letter-spacing:0.05em; text-transform:uppercase;">Nama Organisasi</th>
-                    <th style="padding:12px 16px; text-align:left; font-size:0.72rem; font-weight:600; color:#64748b; letter-spacing:0.05em; text-transform:uppercase;">Kode</th>
-                    <th style="padding:12px 16px; text-align:left; font-size:0.72rem; font-weight:600; color:#64748b; letter-spacing:0.05em; text-transform:uppercase;">Tipe</th>
-                    <th style="padding:12px 16px; text-align:left; font-size:0.72rem; font-weight:600; color:#64748b; letter-spacing:0.05em; text-transform:uppercase;">Induk</th>
-                    <th style="padding:12px 16px; text-align:left; font-size:0.72rem; font-weight:600; color:#64748b; letter-spacing:0.05em; text-transform:uppercase;">Status</th>
-                    <th style="padding:12px 16px; text-align:center; font-size:0.72rem; font-weight:600; color:#64748b; letter-spacing:0.05em; text-transform:uppercase;">Aksi</th>
+                <tr class="bg-slate-50 border-b border-slate-100">
+                    <th class="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide">#</th>
+                    <th class="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Nama Organisasi</th>
+                    <th class="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Kode</th>
+                    <th class="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Tipe</th>
+                    <th class="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Induk</th>
+                    <th class="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Status</th>
+                    <th class="px-4 py-3 text-center text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Aksi</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse($organizations as $i => $org)
-                <tr style="border-bottom:1px solid #f8fafc; transition:background 0.1s;"
-                    onmouseover="this.style.background='#fafafa';"
-                    onmouseout="this.style.background='transparent';">
+                @php
+                    $avatarClass = $org->type === 'yayasan' ? 'bg-blue-50 text-blue-700' : ($org->type === 'kampus' ? 'bg-orange-50 text-orange-700' : 'bg-green-50 text-green-700');
+                    $typeClass   = $org->type === 'yayasan' ? 'bg-blue-100 text-blue-700' : ($org->type === 'kampus' ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700');
+                @endphp
+                <tr class="border-b border-slate-50 hover:bg-slate-50 transition-colors">
 
-                    <td style="padding:14px 20px; font-size:0.8rem; color:#94a3b8;">{{ $i + 1 }}</td>
+                    <td class="px-4 py-3 text-sm text-slate-400 align-middle">{{ $i + 1 }}</td>
 
-                    <td style="padding:14px 16px;">
-                        <div style="display:flex; align-items:center; gap:10px;">
-                            <div style="
-                                width:34px; height:34px; border-radius:9px; flex-shrink:0;
-                                background:{{ $org->type === 'yayasan' ? '#eff6ff' : ($org->type === 'kampus' ? '#fff7ed' : '#f0fdf4') }};
-                                display:flex; align-items:center; justify-content:center;
-                                font-size:0.7rem; font-weight:700;
-                                color:{{ $org->type === 'yayasan' ? '#1d4ed8' : ($org->type === 'kampus' ? '#c2410c' : '#15803d') }};
-                            ">{{ strtoupper(substr($org->code, 0, 2)) }}</div>
+                    <td class="px-4 py-3 text-sm text-slate-600 align-middle">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-9 h-9 rounded-xl shrink-0 flex items-center justify-center text-[11px] font-bold {{ $avatarClass }}">
+                                {{ strtoupper(substr($org->code, 0, 2)) }}
+                            </div>
                             <div>
-                                <div style="font-size:0.85rem; font-weight:600; color:#1e293b;">{{ $org->name }}</div>
+                                <div class="text-sm font-semibold text-slate-800">{{ $org->name }}</div>
                                 @if($org->email)
-                                <div style="font-size:0.72rem; color:#94a3b8;">{{ $org->email }}</div>
+                                <div class="text-[11px] text-slate-400">{{ $org->email }}</div>
                                 @endif
                             </div>
                         </div>
                     </td>
 
-                    <td style="padding:14px 16px;">
-                        <span style="font-family:monospace; font-size:0.8rem; font-weight:600; color:#475569; background:#f1f5f9; padding:3px 8px; border-radius:5px;">
-                            {{ $org->code }}
-                        </span>
+                    <td class="px-4 py-3 text-sm text-slate-600 align-middle">
+                        <span class="font-mono text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">{{ $org->code }}</span>
                     </td>
 
-                    <td style="padding:14px 16px;">
-                        @php
-                            $typeColors = ['yayasan' => ['bg'=>'#eff6ff','text'=>'#1d4ed8'], 'kampus' => ['bg'=>'#fff7ed','text'=>'#c2410c'], 'unit' => ['bg'=>'#f0fdf4','text'=>'#15803d']];
-                            $tc = $typeColors[$org->type] ?? ['bg'=>'#f1f5f9','text'=>'#475569'];
-                        @endphp
-                        <span style="display:inline-block; padding:3px 10px; border-radius:999px; font-size:0.72rem; font-weight:600; background:{{ $tc['bg'] }}; color:{{ $tc['text'] }}; text-transform:capitalize;">
+                    <td class="px-4 py-3 text-sm text-slate-600 align-middle">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold capitalize {{ $typeClass }}">
                             {{ $org->type }}
                         </span>
                     </td>
 
-                    <td style="padding:14px 16px; font-size:0.82rem; color:#64748b;">
+                    <td class="px-4 py-3 text-sm text-slate-600 align-middle">
                         {{ $org->parent?->name ?? '—' }}
                     </td>
 
-                    <td style="padding:14px 16px;">
+                    <td class="px-4 py-3 text-sm text-slate-600 align-middle">
                         @if($org->is_active)
-                        <span style="display:inline-flex; align-items:center; gap:5px; font-size:0.72rem; font-weight:600; color:#15803d;">
-                            <span style="width:6px; height:6px; border-radius:50%; background:#22c55e;"></span>
-                            Aktif
+                        <span class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-green-700">
+                            <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>Aktif
                         </span>
                         @else
-                        <span style="display:inline-flex; align-items:center; gap:5px; font-size:0.72rem; font-weight:600; color:#dc2626;">
-                            <span style="width:6px; height:6px; border-radius:50%; background:#ef4444;"></span>
-                            Nonaktif
+                        <span class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-red-600">
+                            <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>Nonaktif
                         </span>
                         @endif
                     </td>
 
-                    <td style="padding:14px 16px; text-align:center;">
-                        <div style="display:inline-flex; align-items:center; gap:6px;">
+                    <td class="px-4 py-3 text-sm text-slate-600 align-middle text-center">
+                        <div class="inline-flex items-center gap-1.5">
                             <a href="{{ route('organizations.edit', $org) }}"
-                               style="display:inline-flex; align-items:center; gap:5px; padding:6px 12px; border-radius:7px; font-size:0.75rem; font-weight:500; background:#eff6ff; color:#1d4ed8; text-decoration:none; transition:background 0.15s;"
-                               onmouseover="this.style.background='#dbeafe';" onmouseout="this.style.background='#eff6ff';">
+                               class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors no-underline">
                                 <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                 </svg>
@@ -123,8 +102,7 @@
                             </form>
                             <button type="button"
                                 onclick="confirmDelete('del-org-{{ $org->id }}', '{{ addslashes($org->name) }}')"
-                                style="display:inline-flex; align-items:center; gap:5px; padding:6px 12px; border-radius:7px; font-size:0.75rem; font-weight:500; background:#fef2f2; color:#dc2626; border:none; cursor:pointer; transition:background 0.15s;"
-                                onmouseover="this.style.background='#fee2e2';" onmouseout="this.style.background='#fef2f2';">
+                                class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors border-0 cursor-pointer">
                                 <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                                 </svg>
@@ -135,11 +113,11 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="7" style="padding:48px; text-align:center; color:#94a3b8;">
-                        <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" style="margin:0 auto 10px; opacity:0.4;">
+                    <td colspan="7" class="px-4 py-12 text-center text-slate-400">
+                        <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" class="mx-auto mb-2.5 opacity-40">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                         </svg>
-                        <p style="font-size:0.83rem; margin:0;">Belum ada organisasi</p>
+                        <p class="text-sm m-0">Belum ada organisasi</p>
                     </td>
                 </tr>
                 @endforelse

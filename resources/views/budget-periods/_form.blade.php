@@ -1,33 +1,9 @@
 @php $bp = $budgetPeriod ?? null; @endphp
 
-<style>
-    .form-group { margin-bottom:16px; }
-    .form-label { display:block; font-size:0.8rem; font-weight:600; color:#374151; margin-bottom:6px; }
-    .form-label span { color:#ef4444; margin-left:2px; }
-    .form-input {
-        width:100%; padding:10px 13px; font-size:0.875rem; color:#111827;
-        background:#fff; border:1.5px solid #e2e8f0; border-radius:9px;
-        outline:none; box-sizing:border-box; font-family:'Inter',sans-serif;
-        transition:border-color 0.2s, box-shadow 0.2s;
-    }
-    .form-input:focus { border-color:#0d2d6b; box-shadow:0 0 0 3px rgba(13,45,107,0.1); }
-    .form-input.error { border-color:#ef4444; }
-    .form-error { font-size:0.75rem; color:#ef4444; margin-top:4px; }
-    .form-hint  { font-size:0.72rem; color:#94a3b8; margin-top:4px; }
-    .form-row   { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
-    .section-label {
-        font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.07em;
-        color:#94a3b8; margin:20px 0 10px; padding-bottom:6px;
-        border-bottom:1px solid #f1f5f9;
-    }
-</style>
-
 {{-- Organisasi --}}
-<div class="form-group">
-    <label class="form-label">Organisasi <span>*</span></label>
-    <select name="organization_id" class="form-input {{ $errors->has('organization_id') ? 'error' : '' }}"
-            onfocus="this.style.borderColor='#0d2d6b'; this.style.boxShadow='0 0 0 3px rgba(13,45,107,0.1)';"
-            onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';">
+<div class="flex flex-col gap-1.5 mb-4">
+    <label class="text-xs font-semibold text-slate-600">Organisasi <span class="text-red-500 ml-0.5">*</span></label>
+    <select name="organization_id" class="w-full px-3 py-2.5 border rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors {{ $errors->has('organization_id') ? 'border-red-500' : 'border-slate-200' }}">
         <option value="">-- Pilih Organisasi --</option>
         @foreach($organizations as $org)
         <option value="{{ $org->id }}" {{ old('organization_id', $bp?->organization_id) == $org->id ? 'selected' : '' }}>
@@ -35,84 +11,71 @@
         </option>
         @endforeach
     </select>
-    @error('organization_id')<div class="form-error">{{ $message }}</div>@enderror
+    @error('organization_id')<div class="text-xs text-red-500 mt-0.5">{{ $message }}</div>@enderror
 </div>
 
 {{-- Kode + Nama --}}
-<div class="form-row">
-    <div class="form-group">
-        <label class="form-label">Kode <span>*</span></label>
+<div class="grid grid-cols-2 gap-4 mb-4">
+    <div class="flex flex-col gap-1.5">
+        <label class="text-xs font-semibold text-slate-600">Kode <span class="text-red-500 ml-0.5">*</span></label>
         <input type="text" name="code" value="{{ old('code', $bp?->code) }}"
-               class="form-input {{ $errors->has('code') ? 'error' : '' }}"
+               class="w-full px-3 py-2.5 border rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors uppercase {{ $errors->has('code') ? 'border-red-500' : 'border-slate-200' }}"
                placeholder="contoh: ANG-2025"
-               style="text-transform:uppercase;"
-               oninput="this.value=this.value.toUpperCase()"
-               onfocus="this.style.borderColor='#0d2d6b'; this.style.boxShadow='0 0 0 3px rgba(13,45,107,0.1)';"
-               onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';">
-        <div class="form-hint">Kode unik periode</div>
-        @error('code')<div class="form-error">{{ $message }}</div>@enderror
+               oninput="this.value=this.value.toUpperCase()">
+        <div class="text-xs text-slate-400 mt-0.5">Kode unik periode</div>
+        @error('code')<div class="text-xs text-red-500 mt-0.5">{{ $message }}</div>@enderror
     </div>
-    <div class="form-group">
-        <label class="form-label">Nama Periode <span>*</span></label>
+    <div class="flex flex-col gap-1.5">
+        <label class="text-xs font-semibold text-slate-600">Nama Periode <span class="text-red-500 ml-0.5">*</span></label>
         <input type="text" name="name" value="{{ old('name', $bp?->name) }}"
-               class="form-input {{ $errors->has('name') ? 'error' : '' }}"
-               placeholder="contoh: Anggaran Tahun 2025"
-               onfocus="this.style.borderColor='#0d2d6b'; this.style.boxShadow='0 0 0 3px rgba(13,45,107,0.1)';"
-               onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';">
-        @error('name')<div class="form-error">{{ $message }}</div>@enderror
+               class="w-full px-3 py-2.5 border rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors {{ $errors->has('name') ? 'border-red-500' : 'border-slate-200' }}"
+               placeholder="contoh: Anggaran Tahun 2025">
+        @error('name')<div class="text-xs text-red-500 mt-0.5">{{ $message }}</div>@enderror
     </div>
 </div>
 
 {{-- Periode Anggaran --}}
-<div class="section-label">Periode Anggaran</div>
-<div class="form-row">
-    <div class="form-group">
-        <label class="form-label">Tanggal Mulai <span>*</span></label>
+<p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-5 mb-3.5 pb-2 border-b border-slate-100">Periode Anggaran</p>
+<div class="grid grid-cols-2 gap-4 mb-4">
+    <div class="flex flex-col gap-1.5">
+        <label class="text-xs font-semibold text-slate-600">Tanggal Mulai <span class="text-red-500 ml-0.5">*</span></label>
         <input type="date" name="period_start" id="period_start"
                value="{{ old('period_start', $bp?->period_start?->format('Y-m-d')) }}"
-               class="form-input {{ $errors->has('period_start') ? 'error' : '' }}"
-               onfocus="this.style.borderColor='#0d2d6b'; this.style.boxShadow='0 0 0 3px rgba(13,45,107,0.1)';"
-               onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';"
+               class="w-full px-3 py-2.5 border rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors {{ $errors->has('period_start') ? 'border-red-500' : 'border-slate-200' }}"
                onchange="validateDateRange('period_start','period_end','err_period')">
-        @error('period_start')<div class="form-error">{{ $message }}</div>@enderror
+        @error('period_start')<div class="text-xs text-red-500 mt-0.5">{{ $message }}</div>@enderror
     </div>
-    <div class="form-group">
-        <label class="form-label">Tanggal Selesai <span>*</span></label>
+    <div class="flex flex-col gap-1.5">
+        <label class="text-xs font-semibold text-slate-600">Tanggal Selesai <span class="text-red-500 ml-0.5">*</span></label>
         <input type="date" name="period_end" id="period_end"
                value="{{ old('period_end', $bp?->period_end?->format('Y-m-d')) }}"
-               class="form-input {{ $errors->has('period_end') ? 'error' : '' }}"
-               onfocus="this.style.borderColor='#0d2d6b'; this.style.boxShadow='0 0 0 3px rgba(13,45,107,0.1)';"
-               onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';"
+               class="w-full px-3 py-2.5 border rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors {{ $errors->has('period_end') ? 'border-red-500' : 'border-slate-200' }}"
                onchange="validateDateRange('period_start','period_end','err_period')">
-        @error('period_end')<div class="form-error">{{ $message }}</div>@enderror
-        <div class="form-error" id="err_period" style="display:none;"></div>
+        @error('period_end')<div class="text-xs text-red-500 mt-0.5">{{ $message }}</div>@enderror
+        <div class="text-xs text-red-500 mt-0.5" id="err_period" style="display:none;"></div>
     </div>
 </div>
 
 {{-- Periode Perencanaan --}}
-<div class="section-label">Periode Perencanaan <span style="font-weight:400; text-transform:none; letter-spacing:0;">(opsional)</span></div>
-<div class="form-row">
-    <div class="form-group">
-        <label class="form-label">Mulai Perencanaan</label>
+<p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-5 mb-3.5 pb-2 border-b border-slate-100">Periode Perencanaan <span class="normal-case font-normal tracking-normal">(opsional)</span></p>
+<div class="grid grid-cols-2 gap-4">
+    <div class="flex flex-col gap-1.5">
+        <label class="text-xs font-semibold text-slate-600">Mulai Perencanaan</label>
         <input type="date" name="planning_start" id="planning_start"
                value="{{ old('planning_start', $bp?->planning_start?->format('Y-m-d')) }}"
-               class="form-input"
-               onfocus="this.style.borderColor='#0d2d6b'; this.style.boxShadow='0 0 0 3px rgba(13,45,107,0.1)';"
-               onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';"
+               class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors"
                onchange="validateDateRange('planning_start','planning_end','err_planning',true)">
-        <div class="form-hint">Kapan proses perencanaan anggaran dimulai</div>
-        @error('planning_start')<div class="form-error">{{ $message }}</div>@enderror
+        <div class="text-xs text-slate-400 mt-0.5">Kapan proses perencanaan anggaran dimulai</div>
+        @error('planning_start')<div class="text-xs text-red-500 mt-0.5">{{ $message }}</div>@enderror
     </div>
-    <div class="form-group">
-        <label class="form-label">Selesai Perencanaan</label>
+    <div class="flex flex-col gap-1.5">
+        <label class="text-xs font-semibold text-slate-600">Selesai Perencanaan</label>
         <input type="date" name="planning_end" id="planning_end"
                value="{{ old('planning_end', $bp?->planning_end?->format('Y-m-d')) }}"
-               class="form-input"
-               onfocus="this.style.borderColor='#0d2d6b'; this.style.boxShadow='0 0 0 3px rgba(13,45,107,0.1)';"
-               onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';"
+               class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors"
                onchange="validateDateRange('planning_start','planning_end','err_planning',true)">
-        @error('planning_end')<div class="form-error">{{ $message }}</div>@enderror
-        <div class="form-error" id="err_planning" style="display:none;"></div>
+        @error('planning_end')<div class="text-xs text-red-500 mt-0.5">{{ $message }}</div>@enderror
+        <div class="text-xs text-red-500 mt-0.5" id="err_planning" style="display:none;"></div>
     </div>
 </div>
 
