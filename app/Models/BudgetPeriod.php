@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class BudgetPeriod extends Model
 {
-    use SoftDeletes;
+    use HasUuids, SoftDeletes;
 
     protected $fillable = [
         'organization_id', 'code', 'name',

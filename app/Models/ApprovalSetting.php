@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 
 class ApprovalSetting extends Model
 {
+    use HasUuids;
+
     protected $fillable = [
         'organization_id', 'requester_position_id', 'approver_position_id',
         'step', 'max_amount', 'is_active',
@@ -31,7 +34,7 @@ class ApprovalSetting extends Model
         return $this->belongsTo(Position::class, 'approver_position_id');
     }
 
-    public static function getChainFor(int $orgId, int $positionId, float $amount): \Illuminate\Database\Eloquent\Collection
+    public static function getChainFor(string $orgId, string $positionId, float $amount): \Illuminate\Database\Eloquent\Collection
     {
         return self::where('organization_id', $orgId)
             ->where('requester_position_id', $positionId)

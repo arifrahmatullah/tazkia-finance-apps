@@ -6,19 +6,14 @@ namespace App\Models;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
-
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
-    use \Illuminate\Database\Eloquent\SoftDeletes;
+    use HasFactory, HasUuids, Notifiable, SoftDeletes;
 
     protected $fillable = [
         'name',
@@ -77,7 +72,7 @@ class User extends Authenticatable
         return $this->role?->slug === $slug;
     }
 
-    public function hasRoleInOrganization(string $slug, int $organizationId): bool
+    public function hasRoleInOrganization(string $slug, string $organizationId): bool
     {
         return $this->organizationRoles()
             ->whereHas('role', fn($q) => $q->where('slug', $slug))
@@ -107,7 +102,7 @@ class User extends Authenticatable
      * Cek apakah user boleh mengakses organisasi tertentu.
      * Superadmin selalu boleh.
      */
-    public function canAccessOrganization(int $orgId): bool
+    public function canAccessOrganization(string $orgId): bool
     {
         if ($this->isSuperAdmin()) {
             return true;

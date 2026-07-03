@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -9,9 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('journal_entry_lines', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('journal_entry_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('account_id')->constrained()->restrictOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('journal_entry_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('account_id')->constrained()->restrictOnDelete();
             $table->text('description')->nullable();
             $table->decimal('debit', 15, 2)->default(0);
             $table->decimal('credit', 15, 2)->default(0);

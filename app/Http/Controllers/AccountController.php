@@ -65,7 +65,7 @@ class AccountController extends Controller
 
     public function store(Request $request)
     {
-        $orgId = (int) $request->organization_id;
+        $orgId = $request->organization_id;
         abort_unless(auth()->user()->canAccessOrganization($orgId), 403);
 
         $validated = $request->validate([
@@ -164,7 +164,7 @@ class AccountController extends Controller
 
     public function getParents(Request $request)
     {
-        $orgId = (int) $request->organization_id;
+        $orgId = $request->organization_id;
         abort_unless(auth()->user()->canAccessOrganization($orgId), 403);
 
         $parents = Account::where('organization_id', $orgId)

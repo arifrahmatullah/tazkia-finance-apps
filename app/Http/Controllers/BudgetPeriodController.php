@@ -35,7 +35,7 @@ class BudgetPeriodController extends Controller
 
     public function store(Request $request)
     {
-        abort_unless(auth()->user()->canAccessOrganization((int) $request->organization_id), 403);
+        abort_unless(auth()->user()->canAccessOrganization($request->organization_id), 403);
         $validated = $request->validate([
             'organization_id' => 'required|exists:organizations,id',
             'code'            => 'required|string|max:20|unique:budget_periods,code',
@@ -73,7 +73,7 @@ class BudgetPeriodController extends Controller
     public function update(Request $request, BudgetPeriod $budgetPeriod)
     {
         abort_unless(auth()->user()->canAccessOrganization($budgetPeriod->organization_id), 403);
-        abort_unless(auth()->user()->canAccessOrganization((int) $request->organization_id), 403);
+        abort_unless(auth()->user()->canAccessOrganization($request->organization_id), 403);
         $validated = $request->validate([
             'organization_id' => 'required|exists:organizations,id',
             'code'            => 'required|string|max:20|unique:budget_periods,code,' . $budgetPeriod->id,
@@ -107,6 +107,18 @@ class BudgetPeriodController extends Controller
 
         return redirect()->route('budget-periods.index')
             ->with('success', $message);
+    }
+
+    public function activePeriod(Request $request)
+    {
+        $orgId = $request->organization_id;
+        abort_unless(auth()->user()->canAccessOrganization($orgId), 403);
+
+        $period = BudgetPeriod::where('organization_id', $orgId)
+            ->where('is_active', true)
+            ->first(['id', 'name', 'period_start', 'period_end']);
+
+        return response()->json($period);
     }
 
     public function destroy(BudgetPeriod $budgetPeriod)

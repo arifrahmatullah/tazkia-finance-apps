@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('permissions', function (Blueprint $table) {
-            $table->id();
+            $table->uuid('id')->primary();
             $table->string('name')->unique(); // misal: anggaran.create, pengajuan.approve
             $table->string('display_name');
             $table->string('group')->nullable(); // anggaran, pengajuan, laporan, dll
@@ -20,8 +20,8 @@ return new class extends Migration
         });
 
         Schema::create('role_permissions', function (Blueprint $table) {
-            $table->foreignId('role_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('permission_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('role_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('permission_id')->constrained()->cascadeOnDelete();
             $table->primary(['role_id', 'permission_id']);
         });
     }

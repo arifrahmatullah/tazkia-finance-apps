@@ -51,32 +51,55 @@
         </div>
 
         <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3.5 pb-2 border-b border-slate-100">Alokasi Pagu</p>
+
+        @php $sisa = $totalEstimate - $totalAllocated; @endphp
+        <div class="grid grid-cols-3 gap-3 mb-5 p-4 bg-slate-50 rounded-xl border border-slate-200">
+            <div>
+                <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Estimasi Pendapatan</div>
+                <div class="text-sm font-bold text-slate-700">Rp {{ number_format($totalEstimate, 0, ',', '.') }}</div>
+                @if($totalEstimate == 0)
+                    <div class="text-[11px] text-amber-500 mt-0.5">Belum ada estimasi</div>
+                @endif
+            </div>
+            <div>
+                <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Pagu NETT Lain</div>
+                <div class="text-sm font-bold text-slate-700">Rp {{ number_format($totalAllocated, 0, ',', '.') }}</div>
+            </div>
+            <div>
+                <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Sisa Tersedia</div>
+                <div class="text-sm font-bold {{ $sisa < 0 ? 'text-red-600' : 'text-green-600' }}">
+                    Rp {{ number_format($sisa, 0, ',', '.') }}
+                </div>
+            </div>
+        </div>
+
         <div class="grid grid-cols-2 gap-4">
             <div class="flex flex-col gap-1.5">
                 <label class="text-xs font-semibold text-slate-600">Jumlah Pagu (Rp) <span class="text-red-500 ml-0.5">*</span></label>
-                <input type="text" name="amount" id="amountInput" class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors"
-                    value="{{ old('amount') }}"
+                <input type="text" id="amountDisplay" class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors"
+                    value="{{ old('amount') ? number_format((int)old('amount'), 0, ',', '.') : '' }}"
                     placeholder="0"
                     inputmode="numeric"
                     oninput="formatRupiah(this)">
-                <input type="hidden" name="amount_raw" id="amountRaw">
+                <input type="hidden" name="amount" id="amountHidden" value="{{ old('amount') }}">
                 @error('amount') <span class="text-xs text-red-500 mt-0.5">{{ $message }}</span> @enderror
             </div>
             <div class="flex flex-col gap-1.5">
-                <label class="text-xs font-semibold text-slate-600">Persentase (%)</label>
-                <input type="number" name="percentage" class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors"
-                    value="{{ old('percentage') }}"
-                    placeholder="0.00" step="0.01" min="0" max="100">
-                <span class="text-xs text-slate-400 mt-0.5">Opsional. Persentase dari total anggaran organisasi</span>
-                @error('percentage') <span class="text-xs text-red-500 mt-0.5">{{ $message }}</span> @enderror
-            </div>
-            <div class="flex flex-col gap-1.5">
                 <label class="text-xs font-semibold text-slate-600">Sumber Dana <span class="text-red-500 ml-0.5">*</span></label>
-                <select name="source" class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors">
-                    <option value="NETT" {{ old('source', 'NETT') === 'NETT' ? 'selected' : '' }}>NETT</option>
-                    <option value="DEVIASI" {{ old('source') === 'DEVIASI' ? 'selected' : '' }}>DEVIASI</option>
+                <select name="source" id="sourceSelect" class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors" onchange="onSourceChange(this.value)">
+                    <option value="NETT" {{ old('source', 'NETT') === 'NETT' ? 'selected' : '' }}>NETT – Tidak ada toleransi</option>
+                    <option value="DEVIASI" {{ old('source') === 'DEVIASI' ? 'selected' : '' }}>DEVIASI – Boleh melebihi pagu</option>
                 </select>
                 @error('source') <span class="text-xs text-red-500 mt-0.5">{{ $message }}</span> @enderror
+            </div>
+            <div class="flex flex-col gap-1.5">
+                <label class="text-xs font-semibold text-slate-600">Toleransi Deviasi (%)</label>
+                <input type="text" inputmode="decimal" name="percentage" id="percentageInput" class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+                    value="{{ old('percentage', 0) }}"
+                    placeholder="0.00"
+                    oninput="this.value=this.value.replace(/[^0-9.]/g,'').replace(/(\..*?)\..*/g,'$1');if(parseFloat(this.value)>100)this.value='100'">
+                <span id="percentageHint" class="text-xs text-slate-400 mt-0.5">Isi % boleh melebihi pagu jika source DEVIASI.</span>
+                @error('percentage') <span class="text-xs text-red-500 mt-0.5">{{ $message }}</span> @enderror
             </div>
             <div class="flex flex-col gap-1.5 col-span-2">
                 <label class="text-xs font-semibold text-slate-600">Keterangan</label>
@@ -105,9 +128,22 @@
 
 <script>
 function formatRupiah(input) {
-    let raw = input.value.replace(/\D/g, '');
-    document.getElementById('amountRaw').value = raw;
+    const raw = input.value.replace(/\D/g, '');
+    document.getElementById('amountHidden').value = raw;
     input.value = raw ? parseInt(raw).toLocaleString('id-ID') : '';
+}
+
+function onSourceChange(val) {
+    const pctInput = document.getElementById('percentageInput');
+    const hint     = document.getElementById('percentageHint');
+    if (val === 'NETT') {
+        pctInput.value    = '0';
+        pctInput.disabled = true;
+        hint.textContent  = 'NETT: tidak ada toleransi, departemen tidak boleh melebihi pagu.';
+    } else {
+        pctInput.disabled = false;
+        hint.textContent  = 'Isi % maksimal boleh melebihi pagu (contoh: 10 = boleh melebihi 10%).';
+    }
 }
 
 function loadDepartments(periodId) {
@@ -123,14 +159,13 @@ function loadDepartments(periodId) {
         });
 }
 
-// Fix amount before submit
 document.querySelector('form').addEventListener('submit', function() {
-    const raw = document.getElementById('amountRaw').value || document.getElementById('amountInput').value.replace(/\D/g, '');
-    document.getElementById('amountInput').value = raw;
+    document.getElementById('percentageInput').disabled = false;
 });
 
-// Format existing value on load
-const amountInput = document.getElementById('amountInput');
-if (amountInput.value) formatRupiah(amountInput);
+// Init state on load
+onSourceChange(document.getElementById('sourceSelect').value);
+const displayInput = document.getElementById('amountDisplay');
+if (displayInput.value) formatRupiah(displayInput);
 </script>
 </x-layouts.app>

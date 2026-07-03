@@ -22,7 +22,7 @@ class JournalEntryController extends Controller
             ->when($orgIds !== null, fn($q) => $q->whereIn('organization_id', $orgIds));
 
         if ($request->filled('organization_id')) {
-            abort_unless($user->canAccessOrganization((int) $request->organization_id), 403);
+            abort_unless($user->canAccessOrganization($request->organization_id), 403);
             $query->where('organization_id', $request->organization_id);
         }
 
@@ -72,24 +72,24 @@ class JournalEntryController extends Controller
         $user = auth()->user();
 
         $request->validate([
-            'organization_id' => 'required|integer|exists:organizations,id',
+            'organization_id' => 'required|exists:organizations,id',
             'entry_date'      => 'required|date',
             'description'     => 'nullable|string|max:500',
             'lines'           => 'required|array|min:2',
-            'lines.*.account_id'   => 'required|integer|exists:accounts,id',
+            'lines.*.account_id'   => 'required|exists:accounts,id',
             'lines.*.description'  => 'nullable|string|max:255',
             'lines.*.debit'        => 'required|numeric|min:0',
             'lines.*.credit'       => 'required|numeric|min:0',
         ]);
 
-        abort_unless($user->canAccessOrganization((int) $request->organization_id), 403);
+        abort_unless($user->canAccessOrganization($request->organization_id), 403);
 
         $lines = $request->input('lines');
-        $this->validateLines($lines, (int) $request->organization_id);
+        $this->validateLines($lines, $request->organization_id);
 
         DB::transaction(function () use ($request, $user, $lines) {
             $reference = JournalEntry::generateReference(
-                (int) $request->organization_id,
+                $request->organization_id,
                 $request->entry_date
             );
 
@@ -152,7 +152,7 @@ class JournalEntryController extends Controller
             'entry_date'  => 'required|date',
             'description' => 'nullable|string|max:500',
             'lines'       => 'required|array|min:2',
-            'lines.*.account_id'  => 'required|integer|exists:accounts,id',
+            'lines.*.account_id'  => 'required|exists:accounts,id',
             'lines.*.description' => 'nullable|string|max:255',
             'lines.*.debit'       => 'required|numeric|min:0',
             'lines.*.credit'      => 'required|numeric|min:0',
@@ -213,7 +213,7 @@ class JournalEntryController extends Controller
 
     public function getAccounts(Request $request)
     {
-        $orgId = (int) $request->organization_id;
+        $orgId = $request->organization_id;
         abort_unless(auth()->user()->canAccessOrganization($orgId), 403);
 
         $accounts = Account::where('organization_id', $orgId)
@@ -225,7 +225,7 @@ class JournalEntryController extends Controller
         return response()->json($accounts);
     }
 
-    private function validateLines(array $lines, int $orgId): void
+    private function validateLines(array $lines, string $orgId): void
     {
         $totalDebit  = collect($lines)->sum(fn($l) => (float) $l['debit']);
         $totalCredit = collect($lines)->sum(fn($l) => (float) $l['credit']);

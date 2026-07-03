@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 
 class EmployeePosition extends Model
 {
+    use HasUuids;
+
     protected $fillable = [
         'employee_id', 'position_id', 'start_date', 'end_date', 'notes', 'is_active',
     ];

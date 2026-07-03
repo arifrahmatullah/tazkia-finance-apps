@@ -11,15 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('budget_periods', function (Blueprint $table) {
+        Schema::create('income_estimates', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('organization_id')->constrained()->cascadeOnDelete();
-            $table->string('code', 20)->unique();
-            $table->string('name');
-            $table->date('planning_start')->nullable();
-            $table->date('planning_end')->nullable();
-            $table->date('period_start');
-            $table->date('period_end');
+            $table->foreignUuid('budget_period_id')->constrained()->cascadeOnDelete();
+            $table->string('description');
+            $table->string('unit', 50);
+            $table->decimal('unit_price', 18, 2)->default(0);
+            $table->decimal('total_amount', 18, 2)->default(0);
             $table->boolean('is_active')->default(true);
             $table->timestamps();
             $table->softDeletes();
@@ -31,6 +30,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('budget_periods');
+        Schema::dropIfExists('income_estimates');
     }
 };

@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('positions', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('department_id')->constrained()->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('department_id')->constrained()->cascadeOnDelete();
             $table->string('code', 50);
             $table->string('name');
             $table->string('description')->nullable();

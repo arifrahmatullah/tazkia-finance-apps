@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -9,12 +9,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('fund_requests', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('organization_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('department_id')->constrained()->restrictOnDelete();
-            $table->foreignId('budget_period_id')->nullable()->constrained()->nullOnDelete();
-            $table->foreignId('requester_id')->constrained('employees')->restrictOnDelete();
-            $table->foreignId('requester_position_id')->constrained('positions')->restrictOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('organization_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('department_id')->constrained()->restrictOnDelete();
+            $table->foreignUuid('budget_period_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignUuid('requester_id')->constrained('employees')->restrictOnDelete();
+            $table->foreignUuid('requester_position_id')->constrained('positions')->restrictOnDelete();
             $table->string('reference', 30)->unique();
             $table->string('title', 200);
             $table->text('purpose')->nullable();

@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 
 class JournalEntryLine extends Model
 {
+    use HasUuids;
+
     protected $fillable = [
         'journal_entry_id', 'account_id', 'description',
         'debit', 'credit', 'sort_order',

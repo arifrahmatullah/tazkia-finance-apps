@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -9,9 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('budget_allocations', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('budget_period_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('department_id')->constrained()->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('budget_period_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('department_id')->constrained()->cascadeOnDelete();
             $table->decimal('amount', 18, 2)->default(0);
             $table->decimal('percentage', 8, 4)->nullable();
             $table->enum('source', ['NETT', 'DEVIASI'])->default('NETT');

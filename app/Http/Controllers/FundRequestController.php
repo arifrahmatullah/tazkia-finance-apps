@@ -28,7 +28,7 @@ class FundRequestController extends Controller
             ->where('requester_id', $employee->id);
 
         if ($request->filled('organization_id')) {
-            abort_unless($user->canAccessOrganization((int) $request->organization_id), 403);
+            abort_unless($user->canAccessOrganization($request->organization_id), 403);
             $query->where('organization_id', $request->organization_id);
         }
 
@@ -76,22 +76,22 @@ class FundRequestController extends Controller
         abort_unless($employee, 403);
 
         $request->validate([
-            'organization_id'  => 'required|integer|exists:organizations,id',
-            'department_id'    => 'required|integer|exists:departments,id',
-            'budget_period_id' => 'nullable|integer|exists:budget_periods,id',
+            'organization_id'  => 'required|exists:organizations,id',
+            'department_id'    => 'required|exists:departments,id',
+            'budget_period_id' => 'nullable|exists:budget_periods,id',
             'title'            => 'required|string|max:200',
             'purpose'          => 'nullable|string|max:1000',
             'amount'           => 'required|numeric|min:1000',
         ]);
 
-        abort_unless($user->canAccessOrganization((int) $request->organization_id), 403);
+        abort_unless($user->canAccessOrganization($request->organization_id), 403);
 
         $activePosition = $employee->activePosition?->position;
         abort_unless($activePosition, 422, 'Anda tidak memiliki jabatan aktif. Hubungi HRD.');
 
         DB::transaction(function () use ($request, $employee, $activePosition) {
             $reference = FundRequest::generateReference(
-                (int) $request->organization_id,
+                $request->organization_id,
                 now()->toDateString()
             );
 
@@ -153,8 +153,8 @@ class FundRequestController extends Controller
         abort_unless($fundRequest->isDraft(), 403);
 
         $request->validate([
-            'department_id'    => 'required|integer|exists:departments,id',
-            'budget_period_id' => 'nullable|integer|exists:budget_periods,id',
+            'department_id'    => 'required|exists:departments,id',
+            'budget_period_id' => 'nullable|exists:budget_periods,id',
             'title'            => 'required|string|max:200',
             'purpose'          => 'nullable|string|max:1000',
             'amount'           => 'required|numeric|min:1000',
@@ -224,7 +224,7 @@ class FundRequestController extends Controller
     public function getDependencies(Request $request)
     {
         $user  = auth()->user();
-        $orgId = (int) $request->organization_id;
+        $orgId = $request->organization_id;
         abort_unless($orgId && $user->canAccessOrganization($orgId), 403);
 
         return response()->json([

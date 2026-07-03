@@ -38,7 +38,7 @@ class EmployeeController extends Controller
 
     public function store(Request $request)
     {
-        abort_unless(auth()->user()->canAccessOrganization((int) $request->organization_id), 403);
+        abort_unless(auth()->user()->canAccessOrganization($request->organization_id), 403);
 
         $validated = $request->validate([
             'organization_id' => 'required|exists:organizations,id',
@@ -93,7 +93,7 @@ class EmployeeController extends Controller
     public function update(Request $request, Employee $employee)
     {
         abort_unless(auth()->user()->canAccessOrganization($employee->organization_id), 403);
-        abort_unless(auth()->user()->canAccessOrganization((int) $request->organization_id), 403);
+        abort_unless(auth()->user()->canAccessOrganization($request->organization_id), 403);
 
         $validated = $request->validate([
             'organization_id' => 'required|exists:organizations,id',

@@ -47,7 +47,7 @@ class DepartmentController extends Controller
 
     public function store(Request $request)
     {
-        abort_unless(auth()->user()->canAccessOrganization((int) $request->organization_id), 403);
+        abort_unless(auth()->user()->canAccessOrganization($request->organization_id), 403);
 
         $validated = $request->validate([
             'organization_id' => 'required|exists:organizations,id',
@@ -88,7 +88,7 @@ class DepartmentController extends Controller
     public function update(Request $request, Department $department)
     {
         abort_unless(auth()->user()->canAccessOrganization($department->organization_id), 403);
-        abort_unless(auth()->user()->canAccessOrganization((int) $request->organization_id), 403);
+        abort_unless(auth()->user()->canAccessOrganization($request->organization_id), 403);
 
         $validated = $request->validate([
             'organization_id' => 'required|exists:organizations,id',

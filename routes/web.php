@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\IncomeEstimateController;
+use App\Http\Controllers\IncomeEstimateDetailController;
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\ApprovalSettingController;
 use App\Http\Controllers\FundApprovalController;
@@ -26,6 +28,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('organizations', OrganizationController::class)->except(['show']);
     Route::resource('departments', DepartmentController::class)->except(['show']);
     Route::resource('positions', PositionController::class)->except(['show']);
+    Route::get('budget-periods/active-period', [BudgetPeriodController::class, 'activePeriod'])->name('budget-periods.active');
     Route::resource('budget-periods', BudgetPeriodController::class)->except(['show']);
     Route::resource('budget-allocations', BudgetAllocationController::class)->except(['show']);
     Route::get('budget-allocations-departments', [BudgetAllocationController::class, 'getDepartments'])->name('budget-allocations.departments');
@@ -37,8 +40,15 @@ Route::middleware('auth')->group(function () {
     Route::post('journal-entries/{journal_entry}/post', [JournalEntryController::class, 'post'])->name('journal-entries.post');
     Route::get('journal-accounts', [JournalEntryController::class, 'getAccounts'])->name('journal-entries.accounts');
 
+    // Estimasi Pendapatan
+    Route::resource('income-estimates', IncomeEstimateController::class);
+    Route::resource('income-estimate-details', IncomeEstimateDetailController::class)
+        ->only(['create', 'store', 'edit', 'update', 'destroy']);
+
     // Approval Settings
-    Route::resource('approval-settings', ApprovalSettingController::class)->except(['show']);
+    Route::get('approval-settings/edit-chain', [ApprovalSettingController::class, 'editChain'])->name('approval-settings.edit-chain');
+    Route::post('approval-settings/update-chain', [ApprovalSettingController::class, 'updateChain'])->name('approval-settings.update-chain');
+    Route::resource('approval-settings', ApprovalSettingController::class)->only(['index', 'create', 'store', 'destroy']);
 
     // Pengajuan Dana
     Route::resource('fund-requests', FundRequestController::class);

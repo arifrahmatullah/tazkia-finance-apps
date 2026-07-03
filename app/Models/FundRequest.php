@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class FundRequest extends Model
 {
-    use SoftDeletes;
+    use HasUuids, SoftDeletes;
 
     protected $fillable = [
         'organization_id', 'department_id', 'budget_period_id',
@@ -66,7 +67,7 @@ class FundRequest extends Model
     public function isApproved(): bool { return $this->status === 'approved'; }
     public function isRejected(): bool { return $this->status === 'rejected'; }
 
-    public static function generateReference(int $orgId, string $date): string
+    public static function generateReference(string $orgId, string $date): string
     {
         $year  = date('Y', strtotime($date));
         $month = date('m', strtotime($date));

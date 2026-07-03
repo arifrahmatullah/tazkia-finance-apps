@@ -6,6 +6,8 @@
     <title>{{ $title ?? 'Dashboard' }} — Tazkia Finance</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         body { font-family: 'Inter', sans-serif; }
@@ -124,12 +126,34 @@
             Karyawan
         </a>
 
+        <div>
+            <div class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg cursor-pointer text-[0.835rem] transition-all relative
+                        {{ request()->routeIs('approval-settings.*') ? 'active bg-orange-500/[0.15] text-white font-[550]' : 'text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white' }}"
+                 onclick="toggleSubmenu('sub-pengaturan')">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                    class="{{ request()->routeIs('approval-settings.*') ? 'text-orange-300' : 'opacity-80' }}">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                Pengaturan
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                    class="ml-auto transition-transform duration-200" id="arrow-pengaturan">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                </svg>
+            </div>
+            <div class="nav-submenu {{ request()->routeIs('approval-settings.*') ? 'open' : '' }} hidden" id="sub-pengaturan">
+                <a href="{{ route('approval-settings.index') }}"
+                   class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
+                          {{ request()->routeIs('approval-settings.*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Setting Approval</a>
+            </div>
+        </div>
+
         {{-- KEUANGAN --}}
         <div class="px-5 pt-4 pb-1.5 text-[0.65rem] font-semibold text-slate-400/70 tracking-[0.1em] uppercase">Keuangan</div>
 
         <div>
             <div class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg cursor-pointer text-[0.835rem] transition-all relative
-                        {{ request()->routeIs('budget-periods.*') || request()->routeIs('budget-allocations.*') ? 'active bg-orange-500/[0.15] text-white font-[550]' : 'text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white' }}"
+                        {{ request()->routeIs('budget-periods.*') || request()->routeIs('budget-allocations.*') || request()->routeIs('income-estimates.*') || request()->routeIs('income-estimate-details.*') ? 'active bg-orange-500/[0.15] text-white font-[550]' : 'text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white' }}"
                  onclick="toggleSubmenu('sub-anggaran')">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
                     class="{{ request()->routeIs('budget-periods.*') || request()->routeIs('budget-allocations.*') ? 'text-orange-300' : 'opacity-80' }}">
@@ -141,10 +165,13 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
                 </svg>
             </div>
-            <div class="nav-submenu {{ request()->routeIs('budget-periods.*') || request()->routeIs('budget-allocations.*') ? 'open' : '' }} hidden" id="sub-anggaran">
+            <div class="nav-submenu {{ request()->routeIs('budget-periods.*') || request()->routeIs('budget-allocations.*') || request()->routeIs('income-estimates.*') || request()->routeIs('income-estimate-details.*') ? 'open' : '' }} hidden" id="sub-anggaran">
                 <a href="{{ route('budget-periods.index') }}"
                    class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
                           {{ request()->routeIs('budget-periods.*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Periode Anggaran</a>
+                <a href="{{ route('income-estimates.index') }}"
+                   class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
+                          {{ request()->routeIs('income-estimates.*') || request()->routeIs('income-estimate-details.*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Estimasi Pendapatan</a>
                 <a href="{{ route('budget-allocations.index') }}"
                    class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
                           {{ request()->routeIs('budget-allocations.*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Pagu Anggaran</a>
@@ -154,10 +181,10 @@
 
         <div>
             <div class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg cursor-pointer text-[0.835rem] transition-all relative
-                        {{ request()->routeIs('fund-requests.*') || request()->routeIs('fund-approvals.*') || request()->routeIs('approval-settings.*') ? 'active bg-orange-500/[0.15] text-white font-[550]' : 'text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white' }}"
+                        {{ request()->routeIs('fund-requests.*') || request()->routeIs('fund-approvals.*') ? 'active bg-orange-500/[0.15] text-white font-[550]' : 'text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white' }}"
                  onclick="toggleSubmenu('sub-pengajuan')">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
-                    class="{{ request()->routeIs('fund-requests.*') || request()->routeIs('fund-approvals.*') || request()->routeIs('approval-settings.*') ? 'text-orange-300' : 'opacity-80' }}">
+                    class="{{ request()->routeIs('fund-requests.*') || request()->routeIs('fund-approvals.*') ? 'text-orange-300' : 'opacity-80' }}">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
                 Pengajuan Dana
@@ -166,16 +193,13 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
                 </svg>
             </div>
-            <div class="nav-submenu {{ request()->routeIs('fund-requests.*') || request()->routeIs('fund-approvals.*') || request()->routeIs('approval-settings.*') ? 'open' : '' }} hidden" id="sub-pengajuan">
+            <div class="nav-submenu {{ request()->routeIs('fund-requests.*') || request()->routeIs('fund-approvals.*') ? 'open' : '' }} hidden" id="sub-pengajuan">
                 <a href="{{ route('fund-requests.index') }}"
                    class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
                           {{ request()->routeIs('fund-requests.*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Pengajuan Saya</a>
                 <a href="{{ route('fund-approvals.inbox') }}"
                    class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
                           {{ request()->routeIs('fund-approvals.*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Inbox Approval</a>
-                <a href="{{ route('approval-settings.index') }}"
-                   class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
-                          {{ request()->routeIs('approval-settings.*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Setting Approval</a>
             </div>
         </div>
 
@@ -245,13 +269,6 @@
             Manajemen User
         </a>
 
-        <a href="#" class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg no-underline text-[0.835rem] text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white transition-all relative">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" class="opacity-80">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-            </svg>
-            Pengaturan
-        </a>
 
     </nav>
 

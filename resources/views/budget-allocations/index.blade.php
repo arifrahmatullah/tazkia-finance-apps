@@ -37,9 +37,22 @@
         <button type="submit" class="px-4 py-2 rounded-xl text-sm font-medium bg-slate-100 text-slate-500 border-0 cursor-pointer hover:bg-slate-200 transition-colors">Pilih</button>
 
         @if($selectedPeriod)
-        <div class="ml-auto text-right">
-            <div class="text-[11px] text-slate-400 uppercase tracking-wide">Total Pagu</div>
-            <div class="text-lg font-bold text-slate-900">Rp {{ number_format($totalAmount, 0, ',', '.') }}</div>
+        @php $sisa = $totalEstimate - $totalNett; @endphp
+        <div class="ml-auto flex gap-5">
+            <div class="text-right">
+                <div class="text-[11px] text-slate-400 uppercase tracking-wide">Estimasi Pendapatan</div>
+                <div class="text-base font-bold text-slate-700">Rp {{ number_format($totalEstimate, 0, ',', '.') }}</div>
+            </div>
+            <div class="text-right">
+                <div class="text-[11px] text-slate-400 uppercase tracking-wide">Total NETT</div>
+                <div class="text-base font-bold text-slate-900">Rp {{ number_format($totalNett, 0, ',', '.') }}</div>
+            </div>
+            <div class="text-right">
+                <div class="text-[11px] text-slate-400 uppercase tracking-wide">Sisa</div>
+                <div class="text-base font-bold {{ $sisa < 0 ? 'text-red-600' : 'text-green-600' }}">
+                    Rp {{ number_format($sisa, 0, ',', '.') }}
+                </div>
+            </div>
         </div>
         @endif
     </div>
@@ -99,7 +112,7 @@
                 <th class="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Kode</th>
                 <th class="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Sumber</th>
                 <th class="px-4 py-3 text-right text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Pagu (Rp)</th>
-                <th class="px-4 py-3 text-right text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Persentase</th>
+                <th class="px-4 py-3 text-right text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Toleransi Deviasi</th>
                 <th class="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Blokir</th>
                 <th class="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Status</th>
                 <th class="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Aksi</th>
@@ -124,7 +137,11 @@
                     {{ number_format($alloc->amount, 0, ',', '.') }}
                 </td>
                 <td class="px-4 py-3 text-right font-mono text-sm text-slate-500 align-middle">
-                    {{ $alloc->percentage !== null ? number_format($alloc->percentage, 2, ',', '.') . '%' : '—' }}
+                    @if($alloc->source === 'NETT')
+                        <span class="text-slate-300">—</span>
+                    @else
+                        {{ $alloc->percentage ? number_format($alloc->percentage, 2, ',', '.') . '%' : '0%' }}
+                    @endif
                 </td>
                 <td class="px-4 py-3 text-sm text-slate-600 align-middle">
                     @if($alloc->is_blocking)
@@ -157,9 +174,9 @@
         </tbody>
         <tfoot>
             <tr class="bg-slate-50 border-t-2 border-slate-100">
-                <td colspan="4" class="px-4 py-3 text-sm text-slate-500 font-bold">Total</td>
+                <td colspan="4" class="px-4 py-3 text-sm text-slate-500 font-bold">Total Semua</td>
                 <td class="px-4 py-3 text-right font-mono text-sm font-bold text-slate-900">{{ number_format($totalAmount, 0, ',', '.') }}</td>
-                <td colspan="4" class="px-4 py-3"></td>
+                <td colspan="4" class="px-4 py-3 text-xs text-slate-400">NETT: Rp {{ number_format($totalNett, 0, ',', '.') }}</td>
             </tr>
         </tfoot>
     </table>

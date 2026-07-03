@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -12,9 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('employee_positions', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('employee_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('position_id')->constrained()->cascadeOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('employee_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('position_id')->constrained()->cascadeOnDelete();
             $table->date('start_date');
             $table->date('end_date')->nullable(); // null = masih aktif
             $table->string('notes')->nullable();

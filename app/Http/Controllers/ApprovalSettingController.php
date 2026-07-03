@@ -6,6 +6,7 @@ use App\Models\ApprovalSetting;
 use App\Models\Organization;
 use App\Models\Position;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ApprovalSettingController extends Controller
 {
@@ -21,15 +22,14 @@ class ApprovalSettingController extends Controller
             ->when($orgIds !== null, fn($q) => $q->whereIn('organization_id', $orgIds));
 
         if ($request->filled('organization_id')) {
-            abort_unless($user->canAccessOrganization((int) $request->organization_id), 403);
+            abort_unless($user->canAccessOrganization($request->organization_id), 403);
             $query->where('organization_id', $request->organization_id);
         }
 
         $settings = $query->orderBy('organization_id')->orderBy('requester_position_id')->orderBy('step')->get();
+        $grouped  = $settings->groupBy(fn($s) => $s->organization_id . '_' . $s->requester_position_id);
 
-        $grouped = $settings->groupBy(fn($s) => $s->organization_id . '_' . $s->requester_position_id);
-
-        return view('approval-settings.index', compact('settings', 'grouped', 'organizations'));
+        return view('approval-settings.index', compact('grouped', 'organizations'));
     }
 
     public function create()
@@ -50,77 +50,96 @@ class ApprovalSettingController extends Controller
         $user = auth()->user();
 
         $request->validate([
-            'organization_id'       => 'required|integer|exists:organizations,id',
-            'requester_position_id' => 'required|integer|exists:positions,id',
-            'approver_position_id'  => 'required|integer|exists:positions,id',
-            'step'                  => 'required|integer|min:1|max:10',
-            'max_amount'            => 'nullable|numeric|min:0',
-            'is_active'             => 'boolean',
+            'organization_id'                  => 'required|exists:organizations,id',
+            'requester_position_id'            => 'required|exists:positions,id',
+            'steps'                            => 'required|array|min:1|max:10',
+            'steps.*.approver_position_id'     => 'required|exists:positions,id',
         ]);
 
-        abort_unless($user->canAccessOrganization((int) $request->organization_id), 403);
+        abort_unless($user->canAccessOrganization($request->organization_id), 403);
 
         $exists = ApprovalSetting::where('organization_id', $request->organization_id)
             ->where('requester_position_id', $request->requester_position_id)
-            ->where('step', $request->step)
             ->exists();
 
         if ($exists) {
-            return back()->withInput()->withErrors(['step' => 'Kombinasi organisasi, jabatan pengaju, dan urutan langkah sudah ada.']);
+            return back()->withInput()->withErrors([
+                'requester_position_id' => 'Rantai approval untuk jabatan ini sudah ada. Gunakan "Edit Rantai" untuk mengubah.',
+            ]);
         }
 
-        ApprovalSetting::create([
-            'organization_id'       => $request->organization_id,
-            'requester_position_id' => $request->requester_position_id,
-            'approver_position_id'  => $request->approver_position_id,
-            'step'                  => $request->step,
-            'max_amount'            => $request->max_amount ?: null,
-            'is_active'             => $request->boolean('is_active', true),
-        ]);
+        DB::transaction(function () use ($request) {
+            foreach ($request->steps as $i => $step) {
+                ApprovalSetting::create([
+                    'organization_id'       => $request->organization_id,
+                    'requester_position_id' => $request->requester_position_id,
+                    'approver_position_id'  => $step['approver_position_id'],
+                    'step'                  => $i + 1,
+                    'max_amount'            => null,
+                    'is_active'             => true,
+                ]);
+            }
+        });
 
         return redirect()->route('approval-settings.index', ['organization_id' => $request->organization_id])
-            ->with('success', 'Setting approval berhasil ditambahkan.');
+            ->with('success', 'Rantai approval berhasil disimpan.');
     }
 
-    public function edit(ApprovalSetting $approvalSetting)
+    public function editChain(Request $request)
     {
-        abort_unless(auth()->user()->canAccessOrganization($approvalSetting->organization_id), 403);
+        $orgId = $request->organization_id;
+        $posId = $request->requester_position_id;
+
+        abort_unless(auth()->user()->canAccessOrganization($orgId), 403);
+
+        $chain = ApprovalSetting::with(['requesterPosition', 'approverPosition', 'organization'])
+            ->where('organization_id', $orgId)
+            ->where('requester_position_id', $posId)
+            ->orderBy('step')
+            ->get();
+
+        abort_if($chain->isEmpty(), 404);
 
         $positions = Position::where('is_active', true)->orderBy('name')->get();
 
-        return view('approval-settings.edit', compact('approvalSetting', 'positions'));
+        return view('approval-settings.edit-chain', compact('chain', 'positions'));
     }
 
-    public function update(Request $request, ApprovalSetting $approvalSetting)
+    public function updateChain(Request $request)
     {
-        abort_unless(auth()->user()->canAccessOrganization($approvalSetting->organization_id), 403);
+        $user = auth()->user();
 
         $request->validate([
-            'approver_position_id' => 'required|integer|exists:positions,id',
-            'step'                 => 'required|integer|min:1|max:10',
-            'max_amount'           => 'nullable|numeric|min:0',
-            'is_active'            => 'boolean',
+            'organization_id'                  => 'required|exists:organizations,id',
+            'requester_position_id'            => 'required|exists:positions,id',
+            'steps'                            => 'required|array|min:1|max:10',
+            'steps.*.approver_position_id'     => 'required|exists:positions,id',
         ]);
 
-        $exists = ApprovalSetting::where('organization_id', $approvalSetting->organization_id)
-            ->where('requester_position_id', $approvalSetting->requester_position_id)
-            ->where('step', $request->step)
-            ->where('id', '!=', $approvalSetting->id)
-            ->exists();
+        $orgId = $request->organization_id;
+        $posId = $request->requester_position_id;
 
-        if ($exists) {
-            return back()->withInput()->withErrors(['step' => 'Urutan langkah ini sudah digunakan untuk jabatan yang sama.']);
-        }
+        abort_unless($user->canAccessOrganization($orgId), 403);
 
-        $approvalSetting->update([
-            'approver_position_id' => $request->approver_position_id,
-            'step'                 => $request->step,
-            'max_amount'           => $request->max_amount ?: null,
-            'is_active'            => $request->boolean('is_active', true),
-        ]);
+        DB::transaction(function () use ($request, $orgId, $posId) {
+            ApprovalSetting::where('organization_id', $orgId)
+                ->where('requester_position_id', $posId)
+                ->delete();
 
-        return redirect()->route('approval-settings.index', ['organization_id' => $approvalSetting->organization_id])
-            ->with('success', 'Setting approval berhasil diperbarui.');
+            foreach ($request->steps as $i => $step) {
+                ApprovalSetting::create([
+                    'organization_id'       => $orgId,
+                    'requester_position_id' => $posId,
+                    'approver_position_id'  => $step['approver_position_id'],
+                    'step'                  => $i + 1,
+                    'max_amount'            => null,
+                    'is_active'             => true,
+                ]);
+            }
+        });
+
+        return redirect()->route('approval-settings.index', ['organization_id' => $orgId])
+            ->with('success', 'Rantai approval berhasil diperbarui.');
     }
 
     public function destroy(ApprovalSetting $approvalSetting)
@@ -130,6 +149,6 @@ class ApprovalSettingController extends Controller
         $approvalSetting->delete();
 
         return redirect()->route('approval-settings.index', ['organization_id' => $orgId])
-            ->with('success', 'Setting approval berhasil dihapus.');
+            ->with('success', 'Level approval berhasil dihapus.');
     }
 }

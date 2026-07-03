@@ -1,9 +1,88 @@
 @import 'tailwindcss';
+@import 'select2/dist/css/select2.min.css';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 @source '../**/*.blade.php';
 @source '../**/*.js';
+
+/* ── Select2 theme override ─────────────────────────────── */
+.select2-container { font-family: 'Inter', sans-serif; }
+
+.select2-container--default .select2-selection--single {
+    height: 42px;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.75rem;
+    background: #fff;
+    transition: border-color .15s, box-shadow .15s;
+}
+.select2-container--default.select2-container--focus .select2-selection--single,
+.select2-container--default.select2-container--open  .select2-selection--single {
+    border-color: #fb923c;
+    box-shadow: 0 0 0 3px rgba(251,146,60,.12);
+    outline: none;
+}
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    line-height: 40px;
+    padding-left: 12px;
+    padding-right: 32px;
+    color: #1e293b;
+    font-size: .875rem;
+}
+.select2-container--default .select2-selection--single .select2-selection__placeholder {
+    color: #94a3b8;
+}
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 40px;
+    right: 10px;
+}
+.select2-container--default .select2-selection--single .select2-selection__arrow b {
+    border-color: #94a3b8 transparent transparent;
+}
+.select2-container--default.select2-container--open .select2-selection--single .select2-selection__arrow b {
+    border-color: transparent transparent #94a3b8;
+}
+
+.select2-dropdown {
+    border: 1px solid #e2e8f0;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    box-shadow: 0 8px 24px -4px rgba(15,23,42,.1);
+    margin-top: 3px;
+}
+.select2-container--default .select2-search--dropdown {
+    padding: 8px 8px 4px;
+}
+.select2-container--default .select2-search--dropdown .select2-search__field {
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    padding: 6px 10px;
+    font-size: .8125rem;
+    outline: none;
+    transition: border-color .15s;
+}
+.select2-container--default .select2-search--dropdown .select2-search__field:focus {
+    border-color: #fb923c;
+    box-shadow: 0 0 0 2px rgba(251,146,60,.12);
+}
+.select2-results__option {
+    padding: 8px 12px;
+    font-size: .875rem;
+    color: #475569;
+}
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background: #fff7ed;
+    color: #ea580c;
+}
+.select2-container--default .select2-results__option[aria-selected=true] {
+    background: #ffedd5;
+    color: #c2410c;
+    font-weight: 500;
+}
+.select2-container--default .select2-results__option--disabled {
+    color: #cbd5e1;
+}
+/* ───────────────────────────────────────────────────────── */
 
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\BudgetAllocation;
 use App\Models\BudgetPeriod;
 use App\Models\Department;
+use App\Models\IncomeEstimate;
 use Illuminate\Http\Request;
 
 class BudgetAllocationController extends Controller
@@ -31,6 +32,7 @@ class BudgetAllocationController extends Controller
 
         $allocations = collect();
         $totalAmount = 0;
+        $totalNett   = 0;
 
         if ($selectedPeriod) {
             abort_unless(auth()->user()->canAccessOrganization($selectedPeriod->organization_id), 403);
@@ -45,10 +47,16 @@ class BudgetAllocationController extends Controller
                 ->get();
 
             $totalAmount = $allocations->sum('amount');
+            $totalNett   = (float) BudgetAllocation::where('budget_period_id', $selectedPeriod->id)
+                ->where('source', 'NETT')->sum('amount');
         }
 
+        $totalEstimate = $selectedPeriod
+            ? (float) IncomeEstimate::where('budget_period_id', $selectedPeriod->id)->sum('total_amount')
+            : 0;
+
         return view('budget-allocations.index', compact(
-            'periods', 'selectedPeriod', 'allocations', 'totalAmount'
+            'periods', 'selectedPeriod', 'allocations', 'totalAmount', 'totalNett', 'totalEstimate'
         ));
     }
 
@@ -59,7 +67,7 @@ class BudgetAllocationController extends Controller
             ->where('is_active', true);
     }
 
-    private function allowedDepartments(int $orgId): \Illuminate\Database\Eloquent\Builder
+    private function allowedDepartments(string $orgId): \Illuminate\Database\Eloquent\Builder
     {
         return Department::where('organization_id', $orgId)
             ->where('has_budget', true)
@@ -83,7 +91,15 @@ class BudgetAllocationController extends Controller
                 ->orderBy('name')->get();
         }
 
-        return view('budget-allocations.create', compact('periods', 'selectedPeriod', 'departments'));
+        $totalEstimate  = $selectedPeriod
+            ? (float) IncomeEstimate::where('budget_period_id', $selectedPeriod->id)->sum('total_amount')
+            : 0;
+        // Hanya NETT yang dihitung ke ceiling
+        $totalAllocated = $selectedPeriod
+            ? (float) BudgetAllocation::where('budget_period_id', $selectedPeriod->id)->where('source', 'NETT')->sum('amount')
+            : 0;
+
+        return view('budget-allocations.create', compact('periods', 'selectedPeriod', 'departments', 'totalEstimate', 'totalAllocated'));
     }
 
     public function store(Request $request)
@@ -116,6 +132,27 @@ class BudgetAllocationController extends Controller
             return back()->withInput()->withErrors(['department_id' => 'Departemen ini sudah memiliki pagu di periode tersebut.']);
         }
 
+        // Validasi ceiling: hanya pagu NETT yang dihitung, DEVIASI bebas
+        if ($validated['source'] === 'NETT') {
+            $totalEstimate = (float) IncomeEstimate::where('budget_period_id', $validated['budget_period_id'])->sum('total_amount');
+            if ($totalEstimate > 0) {
+                $currentNett = (float) BudgetAllocation::where('budget_period_id', $validated['budget_period_id'])
+                    ->where('source', 'NETT')->sum('amount');
+                $newTotal = $currentNett + (float) $validated['amount'];
+                if ($newTotal > $totalEstimate) {
+                    return back()->withInput()->withErrors([
+                        'amount' => 'Total pagu NETT Rp ' . number_format($newTotal, 0, ',', '.') .
+                            ' melebihi estimasi pendapatan Rp ' . number_format($totalEstimate, 0, ',', '.') .
+                            ' (kelebihan Rp ' . number_format($newTotal - $totalEstimate, 0, ',', '.') . ').',
+                    ]);
+                }
+            }
+        }
+
+        if ($validated['source'] === 'NETT') {
+            $validated['percentage'] = 0;
+        }
+
         $validated['is_blocking'] = $request->boolean('is_blocking');
         $validated['is_active']   = true;
 
@@ -136,7 +173,14 @@ class BudgetAllocationController extends Controller
         $departments = $this->allowedDepartments($budgetAllocation->budgetPeriod->organization_id)
             ->orderBy('name')->get();
 
-        return view('budget-allocations.edit', compact('budgetAllocation', 'periods', 'departments'));
+        $totalEstimate  = (float) IncomeEstimate::where('budget_period_id', $budgetAllocation->budget_period_id)->sum('total_amount');
+        // Hanya NETT yang dihitung ke ceiling, exclude record ini sendiri
+        $totalAllocated = (float) BudgetAllocation::where('budget_period_id', $budgetAllocation->budget_period_id)
+            ->where('source', 'NETT')
+            ->where('id', '!=', $budgetAllocation->id)
+            ->sum('amount');
+
+        return view('budget-allocations.edit', compact('budgetAllocation', 'periods', 'departments', 'totalEstimate', 'totalAllocated'));
     }
 
     public function update(Request $request, BudgetAllocation $budgetAllocation)
@@ -154,6 +198,29 @@ class BudgetAllocationController extends Controller
             'is_blocking' => 'boolean',
             'is_active'   => 'boolean',
         ]);
+
+        // Validasi ceiling: hanya pagu NETT yang dihitung, DEVIASI bebas
+        if ($validated['source'] === 'NETT') {
+            $totalEstimate = (float) IncomeEstimate::where('budget_period_id', $budgetAllocation->budget_period_id)->sum('total_amount');
+            if ($totalEstimate > 0) {
+                $otherNett = (float) BudgetAllocation::where('budget_period_id', $budgetAllocation->budget_period_id)
+                    ->where('source', 'NETT')
+                    ->where('id', '!=', $budgetAllocation->id)
+                    ->sum('amount');
+                $newTotal = $otherNett + (float) $validated['amount'];
+                if ($newTotal > $totalEstimate) {
+                    return back()->withInput()->withErrors([
+                        'amount' => 'Total pagu NETT Rp ' . number_format($newTotal, 0, ',', '.') .
+                            ' melebihi estimasi pendapatan Rp ' . number_format($totalEstimate, 0, ',', '.') .
+                            ' (kelebihan Rp ' . number_format($newTotal - $totalEstimate, 0, ',', '.') . ').',
+                    ]);
+                }
+            }
+        }
+
+        if ($validated['source'] === 'NETT') {
+            $validated['percentage'] = 0;
+        }
 
         $validated['is_blocking'] = $request->boolean('is_blocking');
         $validated['is_active']   = $request->boolean('is_active');

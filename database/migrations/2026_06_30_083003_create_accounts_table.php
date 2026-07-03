@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -9,9 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('accounts', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('organization_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('parent_id')->nullable()->constrained('accounts')->nullOnDelete();
+            $table->uuid('id')->primary();
+            $table->foreignUuid('organization_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('parent_id')->nullable()->constrained('accounts')->nullOnDelete();
             $table->string('code', 20);
             $table->string('name', 150);
             $table->enum('account_type', ['aset', 'kewajiban', 'ekuitas', 'pendapatan', 'beban']);
