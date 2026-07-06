@@ -37,8 +37,15 @@ class BudgetAllocationController extends Controller
         if ($selectedPeriod) {
             abort_unless(auth()->user()->canAccessOrganization($selectedPeriod->organization_id), 403);
 
-            $allocations = BudgetAllocation::with(['department'])
+            $allocations = BudgetAllocation::with([
+                    'department',
+                    'programs' => fn($q) => $q->where('is_active', true)->orderBy('name'),
+                    'programs.account',
+                    'programs.details',
+                ])
                 ->where('budget_period_id', $selectedPeriod->id)
+                ->where('is_active', true)
+                ->whereHas('department', fn($d) => $d->where('is_active', true))
                 ->when($search, fn($q) => $q->whereHas('department', fn($d) => $d
                     ->where('name', 'like', "%{$search}%")
                     ->orWhere('code', 'like', "%{$search}%")
@@ -48,11 +55,15 @@ class BudgetAllocationController extends Controller
 
             $totalAmount = $allocations->sum('amount');
             $totalNett   = (float) BudgetAllocation::where('budget_period_id', $selectedPeriod->id)
-                ->where('source', 'NETT')->sum('amount');
+                ->where('is_active', true)
+                ->where('source', 'NETT')
+                ->sum('amount');
         }
 
         $totalEstimate = $selectedPeriod
-            ? (float) IncomeEstimate::where('budget_period_id', $selectedPeriod->id)->sum('total_amount')
+            ? (float) IncomeEstimate::where('budget_period_id', $selectedPeriod->id)
+                ->where('is_active', true)
+                ->sum('total_amount')
             : 0;
 
         return view('budget-allocations.index', compact(
@@ -92,11 +103,11 @@ class BudgetAllocationController extends Controller
         }
 
         $totalEstimate  = $selectedPeriod
-            ? (float) IncomeEstimate::where('budget_period_id', $selectedPeriod->id)->sum('total_amount')
+            ? (float) IncomeEstimate::where('budget_period_id', $selectedPeriod->id)->where('is_active', true)->sum('total_amount')
             : 0;
-        // Hanya NETT yang dihitung ke ceiling
+        // Hanya NETT aktif yang dihitung ke ceiling
         $totalAllocated = $selectedPeriod
-            ? (float) BudgetAllocation::where('budget_period_id', $selectedPeriod->id)->where('source', 'NETT')->sum('amount')
+            ? (float) BudgetAllocation::where('budget_period_id', $selectedPeriod->id)->where('source', 'NETT')->where('is_active', true)->sum('amount')
             : 0;
 
         return view('budget-allocations.create', compact('periods', 'selectedPeriod', 'departments', 'totalEstimate', 'totalAllocated'));
@@ -132,12 +143,12 @@ class BudgetAllocationController extends Controller
             return back()->withInput()->withErrors(['department_id' => 'Departemen ini sudah memiliki pagu di periode tersebut.']);
         }
 
-        // Validasi ceiling: hanya pagu NETT yang dihitung, DEVIASI bebas
+        // Validasi ceiling: hanya pagu NETT aktif yang dihitung, DEVIASI bebas
         if ($validated['source'] === 'NETT') {
-            $totalEstimate = (float) IncomeEstimate::where('budget_period_id', $validated['budget_period_id'])->sum('total_amount');
+            $totalEstimate = (float) IncomeEstimate::where('budget_period_id', $validated['budget_period_id'])->where('is_active', true)->sum('total_amount');
             if ($totalEstimate > 0) {
                 $currentNett = (float) BudgetAllocation::where('budget_period_id', $validated['budget_period_id'])
-                    ->where('source', 'NETT')->sum('amount');
+                    ->where('source', 'NETT')->where('is_active', true)->sum('amount');
                 $newTotal = $currentNett + (float) $validated['amount'];
                 if ($newTotal > $totalEstimate) {
                     return back()->withInput()->withErrors([
@@ -173,10 +184,11 @@ class BudgetAllocationController extends Controller
         $departments = $this->allowedDepartments($budgetAllocation->budgetPeriod->organization_id)
             ->orderBy('name')->get();
 
-        $totalEstimate  = (float) IncomeEstimate::where('budget_period_id', $budgetAllocation->budget_period_id)->sum('total_amount');
-        // Hanya NETT yang dihitung ke ceiling, exclude record ini sendiri
+        $totalEstimate  = (float) IncomeEstimate::where('budget_period_id', $budgetAllocation->budget_period_id)->where('is_active', true)->sum('total_amount');
+        // Hanya NETT aktif yang dihitung ke ceiling, exclude record ini sendiri
         $totalAllocated = (float) BudgetAllocation::where('budget_period_id', $budgetAllocation->budget_period_id)
             ->where('source', 'NETT')
+            ->where('is_active', true)
             ->where('id', '!=', $budgetAllocation->id)
             ->sum('amount');
 
@@ -199,12 +211,13 @@ class BudgetAllocationController extends Controller
             'is_active'   => 'boolean',
         ]);
 
-        // Validasi ceiling: hanya pagu NETT yang dihitung, DEVIASI bebas
+        // Validasi ceiling: hanya pagu NETT aktif yang dihitung, DEVIASI bebas
         if ($validated['source'] === 'NETT') {
-            $totalEstimate = (float) IncomeEstimate::where('budget_period_id', $budgetAllocation->budget_period_id)->sum('total_amount');
+            $totalEstimate = (float) IncomeEstimate::where('budget_period_id', $budgetAllocation->budget_period_id)->where('is_active', true)->sum('total_amount');
             if ($totalEstimate > 0) {
                 $otherNett = (float) BudgetAllocation::where('budget_period_id', $budgetAllocation->budget_period_id)
                     ->where('source', 'NETT')
+                    ->where('is_active', true)
                     ->where('id', '!=', $budgetAllocation->id)
                     ->sum('amount');
                 $newTotal = $otherNett + (float) $validated['amount'];

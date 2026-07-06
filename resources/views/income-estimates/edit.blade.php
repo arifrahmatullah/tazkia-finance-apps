@@ -41,25 +41,18 @@
         @error('description')<p class="text-xs text-red-500">{{ $message }}</p>@enderror
     </div>
 
-    <div class="grid grid-cols-2 gap-4 mb-6">
-        <div class="flex flex-col gap-1.5">
-            <label class="text-xs font-semibold text-slate-600">Satuan <span class="text-red-500">*</span></label>
-            <input type="text" name="unit" value="{{ old('unit', $incomeEstimate->unit) }}"
-                class="w-full px-3 py-2.5 border rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 {{ $errors->has('unit') ? 'border-red-400' : 'border-slate-200' }}" required>
-            @error('unit')<p class="text-xs text-red-500">{{ $message }}</p>@enderror
+    <div class="flex flex-col gap-1.5 mb-6">
+        <label class="text-xs font-semibold text-slate-600">Target Penerimaan (Rp) <span class="text-red-500">*</span></label>
+        <div class="relative">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400 font-medium">Rp</span>
+            <input type="text" id="unit_price_display" inputmode="numeric"
+                value="{{ number_format((float) old('unit_price', $incomeEstimate->unit_price), 0, ',', '.') }}"
+                placeholder="0"
+                class="w-full pl-9 pr-3 py-2.5 border rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 {{ $errors->has('unit_price') ? 'border-red-400' : 'border-slate-200' }}">
+            <input type="hidden" name="unit_price" id="unit_price_raw" value="{{ old('unit_price', $incomeEstimate->unit_price) }}">
         </div>
-        <div class="flex flex-col gap-1.5">
-            <label class="text-xs font-semibold text-slate-600">Harga per Satuan (Rp) <span class="text-red-500">*</span></label>
-            <div class="relative">
-                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400 font-medium">Rp</span>
-                <input type="text" id="unit_price_display" inputmode="numeric"
-                    value="{{ number_format((float) old('unit_price', $incomeEstimate->unit_price), 0, ',', '.') }}"
-                    placeholder="0"
-                    class="w-full pl-9 pr-3 py-2.5 border rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 {{ $errors->has('unit_price') ? 'border-red-400' : 'border-slate-200' }}">
-                <input type="hidden" name="unit_price" id="unit_price_raw" value="{{ old('unit_price', $incomeEstimate->unit_price) }}">
-            </div>
-            @error('unit_price')<p class="text-xs text-red-500">{{ $message }}</p>@enderror
-        </div>
+        <p class="text-xs text-slate-400">Total target pendapatan untuk estimasi ini.</p>
+        @error('unit_price')<p class="text-xs text-red-500">{{ $message }}</p>@enderror
     </div>
 
     <div class="flex gap-3 justify-end pt-5 border-t border-slate-100">

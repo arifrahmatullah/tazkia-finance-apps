@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\GoogleAuthController;
 use App\Http\Controllers\IncomeEstimateController;
 use App\Http\Controllers\IncomeEstimateDetailController;
 use App\Http\Controllers\AccountController;
@@ -10,6 +11,8 @@ use App\Http\Controllers\FundRequestController;
 use App\Http\Controllers\JournalEntryController;
 use App\Http\Controllers\BudgetAllocationController;
 use App\Http\Controllers\BudgetPeriodController;
+use App\Http\Controllers\BudgetProgramController;
+use App\Http\Controllers\BudgetProgramDetailController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\OrganizationController;
@@ -23,6 +26,9 @@ Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.post');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
+Route::get('/auth/google', [GoogleAuthController::class, 'redirect'])->name('auth.google');
+Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->name('auth.google.callback');
+
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', fn() => view('dashboard'))->name('dashboard');
     Route::resource('organizations', OrganizationController::class)->except(['show']);
@@ -32,6 +38,13 @@ Route::middleware('auth')->group(function () {
     Route::resource('budget-periods', BudgetPeriodController::class)->except(['show']);
     Route::resource('budget-allocations', BudgetAllocationController::class)->except(['show']);
     Route::get('budget-allocations-departments', [BudgetAllocationController::class, 'getDepartments'])->name('budget-allocations.departments');
+
+    // Budget Programs & Details
+    Route::resource('budget-programs', BudgetProgramController::class);
+    Route::post('budget-program-details', [BudgetProgramDetailController::class, 'store'])->name('budget-program-details.store');
+    Route::get('budget-program-details/{budgetProgramDetail}/edit', [BudgetProgramDetailController::class, 'edit'])->name('budget-program-details.edit');
+    Route::put('budget-program-details/{budgetProgramDetail}', [BudgetProgramDetailController::class, 'update'])->name('budget-program-details.update');
+    Route::delete('budget-program-details/{budgetProgramDetail}', [BudgetProgramDetailController::class, 'destroy'])->name('budget-program-details.destroy');
     Route::resource('employees', EmployeeController::class);
     Route::resource('users', UserController::class)->except(['show']);
     Route::resource('accounts', AccountController::class)->except(['show']);

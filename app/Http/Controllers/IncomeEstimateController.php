@@ -35,10 +35,28 @@ class IncomeEstimateController extends Controller
         }
 
         $estimates     = $query->latest()->paginate(10)->withQueryString();
-        $budgetPeriods = BudgetPeriod::when($orgIds !== null, fn($q) => $q->whereIn('organization_id', $orgIds))
-            ->where('is_active', true)->orderBy('name')->get();
+        $budgetPeriods = BudgetPeriod::with(['organization'])
+            ->when($orgIds !== null, fn($q) => $q->whereIn('organization_id', $orgIds))
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
 
-        return view('income-estimates.index', compact('estimates', 'organizations', 'budgetPeriods'));
+        // Total estimasi aktif per periode aktif
+        $periodSummaries = $budgetPeriods->map(function ($period) {
+            $total = IncomeEstimate::where('budget_period_id', $period->id)
+                ->where('is_active', true)
+                ->sum('total_amount');
+            $count = IncomeEstimate::where('budget_period_id', $period->id)
+                ->where('is_active', true)
+                ->count();
+            return (object) [
+                'period' => $period,
+                'total'  => (float) $total,
+                'count'  => $count,
+            ];
+        });
+
+        return view('income-estimates.index', compact('estimates', 'organizations', 'budgetPeriods', 'periodSummaries'));
     }
 
     public function create()
@@ -61,9 +79,9 @@ class IncomeEstimateController extends Controller
         $data = $request->validate([
             'organization_id' => 'required|exists:organizations,id',
             'description'     => 'required|string|max:255',
-            'unit'            => 'required|string|max:50',
             'unit_price'      => 'required|numeric|min:0',
         ]);
+        $data['unit'] = null;
 
         abort_unless($user->canAccessOrganization($data['organization_id']), 403);
 
@@ -117,9 +135,9 @@ class IncomeEstimateController extends Controller
             'organization_id'  => 'required|exists:organizations,id',
             'budget_period_id' => 'required|exists:budget_periods,id',
             'description'      => 'required|string|max:255',
-            'unit'             => 'required|string|max:50',
             'unit_price'       => 'required|numeric|min:0',
         ]);
+        $data['unit'] = null;
 
         $incomeEstimate->update($data);
         $incomeEstimate->recalculateTotal();

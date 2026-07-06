@@ -19,6 +19,54 @@
 </div>
 @endif
 
+{{-- Periode Aktif Summary --}}
+@if($periodSummaries->isNotEmpty())
+<div class="mb-5">
+    <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-2">Periode Aktif</div>
+    <div class="flex flex-col gap-3">
+        @foreach($periodSummaries as $ps)
+        <div class="bg-white rounded-xl border border-slate-100 shadow-sm px-5 py-4 flex items-center gap-4">
+            <div class="w-9 h-9 rounded-xl bg-green-100 flex items-center justify-center shrink-0">
+                <svg width="16" height="16" fill="none" stroke="#16a34a" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-sm font-bold text-slate-800 truncate">{{ $ps->period->name }}</span>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-100 text-green-700">Aktif</span>
+                </div>
+                <div class="text-xs text-slate-400 mt-0.5">{{ $ps->period->organization->name }}</div>
+                <div class="flex items-center gap-3 mt-1.5">
+                    <div>
+                        <span class="text-[11px] text-slate-400">Total Estimasi Aktif</span>
+                        <div class="text-sm font-bold text-orange-600 font-mono">
+                            Rp {{ number_format($ps->total, 0, ',', '.') }}
+                        </div>
+                    </div>
+                    <div class="w-px h-8 bg-slate-100"></div>
+                    <div>
+                        <span class="text-[11px] text-slate-400">Jumlah Estimasi</span>
+                        <div class="text-sm font-bold text-slate-700">{{ $ps->count }} item</div>
+                    </div>
+                    <div class="ml-auto">
+                        <span class="text-[11px] text-slate-400">Periode</span>
+                        <div class="text-xs text-slate-600 font-medium">
+                            {{ \Carbon\Carbon::parse($ps->period->period_start)->format('d M Y') }}
+                            – {{ \Carbon\Carbon::parse($ps->period->period_end)->format('d M Y') }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @endforeach
+    </div>
+</div>
+@else
+<div class="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 mb-5 flex items-center gap-2.5 text-sm text-yellow-700">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" class="shrink-0"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+    Tidak ada periode anggaran aktif. <a href="{{ route('budget-periods.index') }}" class="underline font-semibold hover:text-yellow-800">Buat periode anggaran</a> terlebih dahulu.
+</div>
+@endif
+
 {{-- Filter --}}
 <form method="GET" action="{{ route('income-estimates.index') }}" class="flex gap-2.5 flex-wrap items-center mb-5">
     <div class="relative flex-1 min-w-[200px]">
@@ -67,8 +115,7 @@
             <tr class="bg-slate-50 border-b border-slate-100">
                 <th class="px-5 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Deskripsi</th>
                 <th class="px-5 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Periode</th>
-                <th class="px-5 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Satuan</th>
-                <th class="px-5 py-3 text-right text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Harga Satuan</th>
+                <th class="px-5 py-3 text-right text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Target Penerimaan</th>
                 <th class="px-5 py-3 text-right text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Total Estimasi</th>
                 <th class="px-5 py-3 w-[120px]"></th>
             </tr>
@@ -81,9 +128,6 @@
                     <div class="text-xs text-slate-400 mt-0.5">{{ $est->organization->name }}</div>
                 </td>
                 <td class="px-5 py-3.5 align-middle text-sm text-slate-600">{{ $est->budgetPeriod->name }}</td>
-                <td class="px-5 py-3.5 align-middle">
-                    <span class="px-2 py-0.5 bg-slate-100 rounded-md text-xs text-slate-600 font-medium">{{ $est->unit }}</span>
-                </td>
                 <td class="px-5 py-3.5 align-middle text-sm text-slate-700 text-right">
                     Rp {{ number_format($est->unit_price, 0, ',', '.') }}
                 </td>

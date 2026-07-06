@@ -31,4 +31,9 @@ class BudgetAllocation extends Model
     {
         return $this->belongsTo(Department::class);
     }
+
+    public function programs()
+    {
+        return $this->hasMany(BudgetProgram::class);
+    }
 }
