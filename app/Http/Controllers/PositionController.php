@@ -16,7 +16,8 @@ class PositionController extends Controller
             ->when($orgIds !== null, fn($q) => $q->whereHas('department', fn($d) => $d->whereIn('organization_id', $orgIds)))
             ->orderBy('department_id')
             ->orderBy('name')
-            ->get();
+            ->paginate(10)
+            ->withQueryString();
 
         return view('positions.index', compact('positions'));
     }

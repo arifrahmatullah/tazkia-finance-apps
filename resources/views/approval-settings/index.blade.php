@@ -56,7 +56,7 @@
     @foreach($grouped as $chain)
     @php $first = $chain->first(); @endphp
     <div class="approval-card bg-white rounded-xl shadow-sm overflow-hidden mb-4"
-         data-search="{{ strtolower($first->organization->name . ' ' . $first->requesterPosition->name . ' ' . $chain->pluck('approverPosition.name')->implode(' ')) }}">
+         data-search="{{ strtolower(($first->organization?->name ?? '') . ' ' . ($first->requesterPosition?->name ?? '') . ' ' . $chain->pluck('approverPosition.name')->implode(' ')) }}">
 
         <div class="flex items-center gap-3 px-5 py-3.5 border-b border-slate-100 bg-slate-50">
             <div class="flex items-center gap-2">
@@ -64,8 +64,8 @@
                     <svg width="15" height="15" fill="none" stroke="#f97316" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                 </div>
                 <div>
-                    <div class="text-[11px] text-slate-400">{{ $first->organization->name }}</div>
-                    <div class="text-sm font-bold text-slate-800">{{ $first->requesterPosition->name }}</div>
+                    <div class="text-[11px] text-slate-400">{{ $first->organization?->name ?? '(organisasi dihapus)' }}</div>
+                    <div class="text-sm font-bold text-slate-800">{{ $first->requesterPosition?->name ?? '(jabatan dihapus)' }}</div>
                 </div>
             </div>
             <span class="ml-auto text-xs text-slate-400">{{ $chain->count() }} level</span>
@@ -93,7 +93,7 @@
                     <td class="px-5 py-3 align-middle">
                         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-orange-50 rounded-lg text-xs text-orange-700 font-medium">
                             <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-                            {{ $setting->approverPosition->name }}
+                            {{ $setting->approverPosition?->name ?? '(jabatan dihapus)' }}
                         </span>
                     </td>
                     <td class="px-5 py-3 align-middle text-right">
@@ -101,7 +101,7 @@
                         <button type="button"
                             class="inline-flex items-center p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors border-0 bg-transparent cursor-pointer"
                             title="Hapus level ini"
-                            onclick="confirmDelete('del-as-{{ $setting->id }}', 'Level {{ $setting->step }} — {{ addslashes($setting->approverPosition->name) }}')">
+                            onclick="confirmDelete('del-as-{{ $setting->id }}', 'Level {{ $setting->step }} — {{ addslashes($setting->approverPosition?->name ?? '') }}')">
                             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                         </button>
                     </td>

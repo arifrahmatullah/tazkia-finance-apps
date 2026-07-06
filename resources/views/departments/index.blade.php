@@ -172,4 +172,11 @@
         </table>
     </div>
 
+    @if($departments->hasPages())
+    <div class="mt-4 flex items-center justify-between text-xs text-slate-400">
+        <span>Menampilkan {{ $departments->firstItem() }}–{{ $departments->lastItem() }} dari {{ $departments->total() }} departemen</span>
+        {{ $departments->links() }}
+    </div>
+    @endif
+
 </x-layouts.app>

@@ -32,10 +32,10 @@ class AccountController extends Controller
                 ->orWhere('code', 'like', "%{$search}%")
             ))
             ->orderBy('code')
-            ->get();
+            ->paginate(10)
+            ->withQueryString();
 
-        // Kelompokkan per tipe untuk tampilan tree (hanya jika tidak ada search/filter tipe)
-        $grouped = $accounts->groupBy('account_type');
+        $grouped = $accounts->getCollection()->groupBy('account_type');
 
         return view('accounts.index', compact('accounts', 'grouped', 'organizations', 'filterOrg'));
     }

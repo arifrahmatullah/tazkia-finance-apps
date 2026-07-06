@@ -122,9 +122,9 @@
             @foreach($allocations as $i => $alloc)
             <tr class="border-b border-slate-50 hover:bg-slate-50 transition-colors">
                 <td class="px-4 py-3 text-xs text-slate-400 align-middle">{{ $i + 1 }}</td>
-                <td class="px-4 py-3 text-sm font-semibold text-slate-700 align-middle">{{ $alloc->department->name }}</td>
+                <td class="px-4 py-3 text-sm font-semibold text-slate-700 align-middle">{{ $alloc->department?->name ?? '(departemen dihapus)' }}</td>
                 <td class="px-4 py-3 text-sm text-slate-600 align-middle">
-                    <span class="font-mono text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">{{ $alloc->department->code }}</span>
+                    <span class="font-mono text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">{{ $alloc->department?->code ?? '-' }}</span>
                 </td>
                 <td class="px-4 py-3 text-sm text-slate-600 align-middle">
                     @if($alloc->source === 'NETT')
@@ -164,7 +164,7 @@
                             @csrf @method('DELETE')
                         </form>
                         <button type="button" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors border-0 cursor-pointer"
-                            onclick="confirmDelete('del-alloc-{{ $alloc->id }}', '{{ addslashes($alloc->department->name) }}')">
+                            onclick="confirmDelete('del-alloc-{{ $alloc->id }}', '{{ addslashes($alloc->department?->name ?? '') }}')">
                             Hapus
                         </button>
                     </div>

@@ -70,22 +70,21 @@
         </div>
 
         {{-- Saldo Normal --}}
-        <div class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3 pb-2 border-b border-slate-100 mt-5">Saldo Normal</div>
+        <div class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3 pb-2 border-b border-slate-100 mt-5">
+            Saldo Normal
+            <span class="ml-1.5 normal-case font-normal text-slate-300">(otomatis dari tipe akun)</span>
+        </div>
         @error('normal_balance')<div class="text-xs text-red-500 mb-2">{{ $message }}</div>@enderror
-        @php $oldBal = old('normal_balance', ''); @endphp
-        <div class="grid grid-cols-2 gap-2 mb-5" id="balanceRow">
-            <label class="balance-opt {{ $oldBal === 'debit' ? 'selected-debit' : '' }} p-2.5 border-2 border-slate-200 rounded-xl cursor-pointer text-center transition-all hover:border-orange-400" id="opt-debit">
-                <input type="radio" name="normal_balance" value="debit" {{ $oldBal === 'debit' ? 'checked' : '' }}
-                    onchange="selectBalance('debit')" class="hidden">
-                <div class="text-sm font-bold" style="{{ $oldBal === 'debit' ? 'color:#2563eb' : '' }}">Debit</div>
-                <div class="text-[11px] text-slate-400">Bertambah saat debit</div>
-            </label>
-            <label class="balance-opt {{ $oldBal === 'kredit' ? 'selected-kredit' : '' }} p-2.5 border-2 border-slate-200 rounded-xl cursor-pointer text-center transition-all hover:border-orange-400" id="opt-kredit">
-                <input type="radio" name="normal_balance" value="kredit" {{ $oldBal === 'kredit' ? 'checked' : '' }}
-                    onchange="selectBalance('kredit')" class="hidden">
-                <div class="text-sm font-bold" style="{{ $oldBal === 'kredit' ? 'color:#16a34a' : '' }}">Kredit</div>
-                <div class="text-[11px] text-slate-400">Bertambah saat kredit</div>
-            </label>
+        <input type="hidden" name="normal_balance" id="normalBalanceInput" value="{{ old('normal_balance', '') }}">
+        <div class="grid grid-cols-2 gap-2 mb-5">
+            <div class="balance-opt p-2.5 border-2 border-slate-200 rounded-xl text-center transition-all select-none" id="opt-debit">
+                <div class="text-sm font-bold text-slate-400" id="opt-debit-text">Debit</div>
+                <div class="text-[11px] text-slate-300">Bertambah saat debit</div>
+            </div>
+            <div class="balance-opt p-2.5 border-2 border-slate-200 rounded-xl text-center transition-all select-none" id="opt-kredit">
+                <div class="text-sm font-bold text-slate-400" id="opt-kredit-text">Kredit</div>
+                <div class="text-[11px] text-slate-300">Bertambah saat kredit</div>
+            </div>
         </div>
 
         {{-- Detail Akun --}}
@@ -168,16 +167,28 @@ function selectType(radio, color, bg, normal) {
 function selectBalance(val) {
     const dOpt = document.getElementById('opt-debit');
     const kOpt = document.getElementById('opt-kredit');
+    const dTxt = document.getElementById('opt-debit-text');
+    const kTxt = document.getElementById('opt-kredit-text');
+
     dOpt.classList.remove('selected-debit', 'selected-kredit');
     kOpt.classList.remove('selected-debit', 'selected-kredit');
-    dOpt.querySelector('div').style.color = '';
-    kOpt.querySelector('div').style.color = '';
+    dOpt.style.borderColor = '';
+    kOpt.style.borderColor = '';
+    dTxt.style.color = '#94a3b8';
+    kTxt.style.color = '#94a3b8';
+
+    document.getElementById('normalBalanceInput').value = val;
+
     if (val === 'debit') {
-        dOpt.classList.add('selected-debit');
-        dOpt.querySelector('div').style.color = '#2563eb';
+        dOpt.style.borderColor = '#2563eb';
+        dOpt.style.background = '#eff6ff';
+        kOpt.style.background = '';
+        dTxt.style.color = '#2563eb';
     } else {
-        kOpt.classList.add('selected-kredit');
-        kOpt.querySelector('div').style.color = '#16a34a';
+        kOpt.style.borderColor = '#16a34a';
+        kOpt.style.background = '#f0fdf4';
+        dOpt.style.background = '';
+        kTxt.style.color = '#16a34a';
     }
 }
 
@@ -205,8 +216,8 @@ document.addEventListener('DOMContentLoaded', function () {
         card.style.setProperty('--bg', card.dataset.bg);
         card.querySelector('div:nth-child(2)').style.color = card.dataset.color;
     }
-    const balChecked = document.querySelector('input[name="normal_balance"]:checked');
-    if (balChecked) selectBalance(balChecked.value);
+    const existingBal = document.getElementById('normalBalanceInput').value;
+    if (existingBal) selectBalance(existingBal);
 });
 </script>
 </x-layouts.app>

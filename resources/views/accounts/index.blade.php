@@ -55,6 +55,12 @@ $typeOrder = ['aset','kewajiban','ekuitas','pendapatan','beban'];
     @endif
 </form>
 
+@if($accounts->total() > 0)
+<div class="flex items-center justify-between mb-3 text-xs text-slate-400">
+    <span>Menampilkan {{ $accounts->firstItem() }}–{{ $accounts->lastItem() }} dari {{ $accounts->total() }} akun</span>
+</div>
+@endif
+
 @if($accounts->isEmpty())
     <div class="bg-white rounded-xl shadow-sm overflow-hidden">
         <div class="py-12 px-5 text-center text-slate-400">
@@ -140,5 +146,11 @@ $typeOrder = ['aset','kewajiban','ekuitas','pendapatan','beban'];
             </table>
         </div>
     @endforeach
+
+    @if($accounts->hasPages())
+    <div class="mt-4">
+        {{ $accounts->links() }}
+    </div>
+    @endif
 @endif
 </x-layouts.app>

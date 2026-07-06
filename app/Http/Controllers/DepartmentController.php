@@ -25,7 +25,8 @@ class DepartmentController extends Controller
             ->when($filterStatus !== null && $filterStatus !== '', fn($q) => $q->where('is_active', $filterStatus))
             ->orderBy('organization_id')
             ->orderBy('name')
-            ->get();
+            ->paginate(10)
+            ->withQueryString();
 
         $organizations = $this->allowedOrgs()->orderBy('name')->get();
 

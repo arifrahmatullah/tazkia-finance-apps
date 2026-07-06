@@ -125,4 +125,11 @@
         </table>
     </div>
 
+    @if($positions->hasPages())
+    <div class="mt-4 flex items-center justify-between text-xs text-slate-400">
+        <span>Menampilkan {{ $positions->firstItem() }}–{{ $positions->lastItem() }} dari {{ $positions->total() }} jabatan</span>
+        {{ $positions->links() }}
+    </div>
+    @endif
+
 </x-layouts.app>

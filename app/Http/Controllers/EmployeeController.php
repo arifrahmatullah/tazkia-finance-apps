@@ -18,7 +18,8 @@ class EmployeeController extends Controller
             ->when($orgIds !== null, fn($q) => $q->whereIn('organization_id', $orgIds))
             ->orderBy('organization_id')
             ->orderBy('name')
-            ->get();
+            ->paginate(10)
+            ->withQueryString();
 
         return view('employees.index', compact('employees'));
     }

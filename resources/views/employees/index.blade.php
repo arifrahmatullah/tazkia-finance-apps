@@ -90,4 +90,12 @@
             </table>
         @endif
     </div>
+
+    @if($employees->hasPages())
+    <div class="mt-4 flex items-center justify-between text-xs text-slate-400">
+        <span>Menampilkan {{ $employees->firstItem() }}–{{ $employees->lastItem() }} dari {{ $employees->total() }} karyawan</span>
+        {{ $employees->links() }}
+    </div>
+    @endif
+
 </x-layouts.app>
