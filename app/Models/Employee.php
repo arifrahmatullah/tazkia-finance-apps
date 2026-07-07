@@ -39,4 +39,10 @@ class Employee extends Model
     {
         return $this->hasOne(EmployeePosition::class)->where('is_active', true)->latest('start_date');
     }
+
+    // Data lama punya ID integer, bukan UUID — skip validasi format UUID
+    public function resolveRouteBinding($value, $field = null)
+    {
+        return $this->where($field ?? $this->getRouteKeyName(), $value)->first();
+    }
 }

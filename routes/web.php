@@ -18,6 +18,7 @@ use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\PositionController;
+use App\Http\Controllers\RolePermissionController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn() => redirect()->route('login'));
@@ -47,6 +48,8 @@ Route::middleware('auth')->group(function () {
     Route::delete('budget-program-details/{budgetProgramDetail}', [BudgetProgramDetailController::class, 'destroy'])->name('budget-program-details.destroy');
     Route::resource('employees', EmployeeController::class);
     Route::resource('users', UserController::class)->except(['show']);
+    Route::get('role-permissions', [RolePermissionController::class, 'index'])->name('role-permissions.index')->middleware('permission:menu.role-permissions');
+    Route::put('role-permissions/{role}', [RolePermissionController::class, 'update'])->name('role-permissions.update')->middleware('permission:menu.role-permissions');
     Route::resource('accounts', AccountController::class)->except(['show']);
     Route::get('accounts-parents', [AccountController::class, 'getParents'])->name('accounts.parents');
     Route::resource('journal-entries', JournalEntryController::class);

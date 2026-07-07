@@ -72,6 +72,17 @@ class User extends Authenticatable
         return $this->role?->slug === $slug;
     }
 
+    public function hasPermission(string $slug): bool
+    {
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
+        $this->loadMissing('role.permissions');
+
+        return $this->role?->permissions->contains('slug', $slug) ?? false;
+    }
+
     public function hasRoleInOrganization(string $slug, string $organizationId): bool
     {
         return $this->organizationRoles()

@@ -10,18 +10,26 @@ use Illuminate\Http\Request;
 
 class EmployeeController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $orgIds = auth()->user()->organizationIds();
+        $search = $request->input('search');
 
         $employees = Employee::with(['organization', 'activePosition.position.department'])
             ->when($orgIds !== null, fn($q) => $q->whereIn('organization_id', $orgIds))
+            ->when($search, function ($q) use ($search) {
+                $q->where(function ($q2) use ($search) {
+                    $q2->where('name', 'like', "%$search%")
+                       ->orWhere('nik', 'like', "%$search%")
+                       ->orWhere('email', 'like', "%$search%");
+                });
+            })
             ->orderBy('organization_id')
             ->orderBy('name')
-            ->paginate(10)
+            ->paginate(15)
             ->withQueryString();
 
-        return view('employees.index', compact('employees'));
+        return view('employees.index', compact('employees', 'search'));
     }
 
     private function allowedOrgs(): \Illuminate\Database\Eloquent\Builder

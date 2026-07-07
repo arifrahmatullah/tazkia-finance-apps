@@ -15,10 +15,27 @@
         <div class="flex items-center gap-2.5 px-4 py-3 bg-green-50 border border-green-200 rounded-xl mb-4 text-sm text-green-700">{{ session('success') }}</div>
     @endif
 
+    <form method="GET" action="{{ route('employees.index') }}" class="mb-4">
+        <div class="flex gap-2">
+            <div class="relative flex-1">
+                <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                <input type="text" name="search" value="{{ $search ?? '' }}" placeholder="Cari nama, NIK, atau email..."
+                    class="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-orange-400 bg-white">
+            </div>
+            <button type="submit" class="px-4 py-2.5 rounded-xl bg-orange-500 text-white text-sm font-semibold border-0 cursor-pointer hover:bg-orange-600 transition-colors">Cari</button>
+            @if($search)
+            <a href="{{ route('employees.index') }}" class="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-600 text-sm font-semibold no-underline hover:bg-slate-200 transition-colors">Reset</a>
+            @endif
+        </div>
+    </form>
+
     <div class="bg-white rounded-xl shadow-sm overflow-hidden">
         <div class="px-4 py-3.5 border-b border-slate-100 flex items-center justify-between">
-            <span class="text-sm font-semibold text-slate-700">Karyawan</span>
-            <span class="bg-slate-100 text-slate-500 text-[11px] font-semibold px-2.5 py-0.5 rounded-full">{{ $employees->count() }} data</span>
+            <span class="text-sm font-semibold text-slate-700">
+                Karyawan
+                @if($search) <span class="text-slate-400 font-normal text-xs ml-1">— hasil pencarian "{{ $search }}"</span> @endif
+            </span>
+            <span class="bg-slate-100 text-slate-500 text-[11px] font-semibold px-2.5 py-0.5 rounded-full">{{ $employees->total() }} data</span>
         </div>
         @if($employees->isEmpty())
             <div class="py-12 px-5 text-center text-slate-400">
@@ -42,7 +59,7 @@
                 <tbody>
                     @foreach($employees as $i => $emp)
                     <tr class="border-b border-slate-50 hover:bg-slate-50 transition-colors">
-                        <td class="px-4 py-3 text-xs text-slate-400 align-middle">{{ $i + 1 }}</td>
+                        <td class="px-4 py-3 text-xs text-slate-400 align-middle">{{ $employees->firstItem() + $loop->index }}</td>
                         <td class="px-4 py-3 text-sm text-slate-600 align-middle">
                             <div class="font-semibold text-slate-900">
                                 {{ $emp->name }}

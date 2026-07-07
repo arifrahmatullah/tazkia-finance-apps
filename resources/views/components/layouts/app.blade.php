@@ -76,6 +76,7 @@
     <nav class="sidebar-nav flex-1 py-3 overflow-y-auto">
 
         {{-- Dashboard --}}
+        @if(auth()->user()->hasPermission('menu.dashboard'))
         <a href="{{ route('dashboard') }}"
            class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg no-underline text-[0.835rem] transition-all relative
                   {{ request()->routeIs('dashboard') ? 'active bg-orange-500/[0.15] text-white font-[550]' : 'text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white' }}">
@@ -85,13 +86,17 @@
             </svg>
             Dashboard
         </a>
+        @endif
 
         {{-- MASTER DATA --}}
+        @php $showMaster = auth()->user()->hasPermission('menu.organisasi') || auth()->user()->hasPermission('menu.departemen') || auth()->user()->hasPermission('menu.jabatan') || auth()->user()->hasPermission('menu.karyawan') || auth()->user()->hasPermission('menu.approval-settings'); @endphp
+        @if($showMaster)
         <div class="px-5 pt-4 pb-1.5 text-[0.65rem] font-semibold text-slate-400/70 tracking-[0.1em] uppercase">Master Data</div>
 
+        @if(auth()->user()->hasPermission('menu.organisasi') || auth()->user()->hasPermission('menu.departemen') || auth()->user()->hasPermission('menu.jabatan'))
         <div>
             <div class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg cursor-pointer text-[0.835rem] transition-all relative
-                        {{ request()->routeIs('organizations.*') ? 'active bg-orange-500/[0.15] text-white font-[550]' : 'text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white' }}"
+                        {{ request()->routeIs('organizations.*') || request()->routeIs('departments.*') || request()->routeIs('positions.*') ? 'active bg-orange-500/[0.15] text-white font-[550]' : 'text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white' }}"
                  onclick="toggleSubmenu('sub-org')">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
                     class="{{ request()->routeIs('organizations.*') ? 'text-orange-300' : 'opacity-80' }}">
@@ -103,19 +108,27 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
                 </svg>
             </div>
-            <div class="nav-submenu {{ request()->routeIs('organizations.*') ? 'open' : '' }} hidden" id="sub-org">
+            <div class="nav-submenu {{ request()->routeIs('organizations.*') || request()->routeIs('departments.*') || request()->routeIs('positions.*') ? 'open' : '' }} hidden" id="sub-org">
+                @if(auth()->user()->hasPermission('menu.organisasi'))
                 <a href="{{ route('organizations.index') }}"
                    class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
                           {{ request()->routeIs('organizations.*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Daftar Organisasi</a>
+                @endif
+                @if(auth()->user()->hasPermission('menu.departemen'))
                 <a href="{{ route('departments.index') }}"
                    class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
                           {{ request()->routeIs('departments.*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Departemen</a>
+                @endif
+                @if(auth()->user()->hasPermission('menu.jabatan'))
                 <a href="{{ route('positions.index') }}"
                    class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
                           {{ request()->routeIs('positions.*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Jabatan</a>
+                @endif
             </div>
         </div>
+        @endif
 
+        @if(auth()->user()->hasPermission('menu.karyawan'))
         <a href="{{ route('employees.index') }}"
            class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg no-underline text-[0.835rem] transition-all relative
                   {{ request()->routeIs('employees.*') ? 'active bg-orange-500/[0.15] text-white font-[550]' : 'text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white' }}">
@@ -125,7 +138,9 @@
             </svg>
             Karyawan
         </a>
+        @endif
 
+        @if(auth()->user()->hasPermission('menu.approval-settings'))
         <div>
             <div class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg cursor-pointer text-[0.835rem] transition-all relative
                         {{ request()->routeIs('approval-settings.*') ? 'active bg-orange-500/[0.15] text-white font-[550]' : 'text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white' }}"
@@ -147,10 +162,15 @@
                           {{ request()->routeIs('approval-settings.*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Setting Approval</a>
             </div>
         </div>
+        @endif
+        @endif
 
         {{-- KEUANGAN --}}
+        @php $showKeuangan = auth()->user()->hasPermission('menu.periode-anggaran') || auth()->user()->hasPermission('menu.estimasi-pendapatan') || auth()->user()->hasPermission('menu.pagu-anggaran') || auth()->user()->hasPermission('menu.program-kerja') || auth()->user()->hasPermission('menu.pengajuan-dana') || auth()->user()->hasPermission('menu.inbox-approval'); @endphp
+        @if($showKeuangan)
         <div class="px-5 pt-4 pb-1.5 text-[0.65rem] font-semibold text-slate-400/70 tracking-[0.1em] uppercase">Keuangan</div>
 
+        @if(auth()->user()->hasPermission('menu.periode-anggaran') || auth()->user()->hasPermission('menu.estimasi-pendapatan') || auth()->user()->hasPermission('menu.pagu-anggaran'))
         <div>
             <div class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg cursor-pointer text-[0.835rem] transition-all relative
                         {{ request()->routeIs('budget-periods.*') || request()->routeIs('budget-allocations.*') || request()->routeIs('income-estimates.*') || request()->routeIs('income-estimate-details.*') ? 'active bg-orange-500/[0.15] text-white font-[550]' : 'text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white' }}"
@@ -166,18 +186,26 @@
                 </svg>
             </div>
             <div class="nav-submenu {{ request()->routeIs('budget-periods.*') || request()->routeIs('budget-allocations.*') || request()->routeIs('income-estimates.*') || request()->routeIs('income-estimate-details.*') ? 'open' : '' }} hidden" id="sub-anggaran">
+                @if(auth()->user()->hasPermission('menu.periode-anggaran'))
                 <a href="{{ route('budget-periods.index') }}"
                    class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
                           {{ request()->routeIs('budget-periods.*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Periode Anggaran</a>
+                @endif
+                @if(auth()->user()->hasPermission('menu.estimasi-pendapatan'))
                 <a href="{{ route('income-estimates.index') }}"
                    class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
                           {{ request()->routeIs('income-estimates.*') || request()->routeIs('income-estimate-details.*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Estimasi Pendapatan</a>
+                @endif
+                @if(auth()->user()->hasPermission('menu.pagu-anggaran'))
                 <a href="{{ route('budget-allocations.index') }}"
                    class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
                           {{ request()->routeIs('budget-allocations.*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Pagu Anggaran</a>
+                @endif
             </div>
         </div>
+        @endif
 
+        @if(auth()->user()->hasPermission('menu.program-kerja'))
         <a href="{{ route('budget-programs.index') }}"
            class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg no-underline text-[0.835rem] transition-all relative
                   {{ request()->routeIs('budget-programs.*') || request()->routeIs('budget-program-details.*') ? 'active bg-orange-500/[0.15] text-white font-[550]' : 'text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white' }}">
@@ -187,7 +215,9 @@
             </svg>
             Program Kerja
         </a>
+        @endif
 
+        @if(auth()->user()->hasPermission('menu.pengajuan-dana') || auth()->user()->hasPermission('menu.inbox-approval'))
         <div>
             <div class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg cursor-pointer text-[0.835rem] transition-all relative
                         {{ request()->routeIs('fund-requests.*') || request()->routeIs('fund-approvals.*') ? 'active bg-orange-500/[0.15] text-white font-[550]' : 'text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white' }}"
@@ -203,25 +233,26 @@
                 </svg>
             </div>
             <div class="nav-submenu {{ request()->routeIs('fund-requests.*') || request()->routeIs('fund-approvals.*') ? 'open' : '' }} hidden" id="sub-pengajuan">
+                @if(auth()->user()->hasPermission('menu.pengajuan-dana'))
                 <a href="{{ route('fund-requests.index') }}"
                    class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
                           {{ request()->routeIs('fund-requests.*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Pengajuan Saya</a>
+                @endif
+                @if(auth()->user()->hasPermission('menu.inbox-approval'))
                 <a href="{{ route('fund-approvals.inbox') }}"
                    class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
                           {{ request()->routeIs('fund-approvals.*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Inbox Approval</a>
+                @endif
             </div>
         </div>
-
-        <a href="#" class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg no-underline text-[0.835rem] text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white transition-all relative">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" class="opacity-80">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
-            </svg>
-            Kas & Bank
-        </a>
+        @endif
+        @endif
 
         {{-- AKUNTING --}}
+        @if(auth()->user()->hasPermission('menu.jurnal-umum') || auth()->user()->hasPermission('menu.coa'))
         <div class="px-5 pt-4 pb-1.5 text-[0.65rem] font-semibold text-slate-400/70 tracking-[0.1em] uppercase">Akunting</div>
 
+        @if(auth()->user()->hasPermission('menu.jurnal-umum'))
         <a href="{{ route('journal-entries.index') }}"
            class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg no-underline text-[0.835rem] transition-all relative
                   {{ request()->routeIs('journal-entries.*') ? 'active bg-orange-500/[0.15] text-white font-[550]' : 'text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white' }}">
@@ -231,7 +262,9 @@
             </svg>
             Jurnal Umum
         </a>
+        @endif
 
+        @if(auth()->user()->hasPermission('menu.coa'))
         <a href="{{ route('accounts.index') }}"
            class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg no-underline text-[0.835rem] transition-all relative
                   {{ request()->routeIs('accounts.*') ? 'active bg-orange-500/[0.15] text-white font-[550]' : 'text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white' }}">
@@ -241,10 +274,12 @@
             </svg>
             Chart of Accounts
         </a>
+        @endif
+        @endif
 
         {{-- LAPORAN --}}
+        @if(auth()->user()->hasPermission('menu.laporan'))
         <div class="px-5 pt-4 pb-1.5 text-[0.65rem] font-semibold text-slate-400/70 tracking-[0.1em] uppercase">Laporan</div>
-
         <div>
             <div class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg cursor-pointer text-[0.835rem] text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white transition-all relative"
                  onclick="toggleSubmenu('sub-laporan')">
@@ -264,10 +299,13 @@
                 <a href="#" class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] text-slate-400/80 hover:bg-white/5 hover:text-white transition-all">Laba Rugi</a>
             </div>
         </div>
+        @endif
 
         {{-- SISTEM --}}
+        @if(auth()->user()->hasPermission('menu.users') || auth()->user()->hasPermission('menu.role-permissions'))
         <div class="px-5 pt-4 pb-1.5 text-[0.65rem] font-semibold text-slate-400/70 tracking-[0.1em] uppercase">Sistem</div>
 
+        @if(auth()->user()->hasPermission('menu.users'))
         <a href="{{ route('users.index') }}"
            class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg no-underline text-[0.835rem] transition-all relative
                   {{ request()->routeIs('users.*') ? 'active bg-orange-500/[0.15] text-white font-[550]' : 'text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white' }}">
@@ -277,6 +315,20 @@
             </svg>
             Manajemen User
         </a>
+        @endif
+
+        @if(auth()->user()->hasPermission('menu.role-permissions'))
+        <a href="{{ route('role-permissions.index') }}"
+           class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg no-underline text-[0.835rem] transition-all relative
+                  {{ request()->routeIs('role-permissions.*') ? 'active bg-orange-500/[0.15] text-white font-[550]' : 'text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white' }}">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                class="{{ request()->routeIs('role-permissions.*') ? 'text-orange-300' : 'opacity-80' }}">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+            </svg>
+            Setting Permission
+        </a>
+        @endif
+        @endif
 
 
     </nav>
