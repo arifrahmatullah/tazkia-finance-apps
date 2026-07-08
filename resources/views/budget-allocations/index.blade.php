@@ -187,18 +187,13 @@
                     <div class="px-8 py-4">
 
                         {{-- Programs header --}}
-                        <div class="flex items-center justify-between mb-3">
+                        <div class="mb-3">
                             <span class="text-xs font-bold text-slate-500 uppercase tracking-wide">Program Kerja — {{ $alloc->department?->name }}</span>
-                            <a href="{{ route('budget-programs.create', ['budget_allocation_id' => $alloc->id]) }}"
-                               class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-violet-500 text-white hover:bg-violet-600 transition-colors no-underline">
-                                <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-                                Tambah Program
-                            </a>
                         </div>
 
                         @if($alloc->programs->isEmpty())
                             <div class="py-5 text-center text-xs text-slate-400 bg-white rounded-xl border border-slate-100">
-                                Belum ada program kerja. Klik "Tambah Program" untuk mulai.
+                                Belum ada program kerja.
                             </div>
                         @else
                             @php $allocTotal = 0; @endphp

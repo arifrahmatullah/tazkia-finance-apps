@@ -48,27 +48,59 @@ class BudgetProgramController extends Controller
         $departments = Department::when($orgIds !== null, fn($q) => $q->whereIn('organization_id', $orgIds))
             ->where('is_active', true)->where('has_budget', true)->orderBy('name')->get();
 
-        return view('budget-programs.index', compact('programs', 'budgetPeriods', 'departments'));
+        // Ringkasan per alokasi dari program yang tampil (untuk kartu di luar tabel)
+        $allocationIds = $programs->pluck('budget_allocation_id')->unique();
+        $allocationSummaries = \App\Models\BudgetAllocation::with(['department', 'budgetPeriod'])
+            ->whereIn('id', $allocationIds)
+            ->get()
+            ->map(function ($alloc) {
+                $programs = \App\Models\BudgetProgram::with('details')
+                    ->where('budget_allocation_id', $alloc->id)->get();
+                $terpakai = $programs->sum(fn($p) => (float) $p->total_amount);
+                return [
+                    'dept'     => $alloc->department->name,
+                    'periode'  => $alloc->budgetPeriod->name,
+                    'pagu'     => (float) $alloc->amount,
+                    'terpakai' => $terpakai,
+                    'sisa'     => (float) $alloc->amount - $terpakai,
+                ];
+            });
+
+        return view('budget-programs.index', compact('programs', 'budgetPeriods', 'departments', 'allocationSummaries'));
     }
 
-    public function create(Request $request)
+    public function create()
     {
-        $allocation = BudgetAllocation::with(['department.organization', 'budgetPeriod'])
-            ->findOrFail($request->budget_allocation_id);
+        $user     = auth()->user();
+        $employee = $user->employee()->with('activePosition.position.department')->first();
 
-        abort_unless(
-            auth()->user()->canAccessOrganization($allocation->department->organization_id),
-            403
-        );
+        $department = $employee?->activePosition?->position?->department;
 
-        $accounts = Account::where('organization_id', $allocation->department->organization_id)
+        abort_if(!$department, 403, 'Jabatan aktifmu belum diatur. Hubungi admin.');
+
+        $allocation = BudgetAllocation::with(['department', 'budgetPeriod'])
+            ->whereHas('budgetPeriod', fn($q) => $q->where('is_active', true))
+            ->where('department_id', $department->id)
+            ->where('is_active', true)
+            ->first();
+
+        abort_if(!$allocation, 403, 'Pagu anggaran untuk departemen ' . $department->name . ' belum tersedia. Hubungi bagian Keuangan.');
+
+        // Hitung sisa pagu setelah dikurangi program yang sudah ada
+        $usedByPrograms = BudgetProgram::with('details')
+            ->where('budget_allocation_id', $allocation->id)
+            ->get()
+            ->sum(fn($p) => (float) $p->total_amount);
+        $sisaAlokasi = (float) $allocation->amount - $usedByPrograms;
+
+        $accounts = Account::where('organization_id', $department->organization_id)
             ->where('account_type', 'beban')
             ->where('is_active', true)
             ->where('is_header', false)
             ->orderBy('code')
             ->get();
 
-        return view('budget-programs.create', compact('allocation', 'accounts'));
+        return view('budget-programs.create', compact('allocation', 'accounts', 'department', 'sisaAlokasi'));
     }
 
     public function store(Request $request)
@@ -82,30 +114,71 @@ class BudgetProgramController extends Controller
 
         $validated = $request->validate([
             'budget_allocation_id' => 'required|exists:budget_allocations,id',
-            'account_id'           => 'nullable|exists:accounts,id',
             'name'                 => 'required|string|max:255',
             'notes'                => 'nullable|string|max:1000',
+            'lines'                => 'nullable|array',
+            'lines.*.description'  => 'nullable|string|max:255',
+            'lines.*.account_id'   => 'nullable|exists:accounts,id',
+            'lines.*.nominal'      => 'nullable|numeric|min:0',
         ]);
 
-        $validated['is_active'] = true;
+        $lines = collect($validated['lines'] ?? [])
+            ->filter(fn($l) => !empty($l['description']));
 
-        BudgetProgram::create($validated);
+        $grandTotal   = $lines->sum(fn($l) => (float) ($l['nominal'] ?? 0));
+        $pagu         = (float) $allocation->amount;
+        $usedByOthers = BudgetProgram::with('details')
+            ->where('budget_allocation_id', $allocation->id)
+            ->get()
+            ->sum(fn($p) => (float) $p->total_amount);
+        $sisaAlokasi = $pagu - $usedByOthers;
+
+        if ($pagu > 0 && $grandTotal > $sisaAlokasi) {
+            return back()->withInput()->withErrors([
+                'lines' => "Total rincian (Rp " . number_format($grandTotal, 0, ',', '.') . ") melebihi sisa pagu (Rp " . number_format($sisaAlokasi, 0, ',', '.') . ").",
+            ]);
+        }
+
+        $program = BudgetProgram::create([
+            'budget_allocation_id' => $validated['budget_allocation_id'],
+            'name'                 => $validated['name'],
+            'notes'                => $validated['notes'] ?? null,
+            'is_active'            => true,
+        ]);
+
+        foreach ($lines as $line) {
+            $nominal = (float) ($line['nominal'] ?? 0);
+            $program->details()->create([
+                'account_id'  => $line['account_id'] ?? null,
+                'description' => $line['description'],
+                'quantity'    => 1,
+                'unit_price'  => $nominal,
+            ]);
+        }
 
         return redirect()
-            ->route('budget-allocations.index', ['budget_period_id' => $allocation->budget_period_id])
+            ->route('budget-programs.show', $program)
             ->with('success', 'Program kerja berhasil ditambahkan.');
     }
 
     public function show(BudgetProgram $budgetProgram)
     {
-        $budgetProgram->load(['budgetAllocation.department.organization', 'budgetAllocation.budgetPeriod', 'account', 'details']);
+        $budgetProgram->load(['budgetAllocation.department.organization', 'budgetAllocation.budgetPeriod', 'account', 'details.account']);
 
         abort_unless(
             auth()->user()->canAccessOrganization($budgetProgram->budgetAllocation->department->organization_id),
             403
         );
 
-        return view('budget-programs.show', compact('budgetProgram'));
+        $orgId    = $budgetProgram->budgetAllocation->department->organization_id;
+        $accounts = Account::where('organization_id', $orgId)
+            ->where('account_type', 'beban')
+            ->where('is_active', true)
+            ->where('is_header', false)
+            ->orderBy('code')
+            ->get();
+
+        return view('budget-programs.show', compact('budgetProgram', 'accounts'));
     }
 
     public function edit(BudgetProgram $budgetProgram)
@@ -148,7 +221,7 @@ class BudgetProgramController extends Controller
         $budgetProgram->update($validated);
 
         return redirect()
-            ->route('budget-allocations.index', ['budget_period_id' => $budgetProgram->budgetAllocation->budget_period_id])
+            ->route('budget-programs.index')
             ->with('success', 'Program kerja berhasil diperbarui.');
     }
 
@@ -162,11 +235,10 @@ class BudgetProgramController extends Controller
             403
         );
 
-        $periodId = $budgetProgram->budgetAllocation->budget_period_id;
         $budgetProgram->delete();
 
         return redirect()
-            ->route('budget-allocations.index', ['budget_period_id' => $periodId])
+            ->route('budget-programs.index')
             ->with('success', 'Program kerja berhasil dihapus.');
     }
 }

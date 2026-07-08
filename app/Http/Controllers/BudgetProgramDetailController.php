@@ -19,30 +19,51 @@ class BudgetProgramDetailController extends Controller
 
         $validated = $request->validate([
             'budget_program_id' => 'required|exists:budget_programs,id',
+            'account_id'        => 'nullable|exists:accounts,id',
             'description'       => 'required|string|max:255',
-            'quantity'          => 'required|numeric|min:0.01',
-            'unit'              => 'nullable|string|max:50',
             'unit_price'        => 'required|numeric|min:0',
-            'notes'             => 'nullable|string|max:500',
         ]);
 
-        BudgetProgramDetail::create($validated);
+        $newItemTotal = (float) $validated['unit_price'];
+        $currentTotal = $program->details()->sum('total_amount');
+        $paguAmount   = $program->budgetAllocation->amount;
+
+        if ($paguAmount > 0 && ($currentTotal + $newItemTotal) > $paguAmount) {
+            $sisa = number_format($paguAmount - $currentTotal, 0, ',', '.');
+            return back()->withInput()->withErrors([
+                'unit_price' => "Nominal melebihi sisa pagu. Sisa: Rp {$sisa}",
+            ]);
+        }
+
+        BudgetProgramDetail::create(array_merge($validated, ['quantity' => 1]));
 
         return redirect()
-            ->route('budget-allocations.index', ['budget_period_id' => $program->budgetAllocation->budget_period_id])
+            ->route('budget-programs.show', $program)
             ->with('success', 'Rincian berhasil ditambahkan.');
     }
 
     public function edit(BudgetProgramDetail $budgetProgramDetail)
     {
-        $budgetProgramDetail->load(['budgetProgram.budgetAllocation.department.organization', 'budgetProgram.budgetAllocation.budgetPeriod']);
+        $budgetProgramDetail->load([
+            'budgetProgram.budgetAllocation.department.organization',
+            'budgetProgram.budgetAllocation.budgetPeriod',
+            'account',
+        ]);
 
         abort_unless(
             auth()->user()->canAccessOrganization($budgetProgramDetail->budgetProgram->budgetAllocation->department->organization_id),
             403
         );
 
-        return view('budget-program-details.edit', compact('budgetProgramDetail'));
+        $orgId    = $budgetProgramDetail->budgetProgram->budgetAllocation->department->organization_id;
+        $accounts = \App\Models\Account::where('organization_id', $orgId)
+            ->where('account_type', 'beban')
+            ->where('is_active', true)
+            ->where('is_header', false)
+            ->orderBy('code')
+            ->get();
+
+        return view('budget-program-details.edit', compact('budgetProgramDetail', 'accounts'));
     }
 
     public function update(Request $request, BudgetProgramDetail $budgetProgramDetail)
@@ -55,17 +76,27 @@ class BudgetProgramDetailController extends Controller
         );
 
         $validated = $request->validate([
+            'account_id'  => 'nullable|exists:accounts,id',
             'description' => 'required|string|max:255',
-            'quantity'    => 'required|numeric|min:0.01',
-            'unit'        => 'nullable|string|max:50',
             'unit_price'  => 'required|numeric|min:0',
-            'notes'       => 'nullable|string|max:500',
         ]);
 
-        $budgetProgramDetail->update($validated);
+        $program      = $budgetProgramDetail->budgetProgram;
+        $newItemTotal = (float) $validated['unit_price'];
+        $currentTotal = $program->details()->where('id', '!=', $budgetProgramDetail->id)->sum('total_amount');
+        $paguAmount   = $program->budgetAllocation->amount;
+
+        if ($paguAmount > 0 && ($currentTotal + $newItemTotal) > $paguAmount) {
+            $sisa = number_format($paguAmount - $currentTotal, 0, ',', '.');
+            return back()->withInput()->withErrors([
+                'unit_price' => "Nominal melebihi sisa pagu. Sisa: Rp {$sisa}",
+            ]);
+        }
+
+        $budgetProgramDetail->update(array_merge($validated, ['quantity' => 1]));
 
         return redirect()
-            ->route('budget-allocations.index', ['budget_period_id' => $budgetProgramDetail->budgetProgram->budgetAllocation->budget_period_id])
+            ->route('budget-programs.show', $program)
             ->with('success', 'Rincian berhasil diperbarui.');
     }
 
@@ -78,11 +109,10 @@ class BudgetProgramDetailController extends Controller
             403
         );
 
-        $periodId = $program->budgetAllocation->budget_period_id;
         $budgetProgramDetail->delete();
 
         return redirect()
-            ->route('budget-allocations.index', ['budget_period_id' => $periodId])
+            ->route('budget-programs.show', $program)
             ->with('success', 'Rincian berhasil dihapus.');
     }
 }

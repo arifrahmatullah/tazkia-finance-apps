@@ -101,12 +101,22 @@ class User extends Authenticatable
             return null;
         }
 
-        return $this->organizationRoles()
+        $orgIds = $this->organizationRoles()
             ->whereNotNull('organization_id')
             ->pluck('organization_id')
             ->unique()
             ->values()
             ->toArray();
+
+        if (!empty($orgIds)) {
+            return $orgIds;
+        }
+
+        // Fallback: gunakan organisasi dari data karyawan yang terhubung
+        $this->loadMissing('employee');
+        $empOrgId = $this->employee?->organization_id;
+
+        return $empOrgId ? [$empOrgId] : null;
     }
 
     /**

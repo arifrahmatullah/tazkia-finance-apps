@@ -1,11 +1,19 @@
 <x-layouts.app title="Rincian Program Kerja">
 
+@php
+    $pagu       = (float) $budgetProgram->budgetAllocation->amount;
+    $totalUsed  = (float) $budgetProgram->total_amount;
+    $sisa       = $pagu - $totalUsed;
+    $paguPct    = $pagu > 0 ? min(100, round($totalUsed / $pagu * 100)) : 0;
+    $overBudget = $pagu > 0 && $totalUsed > $pagu;
+@endphp
+
 <div class="flex items-center justify-between mb-5">
     <div>
-        <div class="flex items-center gap-2 mb-1">
-            <a href="{{ route('budget-programs.index', ['budget_allocation_id' => $budgetProgram->budgetAllocation->id]) }}"
-               class="text-xs text-slate-400 hover:text-orange-500 transition-colors no-underline">← Program Kerja</a>
-        </div>
+        <a href="{{ route('budget-programs.index') }}" class="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-orange-500 no-underline transition-colors mb-1">
+            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+            Program Kerja
+        </a>
         <h2 class="text-lg font-bold text-slate-900 m-0">{{ $budgetProgram->name }}</h2>
         <p class="text-xs text-slate-400 m-0">
             {{ $budgetProgram->budgetAllocation->department->name }}
@@ -14,7 +22,7 @@
         </p>
     </div>
     <a href="{{ route('budget-programs.edit', $budgetProgram) }}"
-       class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-50 text-blue-600 text-sm font-semibold hover:bg-blue-100 transition-colors no-underline">
+       class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 text-slate-600 text-sm font-semibold hover:bg-slate-200 transition-colors no-underline">
         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
         Edit Program
     </a>
@@ -27,38 +35,37 @@
 </div>
 @endif
 
-{{-- Program info card --}}
-<div class="bg-white rounded-xl border border-slate-100 shadow-sm px-5 py-4 mb-4 flex flex-wrap gap-6">
-    <div>
-        <div class="text-[11px] text-slate-400 uppercase tracking-wide font-semibold mb-1">Akun COA</div>
-        @if($budgetProgram->account)
-            <div class="text-xs font-mono text-slate-500">{{ $budgetProgram->account->code }}</div>
-            <div class="text-sm font-semibold text-slate-800">{{ $budgetProgram->account->name }}</div>
-        @else
-            <span class="text-sm text-slate-400 italic">Belum dipilih</span>
-        @endif
+{{-- Pagu summary --}}
+<div class="bg-white rounded-xl border border-slate-100 shadow-sm px-5 py-4 mb-4">
+    <div class="flex items-center gap-4 flex-wrap">
+        <div>
+            <div class="text-[11px] text-slate-400 uppercase tracking-wide font-semibold">Pagu</div>
+            <div class="text-base font-bold text-slate-800 font-mono">Rp {{ number_format($pagu, 0, ',', '.') }}</div>
+        </div>
+        <div class="w-px h-8 bg-slate-100"></div>
+        <div>
+            <div class="text-[11px] text-slate-400 uppercase tracking-wide font-semibold">Terpakai</div>
+            <div class="text-base font-bold {{ $overBudget ? 'text-red-600' : 'text-orange-600' }} font-mono">Rp {{ number_format($totalUsed, 0, ',', '.') }}</div>
+        </div>
+        <div class="w-px h-8 bg-slate-100"></div>
+        <div>
+            <div class="text-[11px] text-slate-400 uppercase tracking-wide font-semibold">Sisa</div>
+            <div class="text-base font-bold {{ $sisa < 0 ? 'text-red-600' : 'text-green-600' }} font-mono">Rp {{ number_format($sisa, 0, ',', '.') }}</div>
+        </div>
     </div>
-    <div>
-        <div class="text-[11px] text-slate-400 uppercase tracking-wide font-semibold mb-1">Total Rencana</div>
-        <div class="text-base font-bold text-blue-700 font-mono">Rp {{ number_format($budgetProgram->total_amount, 0, ',', '.') }}</div>
+    @if($pagu > 0)
+    <div class="w-full bg-slate-100 rounded-full h-2 mt-3">
+        <div class="h-2 rounded-full transition-all {{ $overBudget ? 'bg-red-500' : ($paguPct > 80 ? 'bg-orange-500' : 'bg-green-500') }}"
+            style="width: {{ $paguPct }}%"></div>
     </div>
-    <div>
-        <div class="text-[11px] text-slate-400 uppercase tracking-wide font-semibold mb-1">Status</div>
-        @if($budgetProgram->is_active)
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-green-100 text-green-700">Aktif</span>
-        @else
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-500">Nonaktif</span>
-        @endif
-    </div>
-    @if($budgetProgram->notes)
-    <div class="w-full">
-        <div class="text-[11px] text-slate-400 uppercase tracking-wide font-semibold mb-1">Keterangan</div>
-        <div class="text-sm text-slate-600">{{ $budgetProgram->notes }}</div>
-    </div>
+    <div class="text-xs text-slate-400 mt-1">{{ $paguPct }}% terpakai</div>
+    @endif
+    @if($overBudget)
+    <div class="mt-2 text-xs font-semibold text-red-600">⚠ Total rincian melebihi pagu anggaran!</div>
     @endif
 </div>
 
-{{-- Details table --}}
+{{-- Rincian table --}}
 <div class="bg-white rounded-xl shadow-sm overflow-hidden mb-4">
     <div class="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
         <span class="text-sm font-bold text-slate-900">Rincian Kegiatan</span>
@@ -66,54 +73,45 @@
     </div>
 
     @if($budgetProgram->details->isEmpty())
-        <div class="px-4 py-8 text-center text-slate-400 text-sm">
-            Belum ada rincian. Tambahkan di bawah.
-        </div>
+        <div class="px-4 py-8 text-center text-slate-400 text-sm">Belum ada rincian. Tambahkan di bawah.</div>
     @else
     <div class="overflow-x-auto">
         <table class="w-full border-collapse">
             <thead>
                 <tr class="bg-slate-50 border-b border-slate-100">
-                    <th class="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide">#</th>
+                    <th class="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide w-8">#</th>
                     <th class="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Deskripsi</th>
-                    <th class="px-4 py-3 text-right text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Qty</th>
-                    <th class="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Satuan</th>
-                    <th class="px-4 py-3 text-right text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Harga Satuan</th>
-                    <th class="px-4 py-3 text-right text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Total</th>
-                    <th class="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Aksi</th>
+                    <th class="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Akun COA</th>
+                    <th class="px-4 py-3 text-right text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Nominal (Rp)</th>
+                    <th class="px-4 py-3 w-[80px]"></th>
                 </tr>
             </thead>
             <tbody>
                 @foreach($budgetProgram->details as $i => $detail)
                 <tr class="border-b border-slate-50 hover:bg-slate-50 transition-colors">
                     <td class="px-4 py-3 text-xs text-slate-400 align-middle">{{ $i + 1 }}</td>
-                    <td class="px-4 py-3 text-sm text-slate-800 font-medium align-middle">
-                        {{ $detail->description }}
-                        @if($detail->notes)
-                            <div class="text-xs text-slate-400 mt-0.5">{{ $detail->notes }}</div>
+                    <td class="px-4 py-3 text-sm text-slate-800 font-medium align-middle">{{ $detail->description }}</td>
+                    <td class="px-4 py-3 align-middle">
+                        @if($detail->account)
+                            <div class="text-[11px] font-mono text-slate-400">{{ $detail->account->code }}</div>
+                            <div class="text-xs text-slate-600">{{ $detail->account->name }}</div>
+                        @else
+                            <span class="text-slate-300 text-xs">—</span>
                         @endif
                     </td>
-                    <td class="px-4 py-3 text-right font-mono text-sm text-slate-600 align-middle">
-                        {{ number_format($detail->quantity, 0, ',', '.') }}
-                    </td>
-                    <td class="px-4 py-3 text-sm text-slate-500 align-middle">{{ $detail->unit ?? '—' }}</td>
-                    <td class="px-4 py-3 text-right font-mono text-sm text-slate-600 align-middle">
-                        {{ number_format($detail->unit_price, 0, ',', '.') }}
-                    </td>
-                    <td class="px-4 py-3 text-right font-mono text-sm font-bold text-violet-700 align-middle">
-                        {{ number_format($detail->total_amount, 0, ',', '.') }}
+                    <td class="px-4 py-3 text-right font-mono text-sm font-bold text-orange-700 align-middle">
+                        Rp {{ number_format($detail->total_amount, 0, ',', '.') }}
                     </td>
                     <td class="px-4 py-3 align-middle">
-                        <div class="flex gap-1.5">
+                        <div class="flex gap-1.5 justify-end">
                             <a href="{{ route('budget-program-details.edit', $detail) }}"
-                               class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors no-underline">Edit</a>
-                            <form id="del-dtl-{{ $detail->id }}" method="POST" action="{{ route('budget-program-details.destroy', $detail) }}">
-                                @csrf @method('DELETE')
-                            </form>
-                            <button type="button"
-                                class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors border-0 cursor-pointer"
-                                onclick="confirmDelete('del-dtl-{{ $detail->id }}', '{{ addslashes($detail->description) }}')">
-                                Hapus
+                               class="inline-flex items-center p-1.5 rounded-lg text-slate-400 hover:text-blue-500 hover:bg-blue-50 transition-colors no-underline" title="Edit">
+                                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                            </a>
+                            <form id="del-dtl-{{ $detail->id }}" method="POST" action="{{ route('budget-program-details.destroy', $detail) }}">@csrf @method('DELETE')</form>
+                            <button type="button" onclick="confirmDelete('del-dtl-{{ $detail->id }}', '{{ addslashes($detail->description) }}')"
+                                class="inline-flex items-center p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors border-0 bg-transparent cursor-pointer" title="Hapus">
+                                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                             </button>
                         </div>
                     </td>
@@ -121,11 +119,9 @@
                 @endforeach
             </tbody>
             <tfoot>
-                <tr class="bg-violet-50 border-t-2 border-violet-100">
-                    <td colspan="5" class="px-4 py-3 text-sm font-bold text-violet-700">Total Program</td>
-                    <td class="px-4 py-3 text-right font-mono text-sm font-bold text-violet-700">
-                        {{ number_format($budgetProgram->total_amount, 0, ',', '.') }}
-                    </td>
+                <tr class="bg-orange-50 border-t-2 border-orange-100">
+                    <td colspan="3" class="px-4 py-3 text-sm font-bold text-orange-700">Total</td>
+                    <td class="px-4 py-3 text-right font-mono text-sm font-bold text-orange-700">Rp {{ number_format($totalUsed, 0, ',', '.') }}</td>
                     <td></td>
                 </tr>
             </tfoot>
@@ -134,99 +130,86 @@
     @endif
 </div>
 
-{{-- Add detail form --}}
+{{-- Tambah rincian --}}
+@if(!$overBudget)
 <div class="bg-white rounded-xl shadow-sm overflow-hidden">
-    <div class="px-5 py-3.5 border-b border-slate-100">
+    <div class="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
         <span class="text-sm font-bold text-slate-900">Tambah Rincian</span>
+        @if($pagu > 0)
+        <span class="text-xs text-slate-400">Sisa: <span class="font-semibold text-green-600 font-mono">Rp {{ number_format($sisa, 0, ',', '.') }}</span></span>
+        @endif
     </div>
     <form method="POST" action="{{ route('budget-program-details.store') }}" class="px-5 py-5">
         @csrf
         <input type="hidden" name="budget_program_id" value="{{ $budgetProgram->id }}">
 
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div class="sm:col-span-2">
+        @if($errors->any())
+        <div class="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">{{ $errors->first() }}</div>
+        @endif
+
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div class="sm:col-span-1">
                 <label class="block text-xs font-semibold text-slate-600 mb-1.5">Deskripsi <span class="text-red-500">*</span></label>
-                <input type="text" name="description" value="{{ old('description') }}"
-                    placeholder="Contoh: Honorarium narasumber, ATK, konsumsi peserta, ..."
+                <input type="text" name="description" value="{{ old('description') }}" autofocus
+                    placeholder="Transportasi, Konsumsi, ..."
                     class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-700 bg-white outline-none focus:border-orange-400 transition-colors @error('description') border-red-400 @enderror">
                 @error('description') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
             </div>
 
             <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1.5">Kuantitas <span class="text-red-500">*</span></label>
-                <input type="text" name="quantity" id="qtyInput" value="{{ old('quantity', 1) }}"
-                    inputmode="decimal"
-                    class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-700 bg-white outline-none focus:border-orange-400 transition-colors @error('quantity') border-red-400 @enderror"
-                    oninput="calcTotal()">
-                @error('quantity') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
-            </div>
-
-            <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1.5">Satuan</label>
-                <input type="text" name="unit" value="{{ old('unit') }}"
-                    placeholder="Orang, Paket, Hari, Lembar, ..."
+                <label class="block text-xs font-semibold text-slate-600 mb-1.5">Akun COA</label>
+                <select name="account_id"
                     class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-700 bg-white outline-none focus:border-orange-400 transition-colors">
+                    <option value="">— Pilih akun (opsional) —</option>
+                    @foreach($accounts as $account)
+                        <option value="{{ $account->id }}" {{ old('account_id') == $account->id ? 'selected' : '' }}>
+                            {{ $account->code }} — {{ $account->name }}
+                        </option>
+                    @endforeach
+                </select>
             </div>
 
             <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1.5">Harga Satuan (Rp) <span class="text-red-500">*</span></label>
-                <input type="text" id="unitPriceDisplay"
-                    placeholder="0"
+                <label class="block text-xs font-semibold text-slate-600 mb-1.5">Nominal (Rp) <span class="text-red-500">*</span></label>
+                <input type="text" id="nominalDisplay" placeholder="0"
                     class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-700 bg-white outline-none focus:border-orange-400 transition-colors font-mono @error('unit_price') border-red-400 @enderror"
-                    oninput="formatUnitPrice(this)" value="{{ old('unit_price') ? number_format((int)old('unit_price'), 0, ',', '.') : '' }}">
-                <input type="hidden" name="unit_price" id="unitPriceHidden" value="{{ old('unit_price', 0) }}">
+                    oninput="fmtNominal(this)" value="{{ old('unit_price') ? number_format((int)old('unit_price'), 0, ',', '.') : '' }}">
+                <input type="hidden" name="unit_price" id="nominalHidden" value="{{ old('unit_price', 0) }}">
                 @error('unit_price') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
-            </div>
-
-            <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1.5">Total</label>
-                <div id="totalPreview"
-                    class="w-full px-3.5 py-2.5 border border-slate-100 rounded-xl text-sm font-mono font-bold text-violet-700 bg-violet-50">
-                    Rp 0
-                </div>
-            </div>
-
-            <div class="sm:col-span-2">
-                <label class="block text-xs font-semibold text-slate-600 mb-1.5">Catatan</label>
-                <input type="text" name="notes" value="{{ old('notes') }}"
-                    placeholder="Opsional"
-                    class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-700 bg-white outline-none focus:border-orange-400 transition-colors">
             </div>
         </div>
 
-        <div class="flex gap-2.5 mt-4">
+        <div class="flex items-center gap-3 mt-4">
             <button type="submit"
                 class="px-5 py-2.5 rounded-xl bg-gradient-to-br from-orange-400 to-orange-500 text-white text-sm font-semibold border-0 cursor-pointer hover:-translate-y-px transition-all">
-                + Tambah Rincian
+                + Tambah
             </button>
+            @if($pagu > 0)
+            <span id="budgetWarning" class="text-xs text-red-500 hidden">⚠ Melebihi sisa pagu!</span>
+            @endif
         </div>
     </form>
 </div>
+@else
+<div class="px-5 py-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+    ⚠ Total rincian sudah melebihi pagu. Hapus atau kurangi nominal rincian sebelum menambah baru.
+</div>
+@endif
 
 <script>
-function formatUnitPrice(input) {
-    let raw = input.value.replace(/[^\d]/g, '');
-    document.getElementById('unitPriceHidden').value = raw || '0';
+const sisaPagu = {{ $sisa }};
+const hasPagu  = {{ $pagu > 0 ? 'true' : 'false' }};
+
+function fmtNominal(input) {
+    const raw = input.value.replace(/[^\d]/g, '');
+    document.getElementById('nominalHidden').value = raw || '0';
     input.value = raw ? parseInt(raw).toLocaleString('id-ID') : '';
-    calcTotal();
-}
-
-function calcTotal() {
-    const qty   = parseFloat(document.getElementById('qtyInput').value) || 0;
-    const price = parseInt(document.getElementById('unitPriceHidden').value) || 0;
-    const total = qty * price;
-    document.getElementById('totalPreview').textContent = 'Rp ' + total.toLocaleString('id-ID');
-}
-
-// Init on load
-window.addEventListener('load', function() {
-    const display = document.getElementById('unitPriceDisplay');
-    if (display.value) {
-        const raw = display.value.replace(/[^\d]/g, '');
-        document.getElementById('unitPriceHidden').value = raw;
-        calcTotal();
+    if (hasPagu) {
+        const val  = parseInt(raw) || 0;
+        const warn = document.getElementById('budgetWarning');
+        warn.classList.toggle('hidden', val <= sisaPagu);
     }
-});
+}
 </script>
 
 </x-layouts.app>

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Account;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -11,7 +12,7 @@ class BudgetProgramDetail extends Model
     use HasUuids, SoftDeletes;
 
     protected $fillable = [
-        'budget_program_id', 'description', 'quantity', 'unit',
+        'budget_program_id', 'account_id', 'description', 'quantity', 'unit',
         'unit_price', 'total_amount', 'notes',
     ];
 
@@ -24,6 +25,11 @@ class BudgetProgramDetail extends Model
     public function budgetProgram()
     {
         return $this->belongsTo(BudgetProgram::class);
+    }
+
+    public function account()
+    {
+        return $this->belongsTo(Account::class);
     }
 
     protected static function booted(): void
