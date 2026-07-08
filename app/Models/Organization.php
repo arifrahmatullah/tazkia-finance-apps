@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Model;
 
 class Organization extends Model
 {
-    use HasUuids, SoftDeletes;
+    use HasUuids, SoftDeletes, Auditable;
 
     protected $fillable = ['name', 'code', 'type', 'parent_id', 'address', 'phone', 'email', 'logo', 'is_active'];
 

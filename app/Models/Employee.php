@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Employee extends Model
 {
-    use HasUuids, SoftDeletes;
+    use HasUuids, SoftDeletes, Auditable;
 
     protected $fillable = [
         'user_id', 'organization_id', 'nik', 'name', 'title',

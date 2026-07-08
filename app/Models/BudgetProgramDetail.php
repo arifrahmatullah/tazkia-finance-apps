@@ -3,13 +3,14 @@
 namespace App\Models;
 
 use App\Models\Account;
+use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class BudgetProgramDetail extends Model
 {
-    use HasUuids, SoftDeletes;
+    use HasUuids, SoftDeletes, Auditable;
 
     protected $fillable = [
         'budget_program_id', 'account_id', 'description', 'quantity', 'unit',

@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class BudgetProgram extends Model
 {
-    use HasUuids, SoftDeletes;
+    use HasUuids, SoftDeletes, Auditable;
 
     protected $fillable = [
         'budget_allocation_id', 'account_id', 'name', 'notes', 'is_active',

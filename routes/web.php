@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\GoogleAuthController;
 use App\Http\Controllers\IncomeEstimateController;
@@ -70,6 +71,10 @@ Route::middleware('auth')->group(function () {
     Route::resource('fund-requests', FundRequestController::class);
     Route::post('fund-requests/{fund_request}/submit', [FundRequestController::class, 'submit'])->name('fund-requests.submit');
     Route::get('fund-requests-deps', [FundRequestController::class, 'getDependencies'])->name('fund-requests.deps');
+
+    // Audit Log
+    Route::get('audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
+    Route::get('audit-logs/{auditLog}', [AuditLogController::class, 'show'])->name('audit-logs.show');
 
     // Inbox Approval
     Route::get('fund-approvals/inbox', [FundApprovalController::class, 'inbox'])->name('fund-approvals.inbox');
