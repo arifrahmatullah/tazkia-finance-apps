@@ -35,7 +35,30 @@
                 class="w-full px-3.5 py-2.5 border {{ $errors->has('name') ? 'border-red-400' : 'border-slate-200' }} rounded-xl text-sm text-slate-700 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors">
             @error('name') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
         </div>
-        <div class="sm:col-span-2">
+        <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1.5">
+                Frekuensi <span class="text-red-500">*</span>
+                <span class="font-normal text-slate-400 ml-1">— berapa kali dalam periode</span>
+            </label>
+            <div class="flex items-center gap-2 flex-wrap">
+                <input type="number" name="frequency" id="frequency-input" value="{{ old('frequency', 1) }}"
+                    min="1" max="366"
+                    class="w-24 px-3.5 py-2.5 border {{ $errors->has('frequency') ? 'border-red-400' : 'border-slate-200' }} rounded-xl text-sm text-slate-700 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors font-mono"
+                    oninput="onFrequencyChange(this.value)">
+                <span class="text-xs text-slate-400">kali</span>
+                <div class="flex gap-1.5">
+                    @foreach([['1','1×'],['3','3×'],['4','4×'],['6','6×'],['12','12×']] as [$v,$l])
+                    <button type="button" onclick="setFrequency({{ $v }})"
+                        data-val="{{ $v }}"
+                        class="freq-btn px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-colors {{ old('frequency', 1) == $v ? 'bg-orange-500 text-white border-orange-500' : 'border-slate-200 text-slate-500 hover:border-orange-300 hover:text-orange-500' }}">
+                        {{ $l }}
+                    </button>
+                    @endforeach
+                </div>
+            </div>
+            @error('frequency') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+        </div>
+        <div>
             <label class="block text-xs font-semibold text-slate-600 mb-1.5">Keterangan</label>
             <input type="text" name="notes" value="{{ old('notes') }}"
                 placeholder="Deskripsi singkat (opsional)"
@@ -53,9 +76,10 @@
             <thead>
                 <tr class="bg-slate-50 border-b border-slate-100">
                     <th class="px-3 py-2.5 text-center text-[11px] font-semibold text-slate-400 uppercase tracking-wide w-9">#</th>
+                    <th class="px-3 py-2.5 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide" style="min-width:180px;">Jenis Pengeluaran</th>
                     <th class="px-3 py-2.5 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide" style="min-width:200px;">Deskripsi</th>
-                    <th class="px-3 py-2.5 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide" style="min-width:200px;">Akun COA</th>
-                    <th class="px-3 py-2.5 text-right text-[11px] font-semibold text-slate-400 uppercase tracking-wide w-[160px]">Nominal (Rp)</th>
+                    <th class="px-3 py-2.5 text-right text-[11px] font-semibold text-slate-400 uppercase tracking-wide w-[150px]">Nominal/Termin</th>
+                    <th class="px-3 py-2.5 text-right text-[11px] font-semibold text-slate-400 uppercase tracking-wide w-[140px]">Total <span id="freq-label" class="text-orange-500">(×1)</span></th>
                     <th class="px-3 py-2.5 w-10"></th>
                 </tr>
             </thead>
@@ -85,7 +109,7 @@
     </div>
 
     <button type="button" onclick="addLine()"
-        class="inline-flex items-center gap-1.5 px-4 py-2 mt-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 text-slate-500 text-sm cursor-pointer hover:border-orange-400 hover:text-orange-500 hover:bg-orange-50 transition-colors">
+        class="inline-flex items-center gap-1.5 px-4 py-2 mt-3 rounded-xl bg-sky-400 text-white text-sm font-semibold cursor-pointer border-0 hover:bg-sky-500 transition-colors shadow-sm">
         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
         Tambah Baris
     </button>
@@ -104,17 +128,43 @@ $accountData = $accounts->map(fn($a) => ['id' => $a->id, 'code' => $a->code, 'na
 <script>
 const accountOptions = @json($accountData);
 let lineCount = 0;
+let currentFreq = parseInt(document.getElementById('frequency-input')?.value) || 1;
 
 const inputCls  = 'w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-800 bg-white outline-none focus:border-orange-400 transition-colors';
 const selectCls = 'w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-800 bg-white outline-none focus:border-orange-400 transition-colors';
 
 function buildAccountOptions(selectedId) {
-    let html = '<option value="">— Pilih akun COA (opsional) —</option>';
+    let html = '<option value="">— Pilih jenis pengeluaran —</option>';
     accountOptions.forEach(a => {
         const sel = selectedId && selectedId == a.id ? ' selected' : '';
         html += `<option value="${a.id}"${sel}>${a.code} — ${a.name}</option>`;
     });
     return html;
+}
+
+function setFrequency(val) {
+    currentFreq = Math.max(1, parseInt(val) || 1);
+    document.getElementById('frequency-input').value = currentFreq;
+    document.querySelectorAll('.freq-btn').forEach(b => {
+        const isActive = parseInt(b.dataset.val) === currentFreq;
+        b.className = b.className.replace(/bg-orange-500 text-white border-orange-500|border-slate-200 text-slate-500 hover:border-orange-300 hover:text-orange-500/g, '');
+        b.className += isActive
+            ? ' bg-orange-500 text-white border-orange-500'
+            : ' border-slate-200 text-slate-500 hover:border-orange-300 hover:text-orange-500';
+    });
+    updateTotals();
+}
+
+function onFrequencyChange(val) {
+    currentFreq = Math.max(1, parseInt(val) || 1);
+    document.querySelectorAll('.freq-btn').forEach(b => {
+        const isActive = parseInt(b.dataset.val) === currentFreq;
+        b.className = b.className.replace(/bg-orange-500 text-white border-orange-500|border-slate-200 text-slate-500 hover:border-orange-300 hover:text-orange-500/g, '');
+        b.className += isActive
+            ? ' bg-orange-500 text-white border-orange-500'
+            : ' border-slate-200 text-slate-500 hover:border-orange-300 hover:text-orange-500';
+    });
+    updateTotals();
 }
 
 function addLine(data) {
@@ -126,19 +176,22 @@ function addLine(data) {
     tr.innerHTML = `
         <td class="px-3 py-2 text-center text-xs text-slate-400 font-semibold align-middle" id="line-no-${n}">${idx + 1}</td>
         <td class="px-2 py-2 align-middle">
-            <input type="text" name="lines[${n}][description]" value="${data ? escHtml(data.description || '') : ''}"
-                class="${inputCls}" placeholder="Transportasi, Konsumsi, Honorarium, ..." maxlength="255">
-        </td>
-        <td class="px-2 py-2 align-middle">
             <select name="lines[${n}][account_id]" class="${selectCls}">
                 ${buildAccountOptions(data ? data.account_id : null)}
             </select>
+        </td>
+        <td class="px-2 py-2 align-middle">
+            <input type="text" name="lines[${n}][description]" value="${data ? escHtml(data.description || '') : ''}"
+                class="${inputCls}" placeholder="Keterangan detail kegiatan..." maxlength="255">
         </td>
         <td class="px-2 py-2 align-middle">
             <input type="text" id="nominal-disp-${n}" value="${data ? fmtNum(data.nominal || 0) : ''}"
                 class="${inputCls} text-right font-mono" placeholder="0"
                 oninput="fmtNominal(${n})" onfocus="this.select()">
             <input type="hidden" name="lines[${n}][nominal]" id="nominal-val-${n}" value="${data ? (data.nominal || 0) : 0}">
+        </td>
+        <td class="px-2 py-2 text-right align-middle">
+            <span id="line-total-${n}" class="text-sm font-mono font-semibold text-slate-700">Rp 0</span>
         </td>
         <td class="px-2 py-2 text-center align-middle">
             <button type="button" onclick="removeLine(${n})" title="Hapus"
@@ -173,16 +226,25 @@ function fmtNominal(n) {
 }
 
 function updateTotals() {
-    let grand = 0;
+    const freq = currentFreq || 1;
+    let grandPerTermin = 0;
+
     document.querySelectorAll('#lines-body tr').forEach(tr => {
-        const n = tr.id.replace('line-row-', '');
-        grand  += parseInt(document.getElementById(`nominal-val-${n}`)?.value) || 0;
+        const n       = tr.id.replace('line-row-', '');
+        const nominal = parseInt(document.getElementById(`nominal-val-${n}`)?.value) || 0;
+        const lineTotal = nominal * freq;
+        const cell = document.getElementById(`line-total-${n}`);
+        if (cell) cell.textContent = 'Rp ' + lineTotal.toLocaleString('id-ID');
+        grandPerTermin += nominal;
     });
 
-    document.getElementById('total-all').textContent = 'Rp ' + grand.toLocaleString('id-ID');
+    const grandTotal = grandPerTermin * freq;
+
+    document.getElementById('freq-label').textContent = `(×${freq})`;
+    document.getElementById('total-all').textContent  = 'Rp ' + grandTotal.toLocaleString('id-ID');
 
     if (paguAmount > 0) {
-        const sisa  = paguAmount - grand;
+        const sisa  = paguAmount - grandTotal;
         const sisat = document.getElementById('total-sisa');
         sisat.textContent = 'Rp ' + Math.round(sisa).toLocaleString('id-ID');
         sisat.className   = sisa < 0
@@ -190,7 +252,7 @@ function updateTotals() {
             : 'font-mono text-sm font-bold text-green-600';
 
         const status = document.getElementById('pagu-status');
-        if (grand > paguAmount) {
+        if (grandTotal > paguAmount) {
             status.className = 'inline-flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold bg-red-50 text-red-600 border border-red-200';
             document.getElementById('pagu-icon').innerHTML = '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>';
             document.getElementById('pagu-text').textContent = '⚠ Melebihi pagu!';
@@ -211,16 +273,17 @@ document.addEventListener('DOMContentLoaded', function() {
     if (lineArr.length > 0) {
         lineArr.forEach(line => addLine(line));
     } else {
-        addLine(); addLine();
+        addLine();
     }
 });
 
 document.getElementById('bp-form').addEventListener('submit', function(e) {
     if (paguAmount > 0) {
+        const freq = currentFreq || 1;
         let grand = 0;
         document.querySelectorAll('#lines-body tr').forEach(tr => {
             const n = tr.id.replace('line-row-', '');
-            grand  += parseInt(document.getElementById(`nominal-val-${n}`)?.value) || 0;
+            grand  += (parseInt(document.getElementById(`nominal-val-${n}`)?.value) || 0) * freq;
         });
         if (grand > paguAmount) {
             alert('Total rincian melebihi pagu anggaran! Kurangi nominal sebelum menyimpan.');

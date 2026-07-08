@@ -31,17 +31,27 @@
             </div>
 
             <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1.5">Akun COA (Beban)</label>
-                <select name="account_id"
-                    class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-700 bg-white outline-none focus:border-orange-400 transition-colors">
-                    <option value="">— Pilih akun beban —</option>
-                    @foreach($accounts as $account)
-                        <option value="{{ $account->id }}" {{ old('account_id', $budgetProgram->account_id) == $account->id ? 'selected' : '' }}>
-                            {{ $account->code }} — {{ $account->name }}
-                        </option>
-                    @endforeach
-                </select>
-                @error('account_id') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                <label class="block text-xs font-semibold text-slate-600 mb-1.5">
+                    Frekuensi <span class="text-red-500">*</span>
+                    <span class="font-normal text-slate-400 ml-1">berapa kali bayar dalam periode</span>
+                </label>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <input type="number" name="frequency" id="freq-input"
+                        value="{{ old('frequency', $budgetProgram->frequency) }}"
+                        min="1" max="366"
+                        class="w-24 px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-700 bg-white outline-none focus:border-orange-400 transition-colors font-mono @error('frequency') border-red-400 @enderror"
+                        oninput="syncFreq(this.value)">
+                    <div class="flex gap-1.5 flex-wrap">
+                        @foreach([1,3,4,6,12] as $f)
+                        <button type="button" data-val="{{ $f }}"
+                            class="freq-btn px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer
+                                {{ old('frequency', $budgetProgram->frequency) == $f ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-slate-600 border-slate-200 hover:border-orange-300 hover:text-orange-600' }}"
+                            onclick="setFreq({{ $f }})">{{ $f }}×</button>
+                        @endforeach
+                    </div>
+                </div>
+                @error('frequency') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                <p class="text-[11px] text-slate-400 mt-1.5">⚠ Mengubah frekuensi akan mengupdate jumlah semua rincian dan jadwal estimasi.</p>
             </div>
 
             <div>
@@ -73,5 +83,31 @@
         </form>
     </div>
 </div>
+
+<script>
+function setFreq(val) {
+    document.getElementById('freq-input').value = val;
+    document.querySelectorAll('.freq-btn').forEach(btn => {
+        const active = parseInt(btn.dataset.val) === val;
+        btn.className = btn.className
+            .replace(/bg-orange-500 text-white border-orange-500|bg-white text-slate-600 border-slate-200 hover:border-orange-300 hover:text-orange-600/g, '')
+            .trim();
+        btn.classList.add(...(active
+            ? ['bg-orange-500','text-white','border-orange-500']
+            : ['bg-white','text-slate-600','border-slate-200','hover:border-orange-300','hover:text-orange-600']));
+    });
+}
+function syncFreq(val) {
+    document.querySelectorAll('.freq-btn').forEach(btn => {
+        const active = parseInt(btn.dataset.val) === parseInt(val);
+        btn.className = btn.className
+            .replace(/bg-orange-500 text-white border-orange-500|bg-white text-slate-600 border-slate-200 hover:border-orange-300 hover:text-orange-600/g, '')
+            .trim();
+        btn.classList.add(...(active
+            ? ['bg-orange-500','text-white','border-orange-500']
+            : ['bg-white','text-slate-600','border-slate-200','hover:border-orange-300','hover:text-orange-600']));
+    });
+}
+</script>
 
 </x-layouts.app>

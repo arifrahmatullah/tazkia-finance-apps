@@ -5,17 +5,31 @@
         <h2 class="text-lg font-bold text-slate-900 m-0 mb-0.5">Program Kerja</h2>
         <p class="text-xs text-slate-400 m-0">Daftar program kerja per departemen dan periode anggaran</p>
     </div>
+    @if($canCreate)
     <a href="{{ route('budget-programs.create') }}"
         class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-br from-orange-400 to-orange-500 text-white text-sm font-semibold shadow-sm hover:-translate-y-px transition-all no-underline">
         <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
         Tambah Program Kerja
     </a>
+    @endif
 </div>
 
 @if(session('success'))
 <div class="flex items-center gap-2.5 px-4 py-3 bg-green-50 border border-green-200 rounded-xl mb-4 text-sm text-green-700">
     <svg width="16" height="16" fill="#16a34a" viewBox="0 0 20 20" class="shrink-0"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
     {{ session('success') }}
+</div>
+@endif
+
+@if($canCreate && !$hasAllocation)
+<div class="flex items-start gap-3 px-4 py-3.5 bg-amber-50 border border-amber-200 rounded-xl mb-4">
+    <svg width="18" height="18" fill="none" stroke="#d97706" stroke-width="2" viewBox="0 0 24 24" class="shrink-0 mt-0.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+    </svg>
+    <div>
+        <div class="text-sm font-semibold text-amber-800">Pagu anggaran belum tersedia</div>
+        <div class="text-xs text-amber-700 mt-0.5">Departemen kamu belum memiliki pagu anggaran aktif untuk periode ini. Hubungi bagian Keuangan untuk mengatur pagu sebelum membuat program kerja.</div>
+    </div>
 </div>
 @endif
 
@@ -115,6 +129,7 @@
                 <th class="px-5 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Periode</th>
                 <th class="px-5 py-3 text-center text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Rincian</th>
                 <th class="px-5 py-3 text-right text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Total (Rp)</th>
+                <th class="px-5 py-3 text-center text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Estimasi</th>
                 <th class="px-5 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Status</th>
                 <th class="px-5 py-3 w-[100px]"></th>
             </tr>
@@ -135,10 +150,49 @@
                     {{ $prog->budgetAllocation->budgetPeriod->name }}
                 </td>
                 <td class="px-5 py-3.5 text-center align-middle">
-                    <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 text-slate-600 text-xs font-semibold">{{ $prog->details->count() }}</span>
+                    @if($prog->details->count() > 0)
+                    <button type="button" onclick="toggleDetail(event,'{{ $prog->id }}')"
+                        class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-100 text-slate-600 text-xs font-semibold hover:bg-orange-100 hover:text-orange-600 transition-colors border-0 cursor-pointer">
+                        {{ $prog->details->count() }}
+                        <svg id="chev-{{ $prog->id }}" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="transition:transform .2s"><path d="M19 9l-7 7-7-7"/></svg>
+                    </button>
+                    @else
+                    <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 text-slate-300 text-xs font-semibold">0</span>
+                    @endif
                 </td>
                 <td class="px-5 py-3.5 text-right font-mono text-sm font-semibold text-slate-900 align-middle">
                     Rp {{ number_format($prog->total_amount, 0, ',', '.') }}
+                </td>
+                <td class="px-5 py-3.5 text-center align-middle">
+                    @php
+                        $totalTermin  = $prog->schedules->count();
+                        $filledTermin = $prog->schedules->whereNotNull('estimated_date')->count();
+                        $allFilled    = $totalTermin > 0 && $filledTermin === $totalTermin;
+                        $noneFilled   = $totalTermin > 0 && $filledTermin === 0;
+                    @endphp
+                    @if($totalTermin === 0)
+                        <span class="text-slate-300 text-xs">—</span>
+                    @elseif($allFilled)
+                        <span title="Semua estimasi terisi"
+                            class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-green-100 text-green-700">
+                            <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+                            {{ $filledTermin }}/{{ $totalTermin }}
+                        </span>
+                    @elseif($noneFilled)
+                        <a href="{{ route('budget-programs.show', $prog) }}"
+                            title="Belum ada estimasi tanggal diisi"
+                            class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-red-100 text-red-600 no-underline hover:bg-red-200 transition-colors">
+                            <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
+                            Belum diisi
+                        </a>
+                    @else
+                        <a href="{{ route('budget-programs.show', $prog) }}"
+                            title="{{ $totalTermin - $filledTermin }} termin belum diisi"
+                            class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-orange-100 text-orange-600 no-underline hover:bg-orange-200 transition-colors">
+                            <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            {{ $filledTermin }}/{{ $totalTermin }}
+                        </a>
+                    @endif
                 </td>
                 <td class="px-5 py-3.5 align-middle">
                     @if($prog->is_active)
@@ -165,6 +219,48 @@
                     </div>
                 </td>
             </tr>
+            {{-- Detail sub-row (hidden by default) --}}
+            @if($prog->details->count() > 0)
+            <tr id="detail-{{ $prog->id }}" style="display:none" class="bg-slate-50/40">
+                <td colspan="8" class="px-5 pb-4 pt-0">
+                    <div class="rounded-xl border border-slate-100 overflow-hidden bg-white shadow-sm mt-1 ml-2">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="bg-slate-50 border-b border-slate-100">
+                                    <th class="px-3 py-2 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Jenis Pengeluaran</th>
+                                    <th class="px-3 py-2 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Deskripsi</th>
+                                    <th class="px-3 py-2 text-right text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Nominal/Termin</th>
+                                    <th class="px-3 py-2 text-center text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Frekuensi</th>
+                                    <th class="px-3 py-2 text-right text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($prog->details as $det)
+                                <tr class="border-t border-slate-50 last:border-0">
+                                    <td class="px-3 py-2 text-xs text-slate-500">
+                                        @if($det->account)
+                                            <span class="font-mono text-[11px] text-slate-400">{{ $det->account->code }}</span>
+                                            <span class="ml-1">{{ $det->account->name }}</span>
+                                        @else
+                                            <span class="text-slate-300">—</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-3 py-2 text-xs text-slate-700">{{ $det->description }}</td>
+                                    <td class="px-3 py-2 text-xs text-right font-mono text-slate-600">Rp {{ number_format($det->unit_price, 0, ',', '.') }}</td>
+                                    <td class="px-3 py-2 text-xs text-center text-slate-400">{{ $prog->frequency ?? 1 }}×</td>
+                                    <td class="px-3 py-2 text-xs text-right font-mono font-semibold text-slate-900">Rp {{ number_format($det->total_amount, 0, ',', '.') }}</td>
+                                </tr>
+                                @endforeach
+                                <tr class="border-t border-slate-200 bg-orange-50/40">
+                                    <td colspan="4" class="px-3 py-2 text-[10px] font-semibold text-slate-500 uppercase tracking-wide text-right">Total Program</td>
+                                    <td class="px-3 py-2 text-xs text-right font-mono font-bold text-orange-700">Rp {{ number_format($prog->total_amount, 0, ',', '.') }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </td>
+            </tr>
+            @endif
             @endforeach
         </tbody>
     </table>
@@ -197,5 +293,17 @@
     @endif
     @endif
 </div>
+
+<script>
+function toggleDetail(e, id) {
+    e.preventDefault();
+    e.stopPropagation();
+    const row  = document.getElementById('detail-' + id);
+    const chev = document.getElementById('chev-' + id);
+    const open = row.style.display === 'none' || row.style.display === '';
+    row.style.display  = open ? 'table-row' : 'none';
+    chev.style.transform = open ? 'rotate(180deg)' : '';
+}
+</script>
 
 </x-layouts.app>

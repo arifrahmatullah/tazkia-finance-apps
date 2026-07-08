@@ -82,7 +82,10 @@ class BudgetAllocationController extends Controller
     {
         return Department::where('organization_id', $orgId)
             ->where('has_budget', true)
-            ->where('is_active', true);
+            ->where('is_active', true)
+            ->whereHas('positions', fn($q) => $q
+                ->whereHas('employeePositions', fn($e) => $e->where('is_active', true))
+            );
     }
 
     public function create(Request $request)
@@ -271,6 +274,9 @@ class BudgetAllocationController extends Controller
             ->where('has_budget', true)
             ->where('is_active', true)
             ->whereNotIn('id', $assignedIds)
+            ->whereHas('positions', fn($q) => $q
+                ->whereHas('employeePositions', fn($e) => $e->where('is_active', true))
+            )
             ->orderBy('name')
             ->get(['id', 'name', 'code']);
 

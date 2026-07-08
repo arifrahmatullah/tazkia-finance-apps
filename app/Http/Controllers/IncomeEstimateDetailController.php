@@ -31,8 +31,10 @@ class IncomeEstimateDetailController extends Controller
         $data['unit_price'] = $estimate->unit_price;
         $data['total']      = round($data['qty'] * $estimate->unit_price, 2);
 
-        IncomeEstimateDetail::create($data);
-        $estimate->recalculateTotal();
+        \DB::transaction(function () use ($data, $estimate) {
+            IncomeEstimateDetail::create($data);
+            $estimate->recalculateTotal();
+        });
 
         return redirect()->route('income-estimates.show', $estimate)
             ->with('success', 'Detail estimasi berhasil ditambahkan.');
@@ -60,8 +62,10 @@ class IncomeEstimateDetailController extends Controller
         $data['unit_price'] = $estimate->unit_price;
         $data['total']      = round($data['qty'] * $estimate->unit_price, 2);
 
-        $incomeEstimateDetail->update($data);
-        $estimate->recalculateTotal();
+        \DB::transaction(function () use ($incomeEstimateDetail, $data, $estimate) {
+            $incomeEstimateDetail->update($data);
+            $estimate->recalculateTotal();
+        });
 
         return redirect()->route('income-estimates.show', $estimate)
             ->with('success', 'Detail estimasi berhasil diperbarui.');
@@ -72,8 +76,10 @@ class IncomeEstimateDetailController extends Controller
         $estimate = $incomeEstimateDetail->incomeEstimate;
         abort_unless(auth()->user()->canAccessOrganization($estimate->organization_id), 403);
 
-        $incomeEstimateDetail->delete();
-        $estimate->recalculateTotal();
+        \DB::transaction(function () use ($incomeEstimateDetail, $estimate) {
+            $incomeEstimateDetail->delete();
+            $estimate->recalculateTotal();
+        });
 
         return redirect()->route('income-estimates.show', $estimate)
             ->with('success', 'Detail estimasi berhasil dihapus.');

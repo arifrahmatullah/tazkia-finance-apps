@@ -24,17 +24,10 @@
             @endif
 
             <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1.5">Deskripsi <span class="text-red-500">*</span></label>
-                <input type="text" name="description" value="{{ old('description', $budgetProgramDetail->description) }}"
-                    class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-700 bg-white outline-none focus:border-orange-400 transition-colors @error('description') border-red-400 @enderror">
-                @error('description') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
-            </div>
-
-            <div>
-                <label class="block text-xs font-semibold text-slate-600 mb-1.5">Akun COA</label>
+                <label class="block text-xs font-semibold text-slate-600 mb-1.5">Jenis Pengeluaran</label>
                 <select name="account_id"
                     class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-700 bg-white outline-none focus:border-orange-400 transition-colors">
-                    <option value="">— Pilih akun (opsional) —</option>
+                    <option value="">— Pilih jenis pengeluaran —</option>
                     @foreach($accounts as $account)
                         <option value="{{ $account->id }}"
                             {{ old('account_id', $budgetProgramDetail->account_id) == $account->id ? 'selected' : '' }}>
@@ -42,6 +35,13 @@
                         </option>
                     @endforeach
                 </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1.5">Deskripsi <span class="text-red-500">*</span></label>
+                <input type="text" name="description" value="{{ old('description', $budgetProgramDetail->description) }}"
+                    class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-700 bg-white outline-none focus:border-orange-400 transition-colors @error('description') border-red-400 @enderror">
+                @error('description') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
             </div>
 
             <div>

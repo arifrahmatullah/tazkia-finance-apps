@@ -52,11 +52,12 @@ class BudgetPeriodController extends Controller
         $validated['is_active'] = true;
         $validated['code']      = strtoupper($validated['code']);
 
-        // Nonaktifkan semua periode lain milik organisasi ini
-        BudgetPeriod::where('organization_id', $validated['organization_id'])
-            ->update(['is_active' => false]);
+        \DB::transaction(function () use ($validated) {
+            BudgetPeriod::where('organization_id', $validated['organization_id'])
+                ->update(['is_active' => false]);
 
-        BudgetPeriod::create($validated);
+            BudgetPeriod::create($validated);
+        });
 
         return redirect()->route('budget-periods.index')
             ->with('success', 'Periode anggaran berhasil ditambahkan. Periode lain di organisasi ini dinonaktifkan.');
@@ -92,14 +93,15 @@ class BudgetPeriodController extends Controller
         $validated['is_active'] = $isActive;
         $validated['code']      = strtoupper($validated['code']);
 
-        // Jika periode ini di-set aktif, nonaktifkan semua periode lain di organisasi yang sama
-        if ($isActive) {
-            BudgetPeriod::where('organization_id', $validated['organization_id'])
-                ->where('id', '!=', $budgetPeriod->id)
-                ->update(['is_active' => false]);
-        }
+        \DB::transaction(function () use ($budgetPeriod, $validated, $isActive) {
+            if ($isActive) {
+                BudgetPeriod::where('organization_id', $validated['organization_id'])
+                    ->where('id', '!=', $budgetPeriod->id)
+                    ->update(['is_active' => false]);
+            }
 
-        $budgetPeriod->update($validated);
+            $budgetPeriod->update($validated);
+        });
 
         $message = $isActive
             ? 'Periode anggaran berhasil diaktifkan. Periode lain di organisasi ini dinonaktifkan.'

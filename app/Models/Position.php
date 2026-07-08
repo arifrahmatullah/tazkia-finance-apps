@@ -12,12 +12,13 @@ class Position extends Model
 
     protected $fillable = [
         'department_id', 'code', 'name', 'description',
-        'is_finance_related', 'is_active',
+        'is_finance_related', 'can_create_program', 'is_active',
     ];
 
     protected $casts = [
-        'is_finance_related' => 'boolean',
-        'is_active'          => 'boolean',
+        'is_finance_related'  => 'boolean',
+        'can_create_program'  => 'boolean',
+        'is_active'           => 'boolean',
     ];
 
     public function department()
@@ -28,5 +29,10 @@ class Position extends Model
     public function employees()
     {
         return $this->hasMany(Employee::class);
+    }
+
+    public function employeePositions()
+    {
+        return $this->hasMany(EmployeePosition::class);
     }
 }

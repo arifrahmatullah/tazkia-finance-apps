@@ -8,18 +8,28 @@ use Illuminate\Http\Request;
 
 class PositionController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $orgIds = auth()->user()->organizationIds();
+        $search = $request->input('search');
 
-        $positions = Position::with(['department.organization'])
+        $positions = Position::with([
+                'department.organization',
+                'employeePositions' => fn($q) => $q->where('is_active', true)->with('employee:id,name'),
+            ])
+            ->withCount(['employeePositions as active_employees_count' => fn($q) => $q->where('is_active', true)])
             ->when($orgIds !== null, fn($q) => $q->whereHas('department', fn($d) => $d->whereIn('organization_id', $orgIds)))
+            ->when($search, fn($q) => $q->where(fn($w) => $w
+                ->where('name', 'like', "%{$search}%")
+                ->orWhere('code', 'like', "%{$search}%")
+                ->orWhereHas('department', fn($d) => $d->where('name', 'like', "%{$search}%"))
+            ))
             ->orderBy('department_id')
             ->orderBy('name')
-            ->paginate(10)
+            ->paginate(15)
             ->withQueryString();
 
-        return view('positions.index', compact('positions'));
+        return view('positions.index', compact('positions', 'search'));
     }
 
     private function allowedDepartments(): \Illuminate\Database\Eloquent\Builder
@@ -53,9 +63,11 @@ class PositionController extends Controller
             'name'               => 'required|string|max:100',
             'description'        => 'nullable|string|max:255',
             'is_finance_related' => 'boolean',
+            'can_create_program' => 'boolean',
         ]);
 
         $validated['is_finance_related'] = $request->boolean('is_finance_related');
+        $validated['can_create_program'] = $request->boolean('can_create_program');
         $validated['is_active']          = true;
         $validated['code']               = strtoupper($validated['code']);
 
@@ -86,10 +98,12 @@ class PositionController extends Controller
             'name'               => 'required|string|max:100',
             'description'        => 'nullable|string|max:255',
             'is_finance_related' => 'boolean',
+            'can_create_program' => 'boolean',
             'is_active'          => 'boolean',
         ]);
 
         $validated['is_finance_related'] = $request->boolean('is_finance_related');
+        $validated['can_create_program'] = $request->boolean('can_create_program');
         $validated['is_active']          = $request->boolean('is_active');
         $validated['code']               = strtoupper($validated['code']);
 

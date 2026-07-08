@@ -88,24 +88,27 @@ class UserController extends Controller
             }
         }
 
-        $user = User::create([
-            'name'      => $validated['name'],
-            'email'     => $validated['email'],
-            'password'  => Hash::make($validated['password']),
-            'role_id'   => $validated['role_id'],
-            'is_active' => true,
-        ]);
+        $user = \DB::transaction(function () use ($validated, $role, $orgIds) {
+            $user = User::create([
+                'name'      => $validated['name'],
+                'email'     => $validated['email'],
+                'password'  => Hash::make($validated['password']),
+                'role_id'   => $validated['role_id'],
+                'is_active' => true,
+            ]);
 
-        // Assign ke organisasi (kecuali superadmin tidak perlu)
-        if ($role->slug !== 'superadmin') {
-            foreach ($orgIds as $orgId) {
-                UserOrganizationRole::create([
-                    'user_id'         => $user->id,
-                    'organization_id' => $orgId,
-                    'role_id'         => $validated['role_id'],
-                ]);
+            if ($role->slug !== 'superadmin') {
+                foreach ($orgIds as $orgId) {
+                    UserOrganizationRole::create([
+                        'user_id'         => $user->id,
+                        'organization_id' => $orgId,
+                        'role_id'         => $validated['role_id'],
+                    ]);
+                }
             }
-        }
+
+            return $user;
+        });
 
         return redirect()->route('users.index')
             ->with('success', "User {$user->name} berhasil ditambahkan.");
@@ -161,21 +164,22 @@ class UserController extends Controller
             $data['password'] = Hash::make($validated['password']);
         }
 
-        $user->update($data);
+        \DB::transaction(function () use ($user, $data, $role, $orgIds, $validated) {
+            $user->update($data);
 
-        // Sync org assignments
-        if ($role->slug === 'superadmin') {
-            $user->organizationRoles()->delete();
-        } else {
-            $user->organizationRoles()->delete();
-            foreach ($orgIds as $orgId) {
-                UserOrganizationRole::create([
-                    'user_id'         => $user->id,
-                    'organization_id' => $orgId,
-                    'role_id'         => $validated['role_id'],
-                ]);
+            if ($role->slug === 'superadmin') {
+                $user->organizationRoles()->delete();
+            } else {
+                $user->organizationRoles()->delete();
+                foreach ($orgIds as $orgId) {
+                    UserOrganizationRole::create([
+                        'user_id'         => $user->id,
+                        'organization_id' => $orgId,
+                        'role_id'         => $validated['role_id'],
+                    ]);
+                }
             }
-        }
+        });
 
         return redirect()->route('users.index')
             ->with('success', "Data user {$user->name} berhasil diperbarui.");

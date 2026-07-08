@@ -146,19 +146,20 @@ class EmployeeController extends Controller
             'notes'       => 'nullable|string|max:255',
         ]);
 
-        // Nonaktifkan jabatan aktif sebelumnya
-        $employee->positions()->where('is_active', true)->update([
-            'is_active' => false,
-            'end_date'  => $validated['start_date'],
-        ]);
+        \DB::transaction(function () use ($employee, $validated) {
+            $employee->positions()->where('is_active', true)->update([
+                'is_active' => false,
+                'end_date'  => $validated['start_date'],
+            ]);
 
-        $employee->positions()->create([
-            'position_id' => $validated['position_id'],
-            'start_date'  => $validated['start_date'],
-            'end_date'    => null,
-            'notes'       => $validated['notes'] ?? null,
-            'is_active'   => true,
-        ]);
+            $employee->positions()->create([
+                'position_id' => $validated['position_id'],
+                'start_date'  => $validated['start_date'],
+                'end_date'    => null,
+                'notes'       => $validated['notes'] ?? null,
+                'is_active'   => true,
+            ]);
+        });
 
         return redirect()->route('employees.show', $employee)
             ->with('success', 'Jabatan karyawan berhasil diperbarui.');

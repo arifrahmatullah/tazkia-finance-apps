@@ -55,9 +55,7 @@ class BudgetProgramDetailController extends Controller
             403
         );
 
-        $orgId    = $budgetProgramDetail->budgetProgram->budgetAllocation->department->organization_id;
-        $accounts = \App\Models\Account::where('organization_id', $orgId)
-            ->where('account_type', 'beban')
+        $accounts = \App\Models\Account::where('account_type', 'beban')
             ->where('is_active', true)
             ->where('is_header', false)
             ->orderBy('code')

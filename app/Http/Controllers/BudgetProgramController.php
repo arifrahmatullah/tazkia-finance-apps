@@ -20,7 +20,8 @@ class BudgetProgramController extends Controller
             'budgetAllocation.department',
             'budgetAllocation.budgetPeriod',
             'account',
-            'details',
+            'details.account',
+            'schedules',
         ])->whereHas('budgetAllocation.department', function ($q) use ($orgIds) {
             if ($orgIds !== null) {
                 $q->whereIn('organization_id', $orgIds);
@@ -66,7 +67,18 @@ class BudgetProgramController extends Controller
                 ];
             });
 
-        return view('budget-programs.index', compact('programs', 'budgetPeriods', 'departments', 'allocationSummaries'));
+        $activePosition = $user->employee()->with('activePosition.position.department')->first()?->activePosition?->position;
+        $canCreate      = $user->isSuperAdmin() || ($activePosition?->can_create_program ?? false);
+
+        $hasAllocation = true;
+        if ($canCreate && !$user->isSuperAdmin()) {
+            $hasAllocation = BudgetAllocation::whereHas('budgetPeriod', fn($q) => $q->where('is_active', true))
+                ->where('department_id', $activePosition?->department?->id)
+                ->where('is_active', true)
+                ->exists();
+        }
+
+        return view('budget-programs.index', compact('programs', 'budgetPeriods', 'departments', 'allocationSummaries', 'canCreate', 'hasAllocation'));
     }
 
     public function create()
@@ -74,9 +86,13 @@ class BudgetProgramController extends Controller
         $user     = auth()->user();
         $employee = $user->employee()->with('activePosition.position.department')->first();
 
-        $department = $employee?->activePosition?->position?->department;
+        $activePosition = $employee?->activePosition?->position;
+        $department     = $activePosition?->department;
 
-        abort_if(!$department, 403, 'Jabatan aktifmu belum diatur. Hubungi admin.');
+        if (!$user->isSuperAdmin()) {
+            abort_if(!$activePosition, 403, 'Jabatan aktifmu belum diatur. Hubungi admin.');
+            abort_if(!$activePosition->can_create_program, 403, 'Jabatan kamu (' . $activePosition->name . ') tidak memiliki akses untuk membuat program kerja. Hubungi admin.');
+        }
 
         $allocation = BudgetAllocation::with(['department', 'budgetPeriod'])
             ->whereHas('budgetPeriod', fn($q) => $q->where('is_active', true))
@@ -93,8 +109,7 @@ class BudgetProgramController extends Controller
             ->sum(fn($p) => (float) $p->total_amount);
         $sisaAlokasi = (float) $allocation->amount - $usedByPrograms;
 
-        $accounts = Account::where('organization_id', $department->organization_id)
-            ->where('account_type', 'beban')
+        $accounts = Account::where('account_type', 'beban')
             ->where('is_active', true)
             ->where('is_header', false)
             ->orderBy('code')
@@ -116,16 +131,20 @@ class BudgetProgramController extends Controller
             'budget_allocation_id' => 'required|exists:budget_allocations,id',
             'name'                 => 'required|string|max:255',
             'notes'                => 'nullable|string|max:1000',
+            'frequency'            => 'required|integer|min:1|max:366',
             'lines'                => 'nullable|array',
             'lines.*.description'  => 'nullable|string|max:255',
             'lines.*.account_id'   => 'nullable|exists:accounts,id',
             'lines.*.nominal'      => 'nullable|numeric|min:0',
         ]);
 
+        $frequency = (int) ($validated['frequency'] ?? 1);
+
         $lines = collect($validated['lines'] ?? [])
             ->filter(fn($l) => !empty($l['description']));
 
-        $grandTotal   = $lines->sum(fn($l) => (float) ($l['nominal'] ?? 0));
+        // grandTotal = sum(nominal_per_termin × frekuensi)
+        $grandTotal   = $lines->sum(fn($l) => (float) ($l['nominal'] ?? 0)) * $frequency;
         $pagu         = (float) $allocation->amount;
         $usedByOthers = BudgetProgram::with('details')
             ->where('budget_allocation_id', $allocation->id)
@@ -139,22 +158,29 @@ class BudgetProgramController extends Controller
             ]);
         }
 
-        $program = BudgetProgram::create([
-            'budget_allocation_id' => $validated['budget_allocation_id'],
-            'name'                 => $validated['name'],
-            'notes'                => $validated['notes'] ?? null,
-            'is_active'            => true,
-        ]);
-
-        foreach ($lines as $line) {
-            $nominal = (float) ($line['nominal'] ?? 0);
-            $program->details()->create([
-                'account_id'  => $line['account_id'] ?? null,
-                'description' => $line['description'],
-                'quantity'    => 1,
-                'unit_price'  => $nominal,
+        $program = \DB::transaction(function () use ($validated, $frequency, $lines) {
+            $program = BudgetProgram::create([
+                'budget_allocation_id' => $validated['budget_allocation_id'],
+                'name'                 => $validated['name'],
+                'notes'                => $validated['notes'] ?? null,
+                'frequency'            => $frequency,
+                'is_active'            => true,
             ]);
-        }
+
+            foreach ($lines as $line) {
+                $nominal = (float) ($line['nominal'] ?? 0);
+                $program->details()->create([
+                    'account_id'  => $line['account_id'] ?? null,
+                    'description' => $line['description'],
+                    'quantity'    => $frequency,
+                    'unit_price'  => $nominal,
+                ]);
+            }
+
+            $program->regenerateSchedules();
+
+            return $program;
+        });
 
         return redirect()
             ->route('budget-programs.show', $program)
@@ -163,16 +189,14 @@ class BudgetProgramController extends Controller
 
     public function show(BudgetProgram $budgetProgram)
     {
-        $budgetProgram->load(['budgetAllocation.department.organization', 'budgetAllocation.budgetPeriod', 'account', 'details.account']);
+        $budgetProgram->load(['budgetAllocation.department.organization', 'budgetAllocation.budgetPeriod', 'account', 'details.account', 'schedules']);
 
         abort_unless(
             auth()->user()->canAccessOrganization($budgetProgram->budgetAllocation->department->organization_id),
             403
         );
 
-        $orgId    = $budgetProgram->budgetAllocation->department->organization_id;
-        $accounts = Account::where('organization_id', $orgId)
-            ->where('account_type', 'beban')
+        $accounts = Account::where('account_type', 'beban')
             ->where('is_active', true)
             ->where('is_header', false)
             ->orderBy('code')
@@ -183,21 +207,14 @@ class BudgetProgramController extends Controller
 
     public function edit(BudgetProgram $budgetProgram)
     {
-        $budgetProgram->load(['budgetAllocation.department.organization', 'budgetAllocation.budgetPeriod', 'account']);
+        $budgetProgram->load(['budgetAllocation.department.organization', 'budgetAllocation.budgetPeriod']);
 
         abort_unless(
             auth()->user()->canAccessOrganization($budgetProgram->budgetAllocation->department->organization_id),
             403
         );
 
-        $accounts = Account::where('organization_id', $budgetProgram->budgetAllocation->department->organization_id)
-            ->where('account_type', 'beban')
-            ->where('is_active', true)
-            ->where('is_header', false)
-            ->orderBy('code')
-            ->get();
-
-        return view('budget-programs.edit', compact('budgetProgram', 'accounts'));
+        return view('budget-programs.edit', compact('budgetProgram'));
     }
 
     public function update(Request $request, BudgetProgram $budgetProgram)
@@ -210,15 +227,29 @@ class BudgetProgramController extends Controller
         );
 
         $validated = $request->validate([
-            'account_id' => 'nullable|exists:accounts,id',
-            'name'       => 'required|string|max:255',
-            'notes'      => 'nullable|string|max:1000',
-            'is_active'  => 'boolean',
+            'name'      => 'required|string|max:255',
+            'notes'     => 'nullable|string|max:1000',
+            'frequency' => 'required|integer|min:1|max:366',
+            'is_active' => 'boolean',
         ]);
 
-        $validated['is_active'] = $request->boolean('is_active', true);
+        $frequency = (int) $validated['frequency'];
 
-        $budgetProgram->update($validated);
+        \DB::transaction(function () use ($budgetProgram, $validated, $frequency, $request) {
+            $budgetProgram->update([
+                'name'      => $validated['name'],
+                'notes'     => $validated['notes'] ?? null,
+                'frequency' => $frequency,
+                'is_active' => $request->boolean('is_active', true),
+            ]);
+
+            $budgetProgram->load('details');
+            foreach ($budgetProgram->details as $detail) {
+                $detail->update(['quantity' => $frequency]);
+            }
+
+            $budgetProgram->regenerateSchedules();
+        });
 
         return redirect()
             ->route('budget-programs.index')

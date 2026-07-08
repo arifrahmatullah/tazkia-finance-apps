@@ -45,7 +45,7 @@
                         </option>
                     @endforeach
                 </select>
-                <span class="text-xs text-slate-400 mt-0.5">Hanya departemen yang has_budget = Ya dan belum memiliki pagu di periode ini</span>
+                <span class="text-xs text-slate-400 mt-0.5">Hanya departemen yang memiliki karyawan aktif dan belum memiliki pagu di periode ini</span>
                 @error('department_id') <span class="text-xs text-red-500 mt-0.5">{{ $message }}</span> @enderror
             </div>
         </div>

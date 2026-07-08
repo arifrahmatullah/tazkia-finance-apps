@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuditLogController;
+use App\Http\Controllers\BudgetProgramScheduleController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\GoogleAuthController;
 use App\Http\Controllers\IncomeEstimateController;
@@ -42,11 +43,13 @@ Route::middleware('auth')->group(function () {
     Route::get('budget-allocations-departments', [BudgetAllocationController::class, 'getDepartments'])->name('budget-allocations.departments');
 
     // Budget Programs & Details
-    Route::resource('budget-programs', BudgetProgramController::class);
-    Route::post('budget-program-details', [BudgetProgramDetailController::class, 'store'])->name('budget-program-details.store');
-    Route::get('budget-program-details/{budgetProgramDetail}/edit', [BudgetProgramDetailController::class, 'edit'])->name('budget-program-details.edit');
-    Route::put('budget-program-details/{budgetProgramDetail}', [BudgetProgramDetailController::class, 'update'])->name('budget-program-details.update');
-    Route::delete('budget-program-details/{budgetProgramDetail}', [BudgetProgramDetailController::class, 'destroy'])->name('budget-program-details.destroy');
+    Route::resource('budget-programs', BudgetProgramController::class)->middleware('permission:menu.program-kerja');
+    Route::patch('budget-program-schedules/{schedule}', [BudgetProgramScheduleController::class, 'update'])->name('budget-program-schedules.update')->middleware('permission:menu.program-kerja');
+    Route::post('budget-programs/{budgetProgram}/bulk-schedule', [BudgetProgramScheduleController::class, 'bulkUpdate'])->name('budget-program-schedules.bulk')->middleware('permission:menu.program-kerja');
+    Route::post('budget-program-details', [BudgetProgramDetailController::class, 'store'])->name('budget-program-details.store')->middleware('permission:menu.program-kerja');
+    Route::get('budget-program-details/{budgetProgramDetail}/edit', [BudgetProgramDetailController::class, 'edit'])->name('budget-program-details.edit')->middleware('permission:menu.program-kerja');
+    Route::put('budget-program-details/{budgetProgramDetail}', [BudgetProgramDetailController::class, 'update'])->name('budget-program-details.update')->middleware('permission:menu.program-kerja');
+    Route::delete('budget-program-details/{budgetProgramDetail}', [BudgetProgramDetailController::class, 'destroy'])->name('budget-program-details.destroy')->middleware('permission:menu.program-kerja');
     Route::resource('employees', EmployeeController::class);
     Route::resource('users', UserController::class)->except(['show']);
     Route::get('role-permissions', [RolePermissionController::class, 'index'])->name('role-permissions.index')->middleware('permission:menu.role-permissions');

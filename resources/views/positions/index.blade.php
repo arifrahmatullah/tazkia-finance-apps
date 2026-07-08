@@ -22,6 +22,22 @@
     </div>
     @endif
 
+    {{-- Search --}}
+    <form method="GET" action="{{ route('positions.index') }}" class="flex gap-2.5 mb-4">
+        <div class="relative flex-1 max-w-sm">
+            <svg width="14" height="14" fill="none" stroke="#94a3b8" stroke-width="2" viewBox="0 0 24 24"
+                class="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+            </svg>
+            <input type="text" name="search" value="{{ $search }}" placeholder="Cari nama jabatan, kode, atau departemen…"
+                class="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm text-slate-700 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors">
+        </div>
+        <button type="submit" class="px-4 py-2 rounded-xl bg-slate-700 text-white text-sm font-medium cursor-pointer border-0 hover:bg-slate-800 transition-colors">Cari</button>
+        @if($search)
+        <a href="{{ route('positions.index') }}" class="px-3 py-2 rounded-xl border border-slate-200 text-sm text-slate-500 hover:text-orange-500 hover:border-orange-300 transition-colors no-underline">Reset</a>
+        @endif
+    </form>
+
     <div class="bg-white rounded-xl shadow-sm overflow-hidden">
         <table class="w-full border-collapse">
             <thead>
@@ -31,7 +47,9 @@
                     <th class="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Kode</th>
                     <th class="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Departemen</th>
                     <th class="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Organisasi</th>
+                    <th class="px-4 py-3 text-center text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Karyawan</th>
                     <th class="px-4 py-3 text-center text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Keuangan</th>
+                    <th class="px-4 py-3 text-center text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Proker</th>
                     <th class="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Status</th>
                     <th class="px-4 py-3 text-center text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Aksi</th>
                 </tr>
@@ -65,9 +83,33 @@
                         </span>
                     </td>
 
+                    <td class="px-4 py-3 align-middle text-center">
+                        @if($pos->active_employees_count > 0)
+                        @php $names = $pos->employeePositions->map(fn($ep) => $ep->employee?->name)->filter()->values(); @endphp
+                        <button type="button"
+                            onclick="showKaryawan('{{ addslashes($pos->name) }}', {{ $names->toJson() }})"
+                            class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-violet-100 text-violet-700 text-xs font-bold hover:bg-violet-200 transition-colors cursor-pointer border-0">
+                            {{ $pos->active_employees_count }}
+                        </button>
+                        @else
+                        <span class="text-slate-300 text-xs">0</span>
+                        @endif
+                    </td>
+
                     <td class="px-4 py-3 text-sm text-slate-600 align-middle text-center">
                         @if($pos->is_finance_related)
                         <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-sky-700 bg-sky-100 px-2.5 py-0.5 rounded-full">
+                            <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                            Ya
+                        </span>
+                        @else
+                        <span class="text-[11px] text-slate-400">—</span>
+                        @endif
+                    </td>
+
+                    <td class="px-4 py-3 align-middle text-center">
+                        @if($pos->can_create_program)
+                        <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-orange-700 bg-orange-100 px-2.5 py-0.5 rounded-full">
                             <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                             Ya
                         </span>
@@ -113,7 +155,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="8" class="px-4 py-12 text-center text-slate-400">
+                    <td colspan="10" class="px-4 py-12 text-center text-slate-400">
                         <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" class="mx-auto mb-2.5 opacity-40">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
                         </svg>
@@ -131,5 +173,42 @@
         {{ $positions->links() }}
     </div>
     @endif
+
+{{-- Modal: Daftar Karyawan --}}
+<div id="modal-karyawan" class="fixed inset-0 z-50 hidden items-center justify-center p-4" style="background:rgba(0,0,0,.4)">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+            <div>
+                <div class="text-sm font-bold text-slate-900" id="modal-jabatan-title">—</div>
+                <div class="text-xs text-slate-400 mt-0.5" id="modal-jabatan-count">—</div>
+            </div>
+            <button type="button" onclick="closeKaryawan()"
+                class="text-slate-400 hover:text-slate-600 border-0 bg-transparent cursor-pointer text-xl leading-none">×</button>
+        </div>
+        <ul id="modal-karyawan-list" class="divide-y divide-slate-50 max-h-72 overflow-y-auto px-5 py-2"></ul>
+    </div>
+</div>
+
+<script>
+function showKaryawan(jabatan, names) {
+    document.getElementById('modal-jabatan-title').textContent = jabatan;
+    document.getElementById('modal-jabatan-count').textContent = names.length + ' karyawan aktif';
+    const list = document.getElementById('modal-karyawan-list');
+    list.innerHTML = names.map((n, i) =>
+        `<li class="py-2.5 flex items-center gap-2.5">
+            <span class="w-6 h-6 rounded-full bg-violet-100 text-violet-700 text-[11px] font-bold flex items-center justify-center shrink-0">${i+1}</span>
+            <span class="text-sm text-slate-700">${n}</span>
+        </li>`
+    ).join('');
+    const modal = document.getElementById('modal-karyawan');
+    modal.style.display = 'flex';
+}
+function closeKaryawan() {
+    document.getElementById('modal-karyawan').style.display = 'none';
+}
+document.getElementById('modal-karyawan').addEventListener('click', function(e) {
+    if (e.target === this) closeKaryawan();
+});
+</script>
 
 </x-layouts.app>

@@ -70,7 +70,7 @@
                         <td class="px-4 py-3 font-mono text-xs text-slate-500 align-middle">{{ $emp->nik }}</td>
                         <td class="px-4 py-3 text-sm text-slate-600 align-middle">
                             @if($emp->activePosition && $emp->activePosition->position)
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-100 text-blue-700">{{ $emp->activePosition->position->name }}</span>
+                                <a href="{{ route('positions.edit', $emp->activePosition->position) }}" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors no-underline">{{ $emp->activePosition->position->name }}</a>
                                 <div class="text-xs text-slate-400 mt-0.5">{{ $emp->activePosition->position->department->name ?? '' }}</div>
                             @else
                                 <span class="text-slate-300 text-xs">— belum ada</span>
