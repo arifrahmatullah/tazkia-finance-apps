@@ -166,7 +166,7 @@
         @endif
 
         {{-- KEUANGAN --}}
-        @php $showKeuangan = auth()->user()->hasPermission('menu.periode-anggaran') || auth()->user()->hasPermission('menu.estimasi-pendapatan') || auth()->user()->hasPermission('menu.pagu-anggaran') || auth()->user()->hasPermission('menu.program-kerja') || auth()->user()->hasPermission('menu.pengajuan-dana') || auth()->user()->hasPermission('menu.inbox-approval'); @endphp
+        @php $showKeuangan = auth()->user()->hasPermission('menu.periode-anggaran') || auth()->user()->hasPermission('menu.estimasi-pendapatan') || auth()->user()->hasPermission('menu.pagu-anggaran') || auth()->user()->hasPermission('menu.program-kerja') || auth()->user()->hasPermission('menu.pengajuan-dana') || auth()->user()->hasPermission('menu.inbox-approval') || auth()->user()->hasPermission('menu.pencairan-dana') || auth()->user()->employee?->activePosition; @endphp
         @if($showKeuangan)
         <div class="px-5 pt-4 pb-1.5 text-[0.65rem] font-semibold text-slate-400/70 tracking-[0.1em] uppercase">Keuangan</div>
 
@@ -217,7 +217,7 @@
         </a>
         @endif
 
-        @if(auth()->user()->hasPermission('menu.pengajuan-dana') || auth()->user()->hasPermission('menu.inbox-approval'))
+        @if(auth()->user()->hasPermission('menu.pengajuan-dana') || auth()->user()->hasPermission('menu.inbox-approval') || auth()->user()->employee?->activePosition)
         <div>
             <div class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg cursor-pointer text-[0.835rem] transition-all relative
                         {{ request()->routeIs('fund-requests.*') || request()->routeIs('fund-approvals.*') ? 'active bg-orange-500/[0.15] text-white font-[550]' : 'text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white' }}"
@@ -238,13 +238,24 @@
                    class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
                           {{ request()->routeIs('fund-requests.*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Pengajuan Saya</a>
                 @endif
-                @if(auth()->user()->hasPermission('menu.inbox-approval'))
                 <a href="{{ route('fund-approvals.inbox') }}"
                    class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
                           {{ request()->routeIs('fund-approvals.*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Inbox Approval</a>
-                @endif
             </div>
         </div>
+        @endif
+
+        @if(auth()->user()->hasPermission('menu.pencairan-dana'))
+        <a href="{{ route('finance.index') }}"
+           class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg no-underline text-[0.835rem] transition-all relative
+                  {{ request()->routeIs('finance.*') ? 'active bg-orange-500/[0.15] text-white font-[550]' : 'text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white' }}">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                class="{{ request()->routeIs('finance.*') ? 'text-orange-300' : 'opacity-80' }}">
+                <rect x="1" y="4" width="22" height="16" rx="2" ry="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <line x1="1" y1="10" x2="23" y2="10" stroke-linecap="round"/>
+            </svg>
+            Pencairan Dana
+        </a>
         @endif
         @endif
 
@@ -441,11 +452,11 @@
         </div>
 
         {{-- Warning note --}}
-        <div class="mx-5 mt-3.5 px-3 py-2.5 bg-orange-50 border border-orange-200 rounded-lg flex items-center gap-2">
+        <div id="confirm-warning" class="mx-5 mt-3.5 px-3 py-2.5 bg-orange-50 border border-orange-200 rounded-lg flex items-center gap-2">
             <svg width="14" height="14" fill="none" stroke="#c2410c" stroke-width="2" viewBox="0 0 24 24" class="flex-shrink-0">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
             </svg>
-            <span class="text-[0.75rem] text-orange-700 font-medium">Tindakan ini tidak dapat dibatalkan.</span>
+            <span id="confirm-warning-text" class="text-[0.75rem] text-orange-700 font-medium">Tindakan ini tidak dapat dibatalkan.</span>
         </div>
 
         {{-- Buttons --}}
@@ -455,11 +466,8 @@
                 Batal
             </button>
             <button id="confirm-btn" onclick="submitConfirm()"
-                class="px-5 py-2.5 rounded-xl text-[0.83rem] font-semibold text-white bg-gradient-to-br from-red-500 to-red-600 border-0 cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-px transition-all flex items-center gap-1.5">
-                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                </svg>
-                Ya, Hapus
+                class="px-5 py-2.5 rounded-xl text-[0.83rem] font-semibold text-white border-0 cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-px transition-all flex items-center gap-1.5">
+                <span id="confirm-btn-label">Ya, Hapus</span>
             </button>
         </div>
     </div>
@@ -475,21 +483,30 @@
         _confirmCallback = null;
         document.getElementById('confirm-message').innerHTML =
             'Yakin ingin menghapus <strong>"' + name + '"</strong>?';
-        _showConfirm('Hapus Data', '#fef2f2', '#dc2626');
+        _showConfirm('Hapus Data', '#fef2f2', '#dc2626', 'Ya, Hapus', '#ef4444', '#dc2626', 'Tindakan ini tidak dapat dibatalkan.');
     }
 
-    function confirmModal(title, message, callback) {
+    function confirmModal(title, message, callback, btnLabel, warningText) {
         _confirmForm = null;
         _confirmCallback = callback;
-        document.getElementById('confirm-title').textContent = title;
         document.getElementById('confirm-message').innerHTML = message;
-        _showConfirm(title, '#fffbeb', '#d97706');
+        _showConfirm(title, '#fffbeb', '#d97706', btnLabel || 'Ya, Lanjutkan', '#f97316', '#ea580c', warningText || null);
     }
 
-    function _showConfirm(title, iconBg, iconColor) {
+    function _showConfirm(title, iconBg, iconColor, btnLabel, btnFrom, btnTo, warningText) {
         document.getElementById('confirm-title').textContent = title;
         document.getElementById('confirm-icon').style.background = iconBg;
         document.getElementById('confirm-icon').querySelector('svg').style.stroke = iconColor;
+        document.getElementById('confirm-btn-label').textContent = btnLabel;
+        document.getElementById('confirm-btn').style.background =
+            'linear-gradient(to bottom right, ' + btnFrom + ', ' + btnTo + ')';
+        const warn = document.getElementById('confirm-warning');
+        if (warningText) {
+            document.getElementById('confirm-warning-text').textContent = warningText;
+            warn.style.display = 'flex';
+        } else {
+            warn.style.display = 'none';
+        }
         const overlay = document.getElementById('confirm-overlay');
         overlay.style.display = 'flex';
         setTimeout(() => {

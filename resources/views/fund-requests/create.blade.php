@@ -6,154 +6,340 @@
 </a>
 <h1 class="text-xl font-bold text-slate-900 mb-5">Buat Pengajuan Dana</h1>
 
-@if($errors->has('submit'))
+@if($errors->any())
 <div class="flex items-start gap-2.5 px-4 py-3 bg-red-50 border border-red-200 rounded-xl mb-4 text-sm text-red-600">
     <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" class="shrink-0 mt-px"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
-    {{ $errors->first('submit') }}
+    {{ $errors->first() }}
 </div>
 @endif
 
 <div class="bg-white rounded-xl shadow-sm p-6">
-    <form method="POST" action="{{ route('fund-requests.store') }}">
+    <form method="POST" action="{{ route('fund-requests.store') }}" id="fund-form" enctype="multipart/form-data">
     @csrf
 
     {{-- Info pengaju --}}
     <div class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3.5 pb-2 border-b border-slate-100">Informasi Pengaju</div>
-    <div class="flex gap-4 items-center px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl mb-5">
+    <div class="flex gap-4 items-center px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl mb-5 flex-wrap">
         <div>
-            <div class="text-[11px] text-slate-400 mb-0.5">Nama Karyawan</div>
+            <div class="text-[11px] text-slate-400 mb-0.5">Nama</div>
             <div class="text-sm font-semibold text-slate-900">{{ $employee->name }}</div>
         </div>
-        <div class="w-px h-9 bg-slate-200"></div>
+        <div class="w-px h-8 bg-slate-200 hidden sm:block"></div>
         <div>
-            <div class="text-[11px] text-slate-400 mb-0.5">NIP</div>
-            <div class="text-sm font-semibold text-slate-900 font-mono">{{ $employee->employee_id }}</div>
+            <div class="text-[11px] text-slate-400 mb-0.5">NIK</div>
+            <div class="text-sm font-semibold text-slate-900 font-mono">{{ $employee->nik }}</div>
         </div>
-        <div class="w-px h-9 bg-slate-200"></div>
+        <div class="w-px h-8 bg-slate-200 hidden sm:block"></div>
         <div>
-            <div class="text-[11px] text-slate-400 mb-0.5">Jabatan Aktif</div>
+            <div class="text-[11px] text-slate-400 mb-0.5">Jabatan</div>
             <div class="text-sm font-semibold text-slate-900">
-                @if($activePosition)
-                    {{ $activePosition->name }}
-                @else
-                    <span class="text-red-500 text-sm">Belum ada jabatan aktif</span>
+                @if($activePosition) {{ $activePosition->name }}
+                @else <span class="text-red-500">Belum ada jabatan aktif</span>
                 @endif
             </div>
+        </div>
+        <div class="w-px h-8 bg-slate-200 hidden sm:block"></div>
+        <div>
+            <div class="text-[11px] text-slate-400 mb-0.5">Departemen</div>
+            <div class="text-sm font-semibold text-slate-900">{{ $activePosition?->department?->name ?? '-' }}</div>
+        </div>
+        <div class="w-px h-8 bg-slate-200 hidden sm:block"></div>
+        <div>
+            <div class="text-[11px] text-slate-400 mb-0.5">Organisasi</div>
+            <div class="text-sm font-semibold text-slate-900">{{ $employee->organization?->name ?? '-' }}</div>
         </div>
     </div>
 
     @unless($activePosition)
     <div class="flex items-start gap-2.5 px-4 py-3 bg-red-50 border border-red-200 rounded-xl mb-4 text-sm text-red-600">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" class="shrink-0"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
-        Anda belum memiliki jabatan aktif. Tidak dapat membuat pengajuan. Hubungi HRD untuk mengatur jabatan Anda.
+        Anda belum memiliki jabatan aktif. Tidak dapat membuat pengajuan. Hubungi HRD.
     </div>
     @endunless
 
-    {{-- Detail pengajuan --}}
-    <div class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3.5 pb-2 border-b border-slate-100 mt-2">Detail Pengajuan</div>
-    <div class="grid grid-cols-2 gap-4">
-        <div class="flex flex-col gap-1.5">
-            <label class="text-xs font-semibold text-slate-600">Organisasi <span class="text-red-500 ml-0.5">*</span></label>
-            <select name="organization_id" id="org-select"
-                class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors {{ $errors->has('organization_id') ? 'border-red-400' : '' }}"
-                onchange="loadDepartments(this.value)">
-                <option value="">-- Pilih Organisasi --</option>
-                @foreach($organizations as $org)
-                    <option value="{{ $org->id }}" {{ old('organization_id', $selectedOrgId) == $org->id ? 'selected' : '' }}>{{ $org->name }}</option>
-                @endforeach
-            </select>
-            @error('organization_id')<div class="text-xs text-red-500 mt-0.5">{{ $message }}</div>@enderror
-        </div>
+    @if($activePosition)
 
-        <div class="flex flex-col gap-1.5">
-            <label class="text-xs font-semibold text-slate-600">Departemen <span class="text-red-500 ml-0.5">*</span></label>
-            <select name="department_id" id="dept-select"
-                class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors {{ $errors->has('department_id') ? 'border-red-400' : '' }}">
-                <option value="">-- Pilih Departemen --</option>
-                @foreach($departments as $d)
-                    <option value="{{ $d->id }}" {{ old('department_id') == $d->id ? 'selected' : '' }}>{{ $d->name }}</option>
-                @endforeach
-            </select>
-            @error('department_id')<div class="text-xs text-red-500 mt-0.5">{{ $message }}</div>@enderror
-        </div>
+    {{-- Pilih Program Kerja --}}
+    <div class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3.5 pb-2 border-b border-slate-100 mt-2">Pilih Program Kerja</div>
 
-        <div class="flex flex-col gap-1.5">
-            <label class="text-xs font-semibold text-slate-600">Periode Anggaran</label>
-            <select name="budget_period_id" id="period-select"
-                class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors {{ $errors->has('budget_period_id') ? 'border-red-400' : '' }}">
-                <option value="">-- Tanpa Periode Anggaran --</option>
-                @foreach($budgetPeriods as $bp)
-                    <option value="{{ $bp->id }}" {{ old('budget_period_id') == $bp->id ? 'selected' : '' }}>{{ $bp->name }}</option>
-                @endforeach
-            </select>
-            @error('budget_period_id')<div class="text-xs text-red-500 mt-0.5">{{ $message }}</div>@enderror
-        </div>
+    <div id="programs-loading" class="flex items-center gap-2 px-4 py-3 text-sm text-slate-400 mb-4">
+        <svg class="animate-spin w-4 h-4 text-orange-400" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+        Memuat program kerja...
+    </div>
 
-        <div class="flex flex-col gap-1.5">
-            <label class="text-xs font-semibold text-slate-600">Jumlah Dana (Rp) <span class="text-red-500 ml-0.5">*</span></label>
-            <div class="flex items-center">
-                <span class="px-3 py-2.5 bg-slate-100 border border-slate-200 border-r-0 rounded-l-xl text-sm text-slate-500 font-medium whitespace-nowrap">Rp</span>
-                <input type="number" name="amount" value="{{ old('amount') }}" min="1000" step="1000"
-                    class="w-full px-3 py-2.5 border border-slate-200 rounded-r-xl rounded-l-none text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors {{ $errors->has('amount') ? 'border-red-400' : '' }}"
-                    placeholder="0">
+    <div id="no-program-msg" class="flex items-start gap-2.5 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl mb-4 text-sm text-amber-700" style="display:none">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" class="shrink-0 mt-px"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Departemen Anda belum memiliki program kerja aktif untuk periode anggaran yang berlaku.
+    </div>
+
+    <div id="program-row" class="flex flex-col gap-1.5 mb-4" style="display:none">
+        <label class="text-xs font-semibold text-slate-600">Program Kerja <span class="text-red-500 ml-0.5">*</span></label>
+        <select name="budget_program_id" id="program-select"
+            class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors {{ $errors->has('budget_program_id') ? 'border-red-400' : '' }}"
+            onchange="onProgramChange(this.value)">
+            <option value="">— Pilih Program Kerja —</option>
+        </select>
+        @error('budget_program_id')<div class="text-xs text-red-500 mt-0.5">{{ $message }}</div>@enderror
+    </div>
+
+    {{-- Detail Program --}}
+    <div id="program-detail" style="display:none" class="mb-5">
+        <div class="border border-slate-200 rounded-xl overflow-hidden">
+            <div class="flex items-center justify-between px-4 py-3 bg-slate-50 border-b border-slate-200">
+                <div class="text-xs font-bold text-slate-600 uppercase tracking-wide">Detail Program Kerja</div>
+                <div class="text-xs text-slate-500">
+                    Total Pagu: <span id="detail-pagu" class="font-semibold text-orange-600"></span>
+                </div>
             </div>
-            @error('amount')<div class="text-xs text-red-500 mt-0.5">{{ $message }}</div>@enderror
-        </div>
 
-        <div class="flex flex-col gap-1.5 col-span-2">
-            <label class="text-xs font-semibold text-slate-600">Judul Pengajuan <span class="text-red-500 ml-0.5">*</span></label>
-            <input type="text" name="title" value="{{ old('title') }}" maxlength="200"
-                class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors {{ $errors->has('title') ? 'border-red-400' : '' }}"
-                placeholder="Contoh: Pembelian ATK Bulan Juli 2026">
-            @error('title')<div class="text-xs text-red-500 mt-0.5">{{ $message }}</div>@enderror
-        </div>
+            <div class="px-4 py-3">
+                <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-2">Rincian Kegiatan</div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50">
+                                <th class="px-3 py-2 text-left font-semibold text-slate-500 border border-slate-200">Jenis Pengeluaran</th>
+                                <th class="px-3 py-2 text-left font-semibold text-slate-500 border border-slate-200">Deskripsi</th>
+                                <th class="px-3 py-2 text-right font-semibold text-slate-500 border border-slate-200 w-16">Qty</th>
+                                <th class="px-3 py-2 text-left font-semibold text-slate-500 border border-slate-200 w-14">Sat.</th>
+                                <th class="px-3 py-2 text-right font-semibold text-slate-500 border border-slate-200 w-32">Harga Satuan</th>
+                                <th class="px-3 py-2 text-right font-semibold text-slate-500 border border-slate-200 w-32">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detail-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
 
-        <div class="flex flex-col gap-1.5 col-span-2">
-            <label class="text-xs font-semibold text-slate-600">Tujuan / Keterangan</label>
-            <textarea name="purpose" rows="3" maxlength="1000"
-                class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors resize-y {{ $errors->has('purpose') ? 'border-red-400' : '' }}"
-                placeholder="Jelaskan tujuan dan kebutuhan pengajuan dana ini...">{{ old('purpose') }}</textarea>
-            @error('purpose')<div class="text-xs text-red-500 mt-0.5">{{ $message }}</div>@enderror
+            <div class="px-4 py-3 border-t border-slate-100">
+                <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-2">Jadwal Pencairan</div>
+                <div class="flex flex-wrap gap-2" id="schedule-list"></div>
+            </div>
         </div>
     </div>
+
+    {{-- Form pengajuan --}}
+    <div id="form-fields" style="display:none">
+        <div class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3.5 pb-2 border-b border-slate-100">Detail Pengajuan</div>
+        <div class="grid grid-cols-2 gap-4">
+            <div class="flex flex-col gap-1.5 col-span-2">
+                <label class="text-xs font-semibold text-slate-600">Judul Pengajuan <span class="text-red-500 ml-0.5">*</span></label>
+                <input type="text" name="title" id="title-input" value="{{ old('title') }}" maxlength="200"
+                    class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors {{ $errors->has('title') ? 'border-red-400' : '' }}"
+                    placeholder="Judul pengajuan...">
+                @error('title')<div class="text-xs text-red-500 mt-0.5">{{ $message }}</div>@enderror
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+                <label class="text-xs font-semibold text-slate-600">Jumlah Dana (Rp) <span class="text-red-500 ml-0.5">*</span></label>
+                <div class="flex items-center">
+                    <span class="px-3 py-2.5 bg-slate-100 border border-slate-200 border-r-0 rounded-l-xl text-sm text-slate-500 font-medium whitespace-nowrap">Rp</span>
+                    <input type="text" id="amount-display" inputmode="numeric"
+                        class="w-full px-3 py-2.5 border border-slate-200 rounded-r-xl rounded-l-none text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors {{ $errors->has('amount') ? 'border-red-400' : '' }}"
+                        placeholder="0"
+                        value="{{ old('amount') ? number_format(old('amount'), 0, ',', '.') : '' }}"
+                        oninput="formatAmount(this)">
+                    <input type="hidden" name="amount" id="amount-input" value="{{ old('amount') }}">
+                </div>
+                <div id="amount-hint" class="text-[11px] text-slate-400" style="display:none">
+                    Maks. pagu program: <span id="amount-max-label" class="font-semibold text-slate-600"></span>
+                </div>
+                @error('amount')<div class="text-xs text-red-500 mt-0.5">{{ $message }}</div>@enderror
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+                <label class="text-xs font-semibold text-slate-600">Tujuan / Keterangan</label>
+                <textarea name="purpose" rows="2" maxlength="1000"
+                    class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors resize-y {{ $errors->has('purpose') ? 'border-red-400' : '' }}"
+                    placeholder="Jelaskan tujuan pengajuan...">{{ old('purpose') }}</textarea>
+                @error('purpose')<div class="text-xs text-red-500 mt-0.5">{{ $message }}</div>@enderror
+            </div>
+        </div>
+
+        {{-- Info Rekening --}}
+        <div class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3.5 pb-2 border-b border-slate-100 mt-5">Informasi Rekening Tujuan Transfer</div>
+        <div class="grid grid-cols-3 gap-4">
+            <div class="flex flex-col gap-1.5">
+                <label class="text-xs font-semibold text-slate-600">Nama Bank</label>
+                <input type="text" name="bank_name" value="{{ old('bank_name') }}" maxlength="100"
+                    class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors {{ $errors->has('bank_name') ? 'border-red-400' : '' }}"
+                    placeholder="Contoh: BRI, BNI, Mandiri...">
+                @error('bank_name')<div class="text-xs text-red-500 mt-0.5">{{ $message }}</div>@enderror
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+                <label class="text-xs font-semibold text-slate-600">Nomor Rekening <span class="text-red-500 ml-0.5">*</span></label>
+                <input type="text" name="bank_account_number" value="{{ old('bank_account_number') }}" maxlength="50"
+                    inputmode="numeric"
+                    class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors font-mono {{ $errors->has('bank_account_number') ? 'border-red-400' : '' }}"
+                    placeholder="Nomor rekening...">
+                @error('bank_account_number')<div class="text-xs text-red-500 mt-0.5">{{ $message }}</div>@enderror
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+                <label class="text-xs font-semibold text-slate-600">Nama Pemilik Rekening <span class="text-red-500 ml-0.5">*</span></label>
+                <input type="text" name="bank_account_name" value="{{ old('bank_account_name') }}" maxlength="150"
+                    class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors {{ $errors->has('bank_account_name') ? 'border-red-400' : '' }}"
+                    placeholder="Sesuai buku tabungan...">
+                @error('bank_account_name')<div class="text-xs text-red-500 mt-0.5">{{ $message }}</div>@enderror
+            </div>
+        </div>
+    </div>
+
+        {{-- Lampiran --}}
+        <div class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3.5 pb-2 border-b border-slate-100 mt-5">Lampiran <span class="text-red-500 ml-0.5">*</span></div>
+        <div class="flex flex-col gap-2">
+            <input type="file" name="attachments[]" multiple required accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
+                class="text-xs text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-orange-50 file:text-orange-600 hover:file:bg-orange-100 cursor-pointer">
+            @error('attachments')<div class="text-xs text-red-500 mt-0.5">{{ $message }}</div>@enderror
+            @error('attachments.*')<div class="text-xs text-red-500 mt-0.5">{{ $message }}</div>@enderror
+            <div class="text-[10px] text-slate-400">Format: PDF, JPG, PNG, DOC, XLS · Maks. 10 MB per file · Bisa pilih beberapa file</div>
+        </div>
+    </div>
+
+    @endif {{-- end if activePosition --}}
 
     <div class="flex gap-3 justify-end mt-6 pt-5 border-t border-slate-100">
         <a href="{{ route('fund-requests.index') }}" class="px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 text-sm font-medium no-underline inline-flex items-center">Batal</a>
         @if($activePosition)
-            <button type="submit" class="px-6 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-br from-orange-400 to-orange-500 text-white border-0 cursor-pointer hover:-translate-y-px transition-all">Simpan sebagai Draft</button>
+            <button type="submit" id="submit-btn" disabled
+                class="relative px-6 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-br from-orange-400 to-orange-500 text-white border-0 cursor-pointer transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none" id="submit-btn">
+                <span id="submit-label">Simpan ke Draft</span>
+            </button>
         @endif
     </div>
     </form>
 </div>
 
+@if($activePosition)
 <script>
-function loadDepartments(orgId) {
-    const deptSel   = document.getElementById('dept-select');
-    const periodSel = document.getElementById('period-select');
+const programsUrl = '{{ route('fund-requests.programs') }}';
+const orgId       = '{{ $employee->organization_id }}';
+const deptId      = '{{ $activePosition->department_id }}';
+let programsCache = {};
 
-    deptSel.innerHTML   = '<option value="">Memuat...</option>';
-    periodSel.innerHTML = '<option value="">-- Tanpa Periode Anggaran --</option>';
+function fmt(n) {
+    return 'Rp ' + Number(n).toLocaleString('id-ID');
+}
+function escHtml(str) {
+    return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function show(id) { document.getElementById(id).style.display = ''; }
+function hide(id) { document.getElementById(id).style.display = 'none'; }
 
-    if (!orgId) {
-        deptSel.innerHTML = '<option value="">-- Pilih Departemen --</option>';
-        return;
+function formatAmount(el) {
+    const raw = el.value.replace(/\./g, '').replace(/[^0-9]/g, '');
+    el.value = raw ? Number(raw).toLocaleString('id-ID') : '';
+    document.getElementById('amount-input').value = raw;
+}
+
+document.getElementById('fund-form').addEventListener('submit', function () {
+    // pastikan hidden field sudah terisi dari display
+    const disp = document.getElementById('amount-display').value;
+    const raw  = disp.replace(/\./g, '').replace(/[^0-9]/g, '');
+    document.getElementById('amount-input').value = raw;
+});
+
+function onProgramChange(programId) {
+    hide('program-detail');
+    hide('form-fields');
+    hide('amount-hint');
+    document.getElementById('submit-btn').disabled = true;
+
+    if (!programId || !programsCache[programId]) return;
+
+    const p = programsCache[programId];
+
+    // Rincian
+    let rows = '';
+    if (p.details && p.details.length > 0) {
+        p.details.forEach(d => {
+            rows += `<tr>
+                <td class="px-3 py-2 border border-slate-200 text-slate-700">${escHtml(d.account)}</td>
+                <td class="px-3 py-2 border border-slate-200 text-slate-700">${escHtml(d.description)}</td>
+                <td class="px-3 py-2 border border-slate-200 text-right text-slate-700">${d.quantity}</td>
+                <td class="px-3 py-2 border border-slate-200 text-slate-500">${escHtml(d.unit)}</td>
+                <td class="px-3 py-2 border border-slate-200 text-right font-mono text-slate-700">${fmt(d.unit_price)}</td>
+                <td class="px-3 py-2 border border-slate-200 text-right font-mono font-semibold text-slate-800">${fmt(d.total_amount)}</td>
+            </tr>`;
+        });
+        rows += `<tr class="bg-slate-50">
+            <td colspan="5" class="px-3 py-2 border border-slate-200 text-right text-xs font-semibold text-slate-500">Total Program</td>
+            <td class="px-3 py-2 border border-slate-200 text-right font-mono font-bold text-orange-600">${fmt(p.total_amount)}</td>
+        </tr>`;
+    } else {
+        rows = '<tr><td colspan="6" class="px-3 py-4 text-center text-slate-400 border border-slate-200">Belum ada rincian kegiatan.</td></tr>';
+    }
+    document.getElementById('detail-tbody').innerHTML = rows;
+
+    // Jadwal
+    let schedHtml = '';
+    if (p.schedules && p.schedules.length > 0) {
+        p.schedules.forEach(s => {
+            schedHtml += `<div class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-600">
+                Termin ${s.termin}
+            </div>`;
+        });
+    } else {
+        schedHtml = '<span class="text-xs text-slate-400">Belum ada jadwal pencairan.</span>';
+    }
+    document.getElementById('schedule-list').innerHTML = schedHtml;
+
+    document.getElementById('detail-pagu').textContent     = fmt(p.total_amount);
+    document.getElementById('amount-max-label').textContent = fmt(p.total_amount);
+    document.getElementById('amount-input').max = p.total_amount;
+
+    const amountDisplay = document.getElementById('amount-display');
+    const amountInput   = document.getElementById('amount-input');
+    if (!amountInput.value) {
+        const nominal = Math.round(p.nominal_per_termin);
+        amountDisplay.value = nominal.toLocaleString('id-ID');
+        amountInput.value   = nominal;
     }
 
-    fetch(`{{ route('fund-requests.deps') }}?organization_id=${orgId}`)
+    const titleInput = document.getElementById('title-input');
+    if (!titleInput.value) titleInput.value = p.name;
+
+    show('program-detail');
+    show('form-fields');
+    show('amount-hint');
+    document.getElementById('submit-btn').disabled = false;
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    fetch(`${programsUrl}?organization_id=${orgId}&department_id=${deptId}`)
         .then(r => r.json())
         .then(data => {
-            deptSel.innerHTML = '<option value="">-- Pilih Departemen --</option>';
-            data.departments.forEach(d => {
-                deptSel.innerHTML += `<option value="${d.id}">${d.name}</option>`;
+            hide('programs-loading');
+
+            if (!data.programs || data.programs.length === 0) {
+                show('no-program-msg');
+                return;
+            }
+
+            const sel = document.getElementById('program-select');
+            data.programs.forEach(p => {
+                programsCache[p.id] = p;
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.textContent = `${p.name}  (${fmt(p.total_amount)})`;
+                sel.appendChild(opt);
             });
-            periodSel.innerHTML = '<option value="">-- Tanpa Periode Anggaran --</option>';
-            data.budget_periods.forEach(bp => {
-                periodSel.innerHTML += `<option value="${bp.id}">${bp.name}</option>`;
-            });
+
+            show('program-row');
+
+            // Restore old value setelah validation error
+            const oldVal = '{{ old('budget_program_id') }}';
+            if (oldVal && programsCache[oldVal]) {
+                sel.value = oldVal;
+                onProgramChange(oldVal);
+            }
         })
         .catch(() => {
-            deptSel.innerHTML = '<option value="">-- Pilih Departemen --</option>';
+            hide('programs-loading');
+            show('no-program-msg');
         });
-}
+});
 </script>
+@endif
 </x-layouts.app>

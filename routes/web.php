@@ -8,6 +8,7 @@ use App\Http\Controllers\IncomeEstimateController;
 use App\Http\Controllers\IncomeEstimateDetailController;
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\ApprovalSettingController;
+use App\Http\Controllers\FinanceController;
 use App\Http\Controllers\FundApprovalController;
 use App\Http\Controllers\FundRequestController;
 use App\Http\Controllers\JournalEntryController;
@@ -74,10 +75,25 @@ Route::middleware('auth')->group(function () {
     Route::resource('fund-requests', FundRequestController::class);
     Route::post('fund-requests/{fund_request}/submit', [FundRequestController::class, 'submit'])->name('fund-requests.submit');
     Route::get('fund-requests-deps', [FundRequestController::class, 'getDependencies'])->name('fund-requests.deps');
+    Route::get('fund-requests-programs', [FundRequestController::class, 'getPrograms'])->name('fund-requests.programs');
+
+    // File lampiran & konfirmasi penerimaan
+    Route::post('fund-requests/{fund_request}/files', [FundRequestController::class, 'uploadFile'])->name('fund-requests.files.upload');
+    Route::delete('fund-request-files/{fundRequestFile}', [FundRequestController::class, 'deleteFile'])->name('fund-requests.files.delete');
+    Route::post('fund-requests/{fund_request}/confirm-receipt', [FundRequestController::class, 'confirmReceipt'])->name('fund-requests.confirm-receipt');
+    Route::post('fund-requests/{fund_request}/dispute-receipt', [FundRequestController::class, 'disputeReceipt'])->name('fund-requests.dispute-receipt');
 
     // Audit Log
     Route::get('audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
     Route::get('audit-logs/{auditLog}', [AuditLogController::class, 'show'])->name('audit-logs.show');
+
+    // Finance — Pencairan Dana
+    Route::middleware('permission:menu.pencairan-dana')->group(function () {
+        Route::get('finance', [FinanceController::class, 'index'])->name('finance.index');
+        Route::post('finance/{fund_request}/disburse', [FinanceController::class, 'disburse'])->name('finance.disburse');
+        Route::post('finance/{fund_request}/upload-proof', [FinanceController::class, 'uploadProof'])->name('finance.upload-proof');
+        Route::delete('fund-request-files/{fundRequestFile}/proof', [FinanceController::class, 'deleteProof'])->name('finance.delete-proof');
+    });
 
     // Inbox Approval
     Route::get('fund-approvals/inbox', [FundApprovalController::class, 'inbox'])->name('fund-approvals.inbox');

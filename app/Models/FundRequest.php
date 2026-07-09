@@ -12,18 +12,24 @@ class FundRequest extends Model
     use HasUuids, SoftDeletes, Auditable;
 
     protected $fillable = [
-        'organization_id', 'department_id', 'budget_period_id',
+        'organization_id', 'department_id', 'budget_period_id', 'budget_program_id',
         'requester_id', 'requester_position_id', 'reference',
-        'title', 'purpose', 'amount', 'status',
-        'current_step', 'total_steps', 'notes',
+        'title', 'purpose', 'amount',
+        'bank_name', 'bank_account_number', 'bank_account_name',
+        'status', 'current_step', 'total_steps', 'notes',
         'submitted_at', 'approved_at', 'rejected_at',
+        'disbursed_at', 'disbursement_notes', 'disbursed_by', 'disburse_account_id',
+        'receipt_status', 'receipt_confirmed_at', 'receipt_notes', 'auto_confirmed',
     ];
 
     protected $casts = [
-        'amount'       => 'decimal:2',
-        'submitted_at' => 'datetime',
-        'approved_at'  => 'datetime',
-        'rejected_at'  => 'datetime',
+        'amount'               => 'decimal:2',
+        'submitted_at'         => 'datetime',
+        'approved_at'          => 'datetime',
+        'rejected_at'          => 'datetime',
+        'disbursed_at'         => 'datetime',
+        'receipt_confirmed_at' => 'datetime',
+        'auto_confirmed'       => 'boolean',
     ];
 
     public function organization()
@@ -39,6 +45,11 @@ class FundRequest extends Model
     public function budgetPeriod()
     {
         return $this->belongsTo(BudgetPeriod::class);
+    }
+
+    public function budgetProgram()
+    {
+        return $this->belongsTo(BudgetProgram::class);
     }
 
     public function requester()
@@ -63,7 +74,28 @@ class FundRequest extends Model
             ->where('status', 'waiting');
     }
 
-    public function isDraft(): bool    { return $this->status === 'draft'; }
+    public function disburseAccount()
+    {
+        return $this->belongsTo(Account::class, 'disburse_account_id');
+    }
+
+    public function files()
+    {
+        return $this->hasMany(FundRequestFile::class)->latest();
+    }
+
+    public function attachments()
+    {
+        return $this->hasMany(FundRequestFile::class)->where('type', 'attachment')->latest();
+    }
+
+    public function disbursementProofs()
+    {
+        return $this->hasMany(FundRequestFile::class)->where('type', 'disbursement_proof')->latest();
+    }
+
+    public function isDraft(): bool      { return $this->status === 'draft'; }
+    public function isDisbursed(): bool  { return !is_null($this->disbursed_at); }
     public function isPending(): bool  { return $this->status === 'pending'; }
     public function isApproved(): bool { return $this->status === 'approved'; }
     public function isRejected(): bool { return $this->status === 'rejected'; }
@@ -74,10 +106,11 @@ class FundRequest extends Model
         $month = date('m', strtotime($date));
         $prefix = "PD-{$year}{$month}-";
 
-        $last = self::where('organization_id', $orgId)
+        $last = self::withTrashed()
+            ->where('organization_id', $orgId)
             ->where('reference', 'like', $prefix . '%')
             ->lockForUpdate()
-            ->orderByDesc('id')
+            ->orderByDesc('reference')
             ->first();
 
         $seq = $last ? (intval(substr($last->reference, strlen($prefix))) + 1) : 1;

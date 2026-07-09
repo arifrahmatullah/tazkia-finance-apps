@@ -28,6 +28,7 @@ class PermissionSeeder extends Seeder
             ['slug' => 'menu.program-kerja',        'name' => 'Program Kerja',          'group' => 'keuangan'],
             ['slug' => 'menu.pengajuan-dana',       'name' => 'Pengajuan Dana',         'group' => 'keuangan'],
             ['slug' => 'menu.inbox-approval',       'name' => 'Inbox Approval',         'group' => 'keuangan'],
+            ['slug' => 'menu.pencairan-dana',       'name' => 'Pencairan Dana',         'group' => 'keuangan'],
 
             // Akunting
             ['slug' => 'menu.jurnal-umum',          'name' => 'Jurnal Umum',            'group' => 'akunting'],
@@ -52,6 +53,7 @@ class PermissionSeeder extends Seeder
                 'menu.periode-anggaran', 'menu.estimasi-pendapatan',
                 'menu.pagu-anggaran', 'menu.program-kerja',
                 'menu.pengajuan-dana', 'menu.inbox-approval',
+                'menu.pencairan-dana',
                 'menu.coa', 'menu.laporan',
             ],
             'akunting' => [

@@ -35,4 +35,9 @@ class Position extends Model
     {
         return $this->hasMany(EmployeePosition::class);
     }
+
+    public function activeHolder()
+    {
+        return $this->hasOne(EmployeePosition::class)->where('is_active', true)->with('employee');
+    }
 }

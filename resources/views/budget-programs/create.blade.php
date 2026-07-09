@@ -199,6 +199,7 @@ function addLine(data) {
         </td>
     `;
     document.getElementById('lines-body').appendChild(tr);
+    if (typeof window.initSelect2 === 'function') window.initSelect2(tr);
     updateLineNumbers();
     updateTotals();
 }

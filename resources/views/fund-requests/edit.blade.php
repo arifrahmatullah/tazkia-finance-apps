@@ -69,6 +69,34 @@
         </div>
     </div>
 
+    <div class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3.5 pb-2 border-b border-slate-100 mt-5">Informasi Rekening Tujuan Transfer</div>
+    <div class="grid grid-cols-3 gap-4">
+        <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-semibold text-slate-600">Nama Bank</label>
+            <input type="text" name="bank_name" value="{{ old('bank_name', $fundRequest->bank_name) }}" maxlength="100"
+                class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors {{ $errors->has('bank_name') ? 'border-red-400' : '' }}"
+                placeholder="Contoh: BRI, BNI, Mandiri...">
+            @error('bank_name')<div class="text-xs text-red-500 mt-0.5">{{ $message }}</div>@enderror
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-semibold text-slate-600">Nomor Rekening <span class="text-red-500 ml-0.5">*</span></label>
+            <input type="text" name="bank_account_number" value="{{ old('bank_account_number', $fundRequest->bank_account_number) }}" maxlength="50"
+                inputmode="numeric"
+                class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors font-mono {{ $errors->has('bank_account_number') ? 'border-red-400' : '' }}"
+                placeholder="Nomor rekening...">
+            @error('bank_account_number')<div class="text-xs text-red-500 mt-0.5">{{ $message }}</div>@enderror
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-semibold text-slate-600">Nama Pemilik Rekening <span class="text-red-500 ml-0.5">*</span></label>
+            <input type="text" name="bank_account_name" value="{{ old('bank_account_name', $fundRequest->bank_account_name) }}" maxlength="150"
+                class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors {{ $errors->has('bank_account_name') ? 'border-red-400' : '' }}"
+                placeholder="Sesuai buku tabungan...">
+            @error('bank_account_name')<div class="text-xs text-red-500 mt-0.5">{{ $message }}</div>@enderror
+        </div>
+    </div>
+
     <div class="flex gap-3 justify-end mt-6 pt-5 border-t border-slate-100">
         <a href="{{ route('fund-requests.show', $fundRequest) }}" class="px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 text-sm font-medium no-underline inline-flex items-center">Batal</a>
         <button type="submit" class="px-6 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-br from-orange-400 to-orange-500 text-white border-0 cursor-pointer hover:-translate-y-px transition-all">Simpan Perubahan</button>
