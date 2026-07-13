@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\BudgetProgramScheduleController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\FundReportController;
 use App\Http\Controllers\GoogleAuthController;
 use App\Http\Controllers\IncomeEstimateController;
 use App\Http\Controllers\IncomeEstimateDetailController;
@@ -83,6 +84,13 @@ Route::middleware('auth')->group(function () {
     Route::post('fund-requests/{fund_request}/confirm-receipt', [FundRequestController::class, 'confirmReceipt'])->name('fund-requests.confirm-receipt');
     Route::post('fund-requests/{fund_request}/dispute-receipt', [FundRequestController::class, 'disputeReceipt'])->name('fund-requests.dispute-receipt');
 
+    // Laporan Dana
+    Route::get('fund-reports', [FundReportController::class, 'index'])->name('fund-reports.index');
+    Route::get('fund-reports/create', [FundReportController::class, 'create'])->name('fund-reports.create');
+    Route::post('fund-reports', [FundReportController::class, 'store'])->name('fund-reports.store');
+    Route::get('fund-reports/{fundReport}', [FundReportController::class, 'show'])->name('fund-reports.show');
+    Route::delete('fund-report-files/{fundReportFile}', [FundReportController::class, 'deleteFile'])->name('fund-reports.files.delete');
+
     // Audit Log
     Route::get('audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
     Route::get('audit-logs/{auditLog}', [AuditLogController::class, 'show'])->name('audit-logs.show');
@@ -93,6 +101,10 @@ Route::middleware('auth')->group(function () {
         Route::post('finance/{fund_request}/disburse', [FinanceController::class, 'disburse'])->name('finance.disburse');
         Route::post('finance/{fund_request}/upload-proof', [FinanceController::class, 'uploadProof'])->name('finance.upload-proof');
         Route::delete('fund-request-files/{fundRequestFile}/proof', [FinanceController::class, 'deleteProof'])->name('finance.delete-proof');
+        // Verifikasi laporan dana
+        Route::get('finance/laporan', [FinanceController::class, 'laporanIndex'])->name('finance.laporan');
+        Route::post('finance/laporan/{fundReport}/approve', [FinanceController::class, 'approveReport'])->name('finance.laporan.approve');
+        Route::post('finance/laporan/{fundReport}/reject', [FinanceController::class, 'rejectReport'])->name('finance.laporan.reject');
     });
 
     // Inbox Approval

@@ -50,7 +50,7 @@
             'ekuitas'    => ['icon'=>'⚖️','label'=>'Ekuitas','normal'=>'Kredit','color'=>'#7c3aed','bg'=>'#f5f3ff'],
             'pendapatan' => ['icon'=>'📈','label'=>'Pendapatan','normal'=>'Kredit','color'=>'#16a34a','bg'=>'#f0fdf4'],
             'beban'      => ['icon'=>'📉','label'=>'Beban','normal'=>'Debit','color'=>'#ea580c','bg'=>'#fff7ed'],
-        ];
+         ];
         $oldType = old('account_type', '');
         @endphp
         <div class="grid grid-cols-5 gap-2 mb-5" id="typeGrid">

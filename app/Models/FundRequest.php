@@ -94,6 +94,11 @@ class FundRequest extends Model
         return $this->hasMany(FundRequestFile::class)->where('type', 'disbursement_proof')->latest();
     }
 
+    public function fundReports()
+    {
+        return $this->hasMany(FundReport::class)->latest();
+    }
+
     public function isDraft(): bool      { return $this->status === 'draft'; }
     public function isDisbursed(): bool  { return !is_null($this->disbursed_at); }
     public function isPending(): bool  { return $this->status === 'pending'; }

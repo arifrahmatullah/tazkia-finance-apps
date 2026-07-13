@@ -237,6 +237,9 @@
                 <a href="{{ route('fund-requests.index') }}"
                    class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
                           {{ request()->routeIs('fund-requests.*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Pengajuan Saya</a>
+                <a href="{{ route('fund-reports.index') }}"
+                   class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
+                          {{ request()->routeIs('fund-reports.*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Laporan Dana</a>
                 @endif
                 <a href="{{ route('fund-approvals.inbox') }}"
                    class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
@@ -246,16 +249,30 @@
         @endif
 
         @if(auth()->user()->hasPermission('menu.pencairan-dana'))
-        <a href="{{ route('finance.index') }}"
-           class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg no-underline text-[0.835rem] transition-all relative
-                  {{ request()->routeIs('finance.*') ? 'active bg-orange-500/[0.15] text-white font-[550]' : 'text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white' }}">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
-                class="{{ request()->routeIs('finance.*') ? 'text-orange-300' : 'opacity-80' }}">
-                <rect x="1" y="4" width="22" height="16" rx="2" ry="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <line x1="1" y1="10" x2="23" y2="10" stroke-linecap="round"/>
-            </svg>
-            Pencairan Dana
-        </a>
+        <div>
+            <div class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg cursor-pointer text-[0.835rem] transition-all relative
+                        {{ request()->routeIs('finance.*') ? 'active bg-orange-500/[0.15] text-white font-[550]' : 'text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white' }}"
+                 onclick="toggleSubmenu('sub-finance')">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                    class="{{ request()->routeIs('finance.*') ? 'text-orange-300' : 'opacity-80' }}">
+                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <line x1="1" y1="10" x2="23" y2="10" stroke-linecap="round"/>
+                </svg>
+                Keuangan
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                    class="ml-auto transition-transform duration-200" id="arrow-finance">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                </svg>
+            </div>
+            <div class="nav-submenu {{ request()->routeIs('finance.*') ? 'open' : '' }} hidden" id="sub-finance">
+                <a href="{{ route('finance.index') }}"
+                   class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
+                          {{ request()->routeIs('finance.index') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Pencairan Dana</a>
+                <a href="{{ route('finance.laporan') }}"
+                   class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
+                          {{ request()->routeIs('finance.laporan*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Verifikasi Laporan</a>
+            </div>
+        </div>
         @endif
         @endif
 

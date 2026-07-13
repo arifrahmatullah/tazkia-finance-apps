@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Account;
+use App\Models\FundReport;
 use App\Models\FundRequest;
 use App\Models\FundRequestFile;
 use App\Models\Organization;
@@ -109,5 +110,58 @@ class FinanceController extends Controller
         $fundRequestFile->delete();
 
         return back()->with('success', 'Bukti pencairan berhasil dihapus.');
+    }
+
+    public function laporanIndex(Request $request)
+    {
+        $user   = auth()->user();
+        $orgIds = $user->organizationIds();
+
+        $reports = FundReport::with(['fundRequest.organization', 'fundRequest.department', 'reporter', 'files'])
+            ->whereHas('fundRequest', function ($q) use ($orgIds) {
+                $q->when($orgIds !== null, fn($sq) => $sq->whereIn('organization_id', $orgIds));
+            })
+            ->when($request->filled('status'), fn($q) => $q->where('status', $request->status))
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $s = '%' . $request->search . '%';
+                $q->whereHas('fundRequest', fn($sq) => $sq->where('reference', 'like', $s)->orWhere('title', 'like', $s));
+            })
+            ->latest()
+            ->paginate(15)
+            ->withQueryString();
+
+        return view('finance.laporan', compact('reports'));
+    }
+
+    public function approveReport(Request $request, FundReport $fundReport)
+    {
+        abort_unless($fundReport->isWaiting(), 422, 'Laporan sudah diproses sebelumnya.');
+
+        $fundReport->update([
+            'status'      => 'approved',
+            'reviewed_by' => auth()->id(),
+            'reviewed_at' => now(),
+            'review_notes' => $request->input('review_notes'),
+        ]);
+
+        return back()->with('success', 'Laporan berhasil disetujui.');
+    }
+
+    public function rejectReport(Request $request, FundReport $fundReport)
+    {
+        abort_unless($fundReport->isWaiting(), 422, 'Laporan sudah diproses sebelumnya.');
+
+        $request->validate([
+            'review_notes' => 'required|string|max:1000',
+        ], ['review_notes.required' => 'Catatan penolakan wajib diisi.']);
+
+        $fundReport->update([
+            'status'       => 'rejected',
+            'reviewed_by'  => auth()->id(),
+            'reviewed_at'  => now(),
+            'review_notes' => $request->review_notes,
+        ]);
+
+        return back()->with('success', 'Laporan ditolak.');
     }
 }

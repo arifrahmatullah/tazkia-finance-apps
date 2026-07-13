@@ -183,134 +183,176 @@
             Dashboard
         </a>
 
-        {{-- MASTER DATA --}}
-        <div class="nav-section-label">Master Data</div>
+        {{-- PENGAJUAN --}}
+        <div class="nav-section-label">Pengajuan Dana</div>
 
-        <div>
-            <div class="nav-item {{ request()->routeIs('organizations.*') ? 'active' : '' }}"
-                 onclick="toggleSubmenu('sub-org')">
-                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                </svg>
-                Organisasi
-                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-left:auto; transition:transform 0.2s;" id="arrow-org">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
-                </svg>
-            </div>
-            <div class="nav-submenu {{ request()->routeIs('organizations.*') ? 'open' : '' }}" id="sub-org">
-                <a href="#" class="nav-subitem">Daftar Organisasi</a>
-                <a href="#" class="nav-subitem">Departemen</a>
-                <a href="#" class="nav-subitem">Jabatan</a>
-            </div>
-        </div>
-
-        <a href="#" class="nav-item {{ request()->routeIs('employees.*') ? 'active' : '' }}">
+        <a href="{{ route('fund-requests.index') }}"
+           class="nav-item {{ request()->routeIs('fund-requests.*') ? 'active' : '' }}">
             <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
-            Karyawan
+            Pengajuan Dana
         </a>
 
-        {{-- KEUANGAN --}}
-        <div class="nav-section-label">Keuangan</div>
+        <a href="{{ route('fund-reports.index') }}"
+           class="nav-item {{ request()->routeIs('fund-reports.*') ? 'active' : '' }}">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            Laporan Dana
+        </a>
 
-        <div>
-            <div class="nav-item {{ request()->routeIs('anggaran.*') ? 'active' : '' }}"
-                 onclick="toggleSubmenu('sub-anggaran')">
-                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                </svg>
-                Anggaran
-                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-left:auto; transition:transform 0.2s;" id="arrow-anggaran">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
-                </svg>
-            </div>
-            <div class="nav-submenu" id="sub-anggaran">
-                <a href="#" class="nav-subitem">Periode Anggaran</a>
-                <a href="#" class="nav-subitem">Pagu Anggaran</a>
-                <a href="#" class="nav-subitem">Detail Anggaran</a>
-            </div>
-        </div>
+        <a href="{{ route('fund-approvals.inbox') }}"
+           class="nav-item {{ request()->routeIs('fund-approvals.*') ? 'active' : '' }}">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+            </svg>
+            Inbox Approval
+        </a>
 
-        <div>
-            <div class="nav-item {{ request()->routeIs('pengajuan.*') ? 'active' : '' }}"
-                 onclick="toggleSubmenu('sub-pengajuan')">
-                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-                Pengajuan Dana
-                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-left:auto; transition:transform 0.2s;" id="arrow-pengajuan">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
-                </svg>
-            </div>
-            <div class="nav-submenu" id="sub-pengajuan">
-                <a href="#" class="nav-subitem">Buat Pengajuan</a>
-                <a href="#" class="nav-subitem">Approval</a>
-                <a href="#" class="nav-subitem">Pencairan Dana</a>
-            </div>
-        </div>
-
-        <a href="#" class="nav-item">
+        @if(auth()->user()?->hasPermission('menu.pencairan-dana'))
+        <a href="{{ route('finance.index') }}"
+           class="nav-item {{ request()->routeIs('finance.index') ? 'active' : '' }}">
             <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
             </svg>
-            Kas & Bank
+            Pencairan Dana
+        </a>
+        <a href="{{ route('finance.laporan') }}"
+           class="nav-item {{ request()->routeIs('finance.laporan*') ? 'active' : '' }}">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            Verifikasi Laporan
+        </a>
+        @endif
+
+        {{-- ANGGARAN --}}
+        <div class="nav-section-label">Anggaran</div>
+
+        <a href="{{ route('budget-periods.index') }}"
+           class="nav-item {{ request()->routeIs('budget-periods.*') ? 'active' : '' }}">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            Periode Anggaran
+        </a>
+
+        <a href="{{ route('budget-allocations.index') }}"
+           class="nav-item {{ request()->routeIs('budget-allocations.*') ? 'active' : '' }}">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+            Alokasi Anggaran
+        </a>
+
+        @if(auth()->user()?->hasPermission('menu.program-kerja'))
+        <a href="{{ route('budget-programs.index') }}"
+           class="nav-item {{ request()->routeIs('budget-programs.*') || request()->routeIs('budget-program-details.*') ? 'active' : '' }}">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M15 11h.01M12 11h.01M9 11h.01M15 15h.01M12 15h.01M9 15h.01"/>
+            </svg>
+            Program Kerja
+        </a>
+        @endif
+
+        <a href="{{ route('income-estimates.index') }}"
+           class="nav-item {{ request()->routeIs('income-estimates.*') ? 'active' : '' }}">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+            </svg>
+            Estimasi Pendapatan
         </a>
 
         {{-- AKUNTING --}}
         <div class="nav-section-label">Akunting</div>
 
-        <a href="#" class="nav-item">
+        <a href="{{ route('journal-entries.index') }}"
+           class="nav-item {{ request()->routeIs('journal-entries.*') ? 'active' : '' }}">
             <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
             </svg>
             Jurnal Umum
         </a>
 
-        <a href="#" class="nav-item">
+        <a href="{{ route('accounts.index') }}"
+           class="nav-item {{ request()->routeIs('accounts.*') ? 'active' : '' }}">
             <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/>
             </svg>
             Chart of Accounts
         </a>
 
-        {{-- LAPORAN --}}
-        <div class="nav-section-label">Laporan</div>
+        {{-- MASTER DATA --}}
+        <div class="nav-section-label">Master Data</div>
 
-        <div>
-            <div class="nav-item" onclick="toggleSubmenu('sub-laporan')">
-                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                </svg>
-                Laporan Keuangan
-                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-left:auto; transition:transform 0.2s;" id="arrow-laporan">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
-                </svg>
-            </div>
-            <div class="nav-submenu" id="sub-laporan">
-                <a href="#" class="nav-subitem">Realisasi Anggaran</a>
-                <a href="#" class="nav-subitem">Arus Kas</a>
-                <a href="#" class="nav-subitem">Neraca</a>
-                <a href="#" class="nav-subitem">Laba Rugi</a>
-            </div>
-        </div>
+        <a href="{{ route('organizations.index') }}"
+           class="nav-item {{ request()->routeIs('organizations.*') ? 'active' : '' }}">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+            </svg>
+            Organisasi
+        </a>
 
-        {{-- PENGATURAN --}}
+        <a href="{{ route('departments.index') }}"
+           class="nav-item {{ request()->routeIs('departments.*') ? 'active' : '' }}">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+            </svg>
+            Departemen
+        </a>
+
+        <a href="{{ route('positions.index') }}"
+           class="nav-item {{ request()->routeIs('positions.*') ? 'active' : '' }}">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+            </svg>
+            Jabatan
+        </a>
+
+        <a href="{{ route('employees.index') }}"
+           class="nav-item {{ request()->routeIs('employees.*') ? 'active' : '' }}">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+            Karyawan
+        </a>
+
+        {{-- SISTEM --}}
         <div class="nav-section-label">Sistem</div>
 
-        <a href="#" class="nav-item {{ request()->routeIs('users.*') ? 'active' : '' }}">
+        <a href="{{ route('users.index') }}"
+           class="nav-item {{ request()->routeIs('users.*') ? 'active' : '' }}">
             <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
             </svg>
             Manajemen User
         </a>
 
-        <a href="#" class="nav-item">
+        <a href="{{ route('approval-settings.index') }}"
+           class="nav-item {{ request()->routeIs('approval-settings.*') ? 'active' : '' }}">
             <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
             </svg>
-            Pengaturan
+            Setting Approval
+        </a>
+
+        @if(auth()->user()?->hasPermission('menu.role-permissions'))
+        <a href="{{ route('role-permissions.index') }}"
+           class="nav-item {{ request()->routeIs('role-permissions.*') ? 'active' : '' }}">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+            </svg>
+            Role & Permission
+        </a>
+        @endif
+
+        <a href="{{ route('audit-logs.index') }}"
+           class="nav-item {{ request()->routeIs('audit-logs.*') ? 'active' : '' }}">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+            </svg>
+            Audit Log
         </a>
 
     </nav>
