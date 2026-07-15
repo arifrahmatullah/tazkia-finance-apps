@@ -36,6 +36,18 @@
             @error('name') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
         </div>
         <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Jenis Program <span class="text-red-500">*</span></label>
+            <select name="type" id="type-select" onchange="showTypeInfo(this.value)"
+                class="w-full px-3.5 py-2.5 border {{ $errors->has('type') ? 'border-red-400' : 'border-slate-200' }} rounded-xl text-sm text-slate-700 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors">
+                <option value="">— Pilih jenis program —</option>
+                @foreach(\App\Models\BudgetProgram::TYPES as $val => $label)
+                <option value="{{ $val }}" {{ old('type') === $val ? 'selected' : '' }}>{{ $label }}</option>
+                @endforeach
+            </select>
+            @error('type') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+            <div id="type-info" class="mt-2 px-3.5 py-2.5 rounded-xl text-xs leading-relaxed" style="display:none"></div>
+        </div>
+        <div>
             <label class="block text-xs font-semibold text-slate-600 mb-1.5">
                 Frekuensi <span class="text-red-500">*</span>
                 <span class="font-normal text-slate-400 ml-1">— berapa kali dalam periode</span>
@@ -126,6 +138,33 @@ $accountData = $accounts->map(fn($a) => ['id' => $a->id, 'code' => $a->code, 'na
 @endphp
 
 <script>
+const typeInfoMap = {
+    pengadaan: {
+        style: 'background:#e0f2fe; border:1px solid #7dd3fc; color:#0369a1;',
+        html: '<strong>Pengadaan</strong> — dana dicairkan ke rekening pengaju sebagai <strong>uang muka pengadaan barang/jasa</strong>. Setelah belanja, pengaju <strong>wajib membuat laporan penggunaan dana</strong> beserta bukti (nota/kuitansi), dan sisa dana yang tidak terpakai harus dikembalikan.',
+    },
+    kegiatan: {
+        style: 'background:#ede9fe; border:1px solid #c4b5fd; color:#6d28d9;',
+        html: '<strong>Kegiatan</strong> — dana dicairkan ke rekening pengaju sebagai <strong>uang muka kegiatan</strong>. Setelah kegiatan selesai, pengaju <strong>wajib membuat laporan penggunaan dana (LPJ)</strong> beserta bukti, dan sisa dana dikembalikan ke rekening institusi.',
+    },
+    pembayaran: {
+        style: 'background:#d1fae5; border:1px solid #6ee7b7; color:#047857;',
+        html: '<strong>Pembayaran</strong> — dana <strong>langsung dibayarkan ke tujuan</strong> (vendor/tagihan, contoh: listrik, internet, sewa), tidak masuk ke rekening pengaju. Karena itu pengaju <strong>tidak perlu membuat laporan penggunaan dana</strong> — bukti transfer diunggah keuangan saat pencairan, dan biayanya langsung dibebankan penuh.',
+    },
+};
+
+function showTypeInfo(val) {
+    const box = document.getElementById('type-info');
+    if (val && typeInfoMap[val]) {
+        box.innerHTML = typeInfoMap[val].html;
+        box.style.cssText = typeInfoMap[val].style;
+        box.style.display = 'block';
+    } else {
+        box.style.display = 'none';
+    }
+}
+document.addEventListener('DOMContentLoaded', () => showTypeInfo(document.getElementById('type-select')?.value));
+
 const accountOptions = @json($accountData);
 let lineCount = 0;
 let currentFreq = parseInt(document.getElementById('frequency-input')?.value) || 1;

@@ -11,8 +11,14 @@ class BudgetProgram extends Model
 {
     use HasUuids, SoftDeletes, Auditable;
 
+    public const TYPES = [
+        'pengadaan'  => 'Pengadaan',
+        'kegiatan'   => 'Kegiatan',
+        'pembayaran' => 'Pembayaran',
+    ];
+
     protected $fillable = [
-        'budget_allocation_id', 'account_id', 'name', 'notes', 'frequency', 'is_active',
+        'budget_allocation_id', 'account_id', 'name', 'type', 'notes', 'frequency', 'is_active',
     ];
 
     protected $casts = [
@@ -38,6 +44,11 @@ class BudgetProgram extends Model
     public function schedules()
     {
         return $this->hasMany(BudgetProgramSchedule::class)->orderBy('termin');
+    }
+
+    public function getTypeLabelAttribute(): string
+    {
+        return self::TYPES[$this->type] ?? '-';
     }
 
     public function getTotalAmountAttribute(): float

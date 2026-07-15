@@ -218,12 +218,31 @@
         @endif
 
         @if(auth()->user()->hasPermission('menu.pengajuan-dana') || auth()->user()->hasPermission('menu.inbox-approval') || auth()->user()->employee?->activePosition)
+        @php
+            // Jumlah pengajuan yang menunggu approval user ini (untuk badge sidebar)
+            $inboxWaitingCount = 0;
+            $inboxPosition = auth()->user()->employee?->activePosition?->position;
+            if ($inboxPosition) {
+                $inboxOrgIds = auth()->user()->organizationIds();
+                $inboxWaitingCount = \App\Models\FundRequestApproval::where('approver_position_id', $inboxPosition->id)
+                    ->where('status', 'waiting')
+                    ->whereHas('fundRequest', function ($q) use ($inboxOrgIds) {
+                        $q->where('status', 'pending')
+                          ->whereColumn('current_step', 'fund_request_approvals.step');
+                        if ($inboxOrgIds !== null) {
+                            $q->whereIn('organization_id', $inboxOrgIds);
+                        }
+                    })
+                    ->count();
+            }
+        @endphp
+        @php $pengajuanActive = request()->routeIs('fund-requests.*') || request()->routeIs('fund-approvals.*') || request()->routeIs('fund-reports.*') || request()->routeIs('fund-refunds.*'); @endphp
         <div>
             <div class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg cursor-pointer text-[0.835rem] transition-all relative
-                        {{ request()->routeIs('fund-requests.*') || request()->routeIs('fund-approvals.*') ? 'active bg-orange-500/[0.15] text-white font-[550]' : 'text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white' }}"
+                        {{ $pengajuanActive ? 'active bg-orange-500/[0.15] text-white font-[550]' : 'text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white' }}"
                  onclick="toggleSubmenu('sub-pengajuan')">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
-                    class="{{ request()->routeIs('fund-requests.*') || request()->routeIs('fund-approvals.*') ? 'text-orange-300' : 'opacity-80' }}">
+                    class="{{ $pengajuanActive ? 'text-orange-300' : 'opacity-80' }}">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
                 Pengajuan Dana
@@ -232,23 +251,36 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
                 </svg>
             </div>
-            <div class="nav-submenu {{ request()->routeIs('fund-requests.*') || request()->routeIs('fund-approvals.*') ? 'open' : '' }} hidden" id="sub-pengajuan">
+            <div class="nav-submenu {{ $pengajuanActive ? 'open' : '' }} hidden" id="sub-pengajuan">
                 @if(auth()->user()->hasPermission('menu.pengajuan-dana'))
                 <a href="{{ route('fund-requests.index') }}"
                    class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
                           {{ request()->routeIs('fund-requests.*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Pengajuan Saya</a>
                 <a href="{{ route('fund-reports.index') }}"
                    class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
-                          {{ request()->routeIs('fund-reports.*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Laporan Dana</a>
+                          {{ request()->routeIs('fund-reports.*') || request()->routeIs('fund-refunds.*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Laporan Dana</a>
                 @endif
                 <a href="{{ route('fund-approvals.inbox') }}"
                    class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
-                          {{ request()->routeIs('fund-approvals.*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Inbox Approval</a>
+                          {{ request()->routeIs('fund-approvals.*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">
+                    Inbox Approval
+                    @if($inboxWaitingCount > 0)
+                    <span class="ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full bg-red-500 text-white text-[10px] font-bold leading-none">{{ $inboxWaitingCount }}</span>
+                    @endif
+                </a>
             </div>
         </div>
         @endif
 
         @if(auth()->user()->hasPermission('menu.pencairan-dana'))
+        @php
+            // Jumlah pengajuan disetujui yang belum dicairkan (untuk badge sidebar)
+            $financeOrgIds = auth()->user()->organizationIds();
+            $pencairanWaitingCount = \App\Models\FundRequest::where('status', 'approved')
+                ->whereNull('disbursed_at')
+                ->when($financeOrgIds !== null, fn($q) => $q->whereIn('organization_id', $financeOrgIds))
+                ->count();
+        @endphp
         <div>
             <div class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg cursor-pointer text-[0.835rem] transition-all relative
                         {{ request()->routeIs('finance.*') ? 'active bg-orange-500/[0.15] text-white font-[550]' : 'text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white' }}"
@@ -267,10 +299,18 @@
             <div class="nav-submenu {{ request()->routeIs('finance.*') ? 'open' : '' }} hidden" id="sub-finance">
                 <a href="{{ route('finance.index') }}"
                    class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
-                          {{ request()->routeIs('finance.index') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Pencairan Dana</a>
+                          {{ request()->routeIs('finance.index') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">
+                    Pencairan Dana
+                    @if($pencairanWaitingCount > 0)
+                    <span class="ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full bg-red-500 text-white text-[10px] font-bold leading-none">{{ $pencairanWaitingCount }}</span>
+                    @endif
+                </a>
                 <a href="{{ route('finance.laporan') }}"
                    class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
                           {{ request()->routeIs('finance.laporan*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Verifikasi Laporan</a>
+                <a href="{{ route('finance.pengembalian') }}"
+                   class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
+                          {{ request()->routeIs('finance.pengembalian*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Pengembalian Dana</a>
             </div>
         </div>
         @endif

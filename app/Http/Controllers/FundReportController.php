@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\FundRefund;
 use App\Models\FundReport;
 use App\Models\FundReportFile;
 use App\Models\FundRequest;
@@ -27,6 +28,8 @@ class FundReportController extends Controller
                 ->where('requester_id', $employee->id)
                 ->whereNotNull('disbursed_at')
                 ->whereNotIn('id', $reportedIds)
+                // Jenis pembayaran langsung dibayarkan ke tujuan, tidak perlu laporan
+                ->whereDoesntHave('budgetProgram', fn($p) => $p->where('type', 'pembayaran'))
                 ->latest('disbursed_at')
                 ->get();
         }
@@ -36,7 +39,17 @@ class FundReportController extends Controller
             ->latest()
             ->paginate(15);
 
-        return view('fund-reports.index', compact('reports', 'pendingFundRequests'));
+        // Tagihan pengembalian sisa dana milik pengaju
+        $refunds = collect();
+        if ($employee) {
+            $refunds = FundRefund::with(['fundRequest', 'refundAccount'])
+                ->whereHas('fundRequest', fn($q) => $q->where('requester_id', $employee->id))
+                ->orderByRaw("FIELD(status, 'pending', 'waiting', 'confirmed')")
+                ->latest()
+                ->get();
+        }
+
+        return view('fund-reports.index', compact('reports', 'pendingFundRequests', 'refunds'));
     }
 
     public function create(Request $request)
@@ -53,6 +66,11 @@ class FundReportController extends Controller
         if (!$fundRequest->isDisbursed()) {
             return redirect()->route('fund-requests.index')
                 ->with('error', 'Dana belum dicairkan, belum bisa membuat laporan.');
+        }
+
+        if (!$fundRequest->needsReport()) {
+            return redirect()->route('fund-requests.show', $fundRequest)
+                ->with('error', 'Pengajuan jenis Pembayaran tidak memerlukan laporan penggunaan dana.');
         }
 
         return view('fund-reports.create', compact('fundRequest'));
@@ -81,6 +99,11 @@ class FundReportController extends Controller
 
         if (!$fundRequest->isDisbursed()) {
             return back()->with('error', 'Dana belum dicairkan.');
+        }
+
+        if (!$fundRequest->needsReport()) {
+            return redirect()->route('fund-requests.show', $fundRequest)
+                ->with('error', 'Pengajuan jenis Pembayaran tidak memerlukan laporan penggunaan dana.');
         }
 
         if ($validated['amount_used'] > (float) $fundRequest->amount) {
@@ -123,7 +146,7 @@ class FundReportController extends Controller
 
         if (!$canView) abort(403);
 
-        $fundReport->load(['fundRequest.department', 'fundRequest.budgetProgram', 'files.uploader', 'reporter', 'reviewer']);
+        $fundReport->load(['fundRequest.department', 'fundRequest.budgetProgram', 'files.uploader', 'reporter', 'reviewer', 'fundRefund']);
 
         return view('fund-reports.show', compact('fundReport'));
     }

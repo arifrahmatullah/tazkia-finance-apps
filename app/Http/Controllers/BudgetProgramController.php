@@ -16,6 +16,15 @@ class BudgetProgramController extends Controller
         $user   = auth()->user();
         $orgIds = $user->organizationIds();
 
+        // Staf hanya melihat program departemennya sendiri;
+        // superadmin & keuangan (pencairan dana) melihat semua departemen di organisasinya
+        $restrictDeptId = null;
+        if (!$user->isSuperAdmin() && !$user->hasPermission('menu.pencairan-dana')) {
+            $restrictDeptId = $user->employee()
+                ->with('activePosition.position')->first()
+                ?->activePosition?->position?->department_id;
+        }
+
         $query = BudgetProgram::with([
             'budgetAllocation.department',
             'budgetAllocation.budgetPeriod',
@@ -28,6 +37,15 @@ class BudgetProgramController extends Controller
             }
             $q->where('is_active', true);
         });
+
+        if (!$user->isSuperAdmin() && !$user->hasPermission('menu.pencairan-dana')) {
+            if ($restrictDeptId) {
+                $query->whereHas('budgetAllocation', fn($a) => $a->where('department_id', $restrictDeptId));
+            } else {
+                // Tidak punya jabatan aktif → tidak ada program yang bisa dilihat
+                $query->whereRaw('1 = 0');
+            }
+        }
 
         if ($request->filled('budget_period_id')) {
             $query->whereHas('budgetAllocation', fn($a) => $a->where('budget_period_id', $request->budget_period_id));
@@ -47,6 +65,7 @@ class BudgetProgramController extends Controller
             ->where('is_active', true)->orderBy('name')->get();
 
         $departments = Department::when($orgIds !== null, fn($q) => $q->whereIn('organization_id', $orgIds))
+            ->when($restrictDeptId, fn($q) => $q->where('id', $restrictDeptId))
             ->where('is_active', true)->where('has_budget', true)->orderBy('name')->get();
 
         // Ringkasan per alokasi dari program yang tampil (untuk kartu di luar tabel)
@@ -130,6 +149,7 @@ class BudgetProgramController extends Controller
         $validated = $request->validate([
             'budget_allocation_id' => 'required|exists:budget_allocations,id',
             'name'                 => 'required|string|max:255',
+            'type'                 => 'required|in:pengadaan,kegiatan,pembayaran',
             'notes'                => 'nullable|string|max:1000',
             'frequency'            => 'required|integer|min:1|max:366',
             'lines'                => 'nullable|array',
@@ -162,6 +182,7 @@ class BudgetProgramController extends Controller
             $program = BudgetProgram::create([
                 'budget_allocation_id' => $validated['budget_allocation_id'],
                 'name'                 => $validated['name'],
+                'type'                 => $validated['type'],
                 'notes'                => $validated['notes'] ?? null,
                 'frequency'            => $frequency,
                 'is_active'            => true,
@@ -184,7 +205,8 @@ class BudgetProgramController extends Controller
 
         return redirect()
             ->route('budget-programs.show', $program)
-            ->with('success', 'Program kerja berhasil ditambahkan.');
+            ->withFragment('jadwal')
+            ->with('success', 'Program kerja berhasil ditambahkan. Silakan isi estimasi jadwal pengeluaran.');
     }
 
     public function show(BudgetProgram $budgetProgram)
@@ -195,6 +217,7 @@ class BudgetProgramController extends Controller
             auth()->user()->canAccessOrganization($budgetProgram->budgetAllocation->department->organization_id),
             403
         );
+        $this->assertDepartmentAccess($budgetProgram);
 
         $accounts = Account::where('account_type', 'beban')
             ->where('is_active', true)
@@ -213,6 +236,7 @@ class BudgetProgramController extends Controller
             auth()->user()->canAccessOrganization($budgetProgram->budgetAllocation->department->organization_id),
             403
         );
+        $this->assertDepartmentAccess($budgetProgram);
 
         return view('budget-programs.edit', compact('budgetProgram'));
     }
@@ -225,9 +249,11 @@ class BudgetProgramController extends Controller
             auth()->user()->canAccessOrganization($budgetProgram->budgetAllocation->department->organization_id),
             403
         );
+        $this->assertDepartmentAccess($budgetProgram);
 
         $validated = $request->validate([
             'name'      => 'required|string|max:255',
+            'type'      => 'required|in:pengadaan,kegiatan,pembayaran',
             'notes'     => 'nullable|string|max:1000',
             'frequency' => 'required|integer|min:1|max:366',
             'is_active' => 'boolean',
@@ -238,6 +264,7 @@ class BudgetProgramController extends Controller
         \DB::transaction(function () use ($budgetProgram, $validated, $frequency, $request) {
             $budgetProgram->update([
                 'name'      => $validated['name'],
+                'type'      => $validated['type'],
                 'notes'     => $validated['notes'] ?? null,
                 'frequency' => $frequency,
                 'is_active' => $request->boolean('is_active', true),
@@ -265,11 +292,33 @@ class BudgetProgramController extends Controller
             auth()->user()->canAccessOrganization($budgetProgram->budgetAllocation->department->organization_id),
             403
         );
+        $this->assertDepartmentAccess($budgetProgram);
 
         $budgetProgram->delete();
 
         return redirect()
             ->route('budget-programs.index')
             ->with('success', 'Program kerja berhasil dihapus.');
+    }
+
+    // Staf hanya boleh mengakses program departemennya sendiri;
+    // superadmin & keuangan (pencairan dana) bebas dalam organisasinya
+    private function assertDepartmentAccess(BudgetProgram $budgetProgram): void
+    {
+        $user = auth()->user();
+
+        if ($user->isSuperAdmin() || $user->hasPermission('menu.pencairan-dana')) {
+            return;
+        }
+
+        $userDeptId = $user->employee()
+            ->with('activePosition.position')->first()
+            ?->activePosition?->position?->department_id;
+
+        abort_unless(
+            $userDeptId && $budgetProgram->budgetAllocation->department_id === $userDeptId,
+            403,
+            'Anda hanya dapat mengakses program kerja departemen Anda sendiri.'
+        );
     }
 }

@@ -206,7 +206,7 @@
                     <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                     Lihat Detail
                 </a>
-                @if($isDisbursed)
+                @if($isDisbursed && $fr->needsReport())
                 <a href="{{ route('fund-reports.create', ['fund_request' => $fr->id]) }}"
                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white no-underline"
                    style="background:linear-gradient(135deg,#7c3aed,#8b5cf6);">
@@ -243,8 +243,12 @@
 </div>
 
 {{-- Pagination --}}
+<div class="mt-4 flex items-center justify-between gap-3 flex-wrap">
+    <span class="text-xs text-slate-400">
+        Menampilkan {{ $fundRequests->firstItem() ?? 0 }}–{{ $fundRequests->lastItem() ?? 0 }} dari {{ $fundRequests->total() }} pengajuan
+    </span>
 @if($fundRequests->hasPages())
-<div class="mt-4 flex justify-end gap-1">
+<div class="flex justify-end gap-1">
     @if($fundRequests->onFirstPage())
         <span class="inline-flex items-center px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs text-slate-300 pointer-events-none">&laquo;</span>
     @else
@@ -260,6 +264,7 @@
     @endif
 </div>
 @endif
+</div>
 @endif
 
 {{-- Receipt Confirmation Modal --}}

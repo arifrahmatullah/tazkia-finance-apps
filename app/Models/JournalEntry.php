@@ -13,7 +13,7 @@ class JournalEntry extends Model
 
     protected $fillable = [
         'organization_id', 'entry_date', 'reference', 'description',
-        'status', 'created_by', 'posted_at', 'posted_by',
+        'status', 'source_type', 'source_id', 'created_by', 'posted_at', 'posted_by',
     ];
 
     protected $casts = [

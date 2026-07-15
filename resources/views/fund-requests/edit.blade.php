@@ -62,8 +62,8 @@
         </div>
 
         <div class="flex flex-col gap-1.5 col-span-2">
-            <label class="text-xs font-semibold text-slate-600">Tujuan / Keterangan</label>
-            <textarea name="purpose" rows="3" maxlength="1000"
+            <label class="text-xs font-semibold text-slate-600">Tujuan / Keterangan <span class="text-red-500 ml-0.5">*</span></label>
+            <textarea name="purpose" rows="3" maxlength="1000" required
                 class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors resize-y {{ $errors->has('purpose') ? 'border-red-400' : '' }}">{{ old('purpose', $fundRequest->purpose) }}</textarea>
             @error('purpose')<div class="text-xs text-red-500 mt-0.5">{{ $message }}</div>@enderror
         </div>
@@ -82,7 +82,8 @@
         <div class="flex flex-col gap-1.5">
             <label class="text-xs font-semibold text-slate-600">Nomor Rekening <span class="text-red-500 ml-0.5">*</span></label>
             <input type="text" name="bank_account_number" value="{{ old('bank_account_number', $fundRequest->bank_account_number) }}" maxlength="50"
-                inputmode="numeric"
+                inputmode="numeric" pattern="[0-9]+" title="Hanya boleh angka"
+                oninput="this.value = this.value.replace(/[^0-9]/g, '')"
                 class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors font-mono {{ $errors->has('bank_account_number') ? 'border-red-400' : '' }}"
                 placeholder="Nomor rekening...">
             @error('bank_account_number')<div class="text-xs text-red-500 mt-0.5">{{ $message }}</div>@enderror

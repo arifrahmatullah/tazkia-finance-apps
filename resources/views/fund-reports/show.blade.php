@@ -153,6 +153,31 @@
     </div>
     @endif
 
+    {{-- Pengembalian Sisa Dana --}}
+    @if($fundReport->fundRefund)
+    @php
+        $refund = $fundReport->fundRefund;
+        $rfStyle = match($refund->status) {
+            'pending'   => ['bg' => '#fef2f2', 'border' => '#fecaca', 'color' => '#991b1b', 'label' => 'Sisa dana belum dikembalikan'],
+            'waiting'   => ['bg' => '#fffbeb', 'border' => '#fcd34d', 'color' => '#92400e', 'label' => 'Pengembalian menunggu konfirmasi keuangan'],
+            'confirmed' => ['bg' => '#f0fdf4', 'border' => '#86efac', 'color' => '#166534', 'label' => 'Sisa dana sudah dikembalikan'],
+        };
+    @endphp
+    <div style="background:{{ $rfStyle['bg'] }}; border:1px solid {{ $rfStyle['border'] }}; border-radius:12px; padding:16px 20px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+        <div>
+            <div style="font-size:0.68rem; font-weight:600; color:{{ $rfStyle['color'] }}; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:4px;">Pengembalian Sisa Dana</div>
+            <div style="font-size:0.85rem; font-weight:700; color:{{ $rfStyle['color'] }};">
+                Rp {{ number_format($refund->amount, 0, ',', '.') }} — {{ $rfStyle['label'] }}
+            </div>
+        </div>
+        <a href="{{ route('fund-refunds.show', $refund) }}"
+           style="padding:8px 18px; border-radius:8px; font-size:0.78rem; font-weight:700; text-decoration:none;
+                  {{ $refund->isPending() ? 'color:#fff; background:#dc2626;' : 'color:#475569; background:#fff; border:1px solid #e2e8f0;' }}">
+            {{ $refund->isPending() ? 'Kembalikan Sekarang' : 'Lihat Detail' }}
+        </a>
+    </div>
+    @endif
+
 </div>
 
 </x-layouts.app>

@@ -45,7 +45,7 @@ class FundRequestController extends Controller
             $query->where(fn($q) => $q->where('reference', 'like', $s)->orWhere('title', 'like', $s));
         }
 
-        $fundRequests = $query->orderByDesc('created_at')->paginate(15)->withQueryString();
+        $fundRequests = $query->orderByDesc('created_at')->paginate(10)->withQueryString();
 
         return view('fund-requests.index', compact('fundRequests', 'organizations'));
     }
@@ -71,13 +71,16 @@ class FundRequestController extends Controller
         $request->validate([
             'budget_program_id'  => 'required|exists:budget_programs,id',
             'title'              => 'required|string|max:200',
-            'purpose'            => 'nullable|string|max:1000',
+            'purpose'            => 'required|string|max:1000',
             'amount'             => 'required|numeric|min:1000',
             'bank_name'          => 'nullable|string|max:100',
-            'bank_account_number'=> 'required|string|max:50',
+            'bank_account_number'=> ['required', 'regex:/^[0-9]{1,50}$/'],
             'bank_account_name'  => 'required|string|max:150',
             'attachments'        => 'required|array|min:1',
             'attachments.*'      => 'file|max:10240|mimes:pdf,jpg,jpeg,png,doc,docx,xls,xlsx',
+        ], [
+            'bank_account_number.regex' => 'Nomor rekening hanya boleh berisi angka.',
+            'purpose.required'          => 'Tujuan / keterangan wajib diisi.',
         ]);
 
         $employee->load('organization', 'activePosition.position.department');
@@ -190,11 +193,14 @@ class FundRequestController extends Controller
             'department_id'      => 'required|exists:departments,id',
             'budget_period_id'   => 'nullable|exists:budget_periods,id',
             'title'              => 'required|string|max:200',
-            'purpose'            => 'nullable|string|max:1000',
+            'purpose'            => 'required|string|max:1000',
             'amount'             => 'required|numeric|min:1000',
             'bank_name'          => 'nullable|string|max:100',
-            'bank_account_number'=> 'required|string|max:50',
+            'bank_account_number'=> ['required', 'regex:/^[0-9]{1,50}$/'],
             'bank_account_name'  => 'required|string|max:150',
+        ], [
+            'bank_account_number.regex' => 'Nomor rekening hanya boleh berisi angka.',
+            'purpose.required'          => 'Tujuan / keterangan wajib diisi.',
         ]);
 
         $fundRequest->update([
@@ -299,6 +305,8 @@ class FundRequestController extends Controller
                 return [
                     'id'                => $p->id,
                     'name'              => $p->name,
+                    'type'              => $p->type,
+                    'type_label'        => $p->type_label,
                     'total_amount'      => (float) $p->total_amount,
                     'frequency'         => $p->frequency,
                     'nominal_per_termin'=> (float) $p->nominal_per_termin,

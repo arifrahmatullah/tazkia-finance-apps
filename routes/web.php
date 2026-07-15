@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\BudgetProgramScheduleController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\FundRefundController;
 use App\Http\Controllers\FundReportController;
 use App\Http\Controllers\GoogleAuthController;
 use App\Http\Controllers\IncomeEstimateController;
@@ -91,6 +92,10 @@ Route::middleware('auth')->group(function () {
     Route::get('fund-reports/{fundReport}', [FundReportController::class, 'show'])->name('fund-reports.show');
     Route::delete('fund-report-files/{fundReportFile}', [FundReportController::class, 'deleteFile'])->name('fund-reports.files.delete');
 
+    // Pengembalian Dana (sisi pengaju)
+    Route::get('fund-refunds/{fundRefund}', [FundRefundController::class, 'show'])->name('fund-refunds.show');
+    Route::post('fund-refunds/{fundRefund}/pay', [FundRefundController::class, 'pay'])->name('fund-refunds.pay');
+
     // Audit Log
     Route::get('audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
     Route::get('audit-logs/{auditLog}', [AuditLogController::class, 'show'])->name('audit-logs.show');
@@ -105,6 +110,10 @@ Route::middleware('auth')->group(function () {
         Route::get('finance/laporan', [FinanceController::class, 'laporanIndex'])->name('finance.laporan');
         Route::post('finance/laporan/{fundReport}/approve', [FinanceController::class, 'approveReport'])->name('finance.laporan.approve');
         Route::post('finance/laporan/{fundReport}/reject', [FinanceController::class, 'rejectReport'])->name('finance.laporan.reject');
+        // Konfirmasi pengembalian dana
+        Route::get('finance/pengembalian', [FinanceController::class, 'pengembalianIndex'])->name('finance.pengembalian');
+        Route::post('finance/pengembalian/{fundRefund}/confirm', [FinanceController::class, 'confirmRefund'])->name('finance.pengembalian.confirm');
+        Route::post('finance/pengembalian/{fundRefund}/reject', [FinanceController::class, 'rejectRefund'])->name('finance.pengembalian.reject');
     });
 
     // Inbox Approval

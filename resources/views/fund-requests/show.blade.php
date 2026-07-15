@@ -18,6 +18,13 @@
 </div>
 @endif
 
+@if($fundRequest->isDraft())
+<div class="flex items-center gap-2.5 px-4 py-3 bg-amber-50 border border-amber-300 rounded-xl mb-4 text-sm text-amber-800">
+    <svg width="16" height="16" fill="none" stroke="#d97706" stroke-width="2" viewBox="0 0 24 24" class="shrink-0"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>
+    <span>Pengajuan ini masih <strong>draft</strong> dan belum masuk proses approval — periksa datanya lalu klik tombol <strong>Submit</strong> untuk mengirim.</span>
+</div>
+@endif
+
 @php
     $statusConfig = [
         'draft'    => ['bg-slate-100 text-slate-500',   'Draft'],
@@ -53,6 +60,7 @@
             <form id="submit-form" method="POST" action="{{ route('fund-requests.submit', $fundRequest) }}">@csrf</form>
             <button type="button" id="btn-submit-pengajuan"
                 class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold bg-gradient-to-br from-orange-400 to-orange-500 text-white border-0 cursor-pointer"
+                style="animation: submit-pulse 1.6s ease-in-out infinite"
                 data-ref="{{ $fundRequest->reference }}">
                 <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
                 Submit
@@ -64,13 +72,19 @@
                 Hapus
             </button>
         @endif
-        @if($isRequester && $fundRequest->isDisbursed())
+        @if($isRequester && $fundRequest->isDisbursed() && $fundRequest->needsReport())
             <a href="{{ route('fund-reports.create', ['fund_request' => $fundRequest->id]) }}"
                class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold text-white border-0 cursor-pointer no-underline"
                style="background:linear-gradient(135deg, #7c3aed, #8b5cf6);">
                 <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                 Buat Laporan
             </a>
+        @endif
+        @if($isRequester && $fundRequest->isDisbursed() && !$fundRequest->needsReport())
+            <span class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Pembayaran langsung — tidak perlu laporan
+            </span>
         @endif
         @if($canApprove)
             @php $currentApproval = $fundRequest->approvals->where('step', $fundRequest->current_step)->where('status', 'waiting')->first(); @endphp
@@ -566,8 +580,48 @@
     </div>
 </div>
 
+@if($fundRequest->isDraft())
+{{-- Ruang kosong agar konten terbawah (Lampiran dll.) tidak tertutup bar submit --}}
+<div style="height: 84px"></div>
+
+{{-- Bar Submit melayang: muncul saat tombol Submit di header ter-scroll keluar layar --}}
+<div id="sticky-submit" class="fixed bottom-0 right-0 z-40 px-4 py-3 bg-white/95 border-t border-amber-200 shadow-[0_-4px_16px_rgba(0,0,0,.08)]" style="display:none; backdrop-filter: blur(6px)">
+    <div class="max-w-5xl mx-auto flex items-center justify-between gap-3 flex-wrap">
+        <span class="text-xs text-slate-600">
+            <strong class="text-amber-700">Draft</strong> · {{ $fundRequest->reference }} — belum dikirim untuk approval
+        </span>
+        <button type="button" onclick="document.getElementById('btn-submit-pengajuan').click()"
+            class="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-bold bg-gradient-to-br from-orange-400 to-orange-500 text-white border-0 cursor-pointer shadow-md hover:-translate-y-px transition-all">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+            Submit Pengajuan
+        </button>
+    </div>
+</div>
+@endif
+
+<style>
+@keyframes submit-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, .55); }
+    50%      { box-shadow: 0 0 0 7px rgba(249, 115, 22, 0); }
+}
+/* Bar submit mulai dari kanan sidebar (260px); full di mobile saat sidebar tersembunyi */
+#sticky-submit { left: 260px; }
+@media (max-width: 1024px) {
+    #sticky-submit { left: 0; }
+}
+</style>
+
 <script>
 (function() {
+    // Bar submit melayang: tampil hanya saat tombol Submit header tidak terlihat
+    var stickyBar = document.getElementById('sticky-submit');
+    var topSubmit = document.getElementById('btn-submit-pengajuan');
+    if (stickyBar && topSubmit && 'IntersectionObserver' in window) {
+        new IntersectionObserver(function(entries) {
+            stickyBar.style.display = entries[0].isIntersecting ? 'none' : '';
+        }).observe(topSubmit);
+    }
+
     // Submit button
     document.getElementById('btn-submit-pengajuan')?.addEventListener('click', function() {
         var ref = this.dataset.ref;

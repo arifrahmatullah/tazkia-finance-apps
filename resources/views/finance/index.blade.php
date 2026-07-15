@@ -6,6 +6,19 @@
     {{ session('success') }}
 </div>
 @endif
+@if(session('warning'))
+<div class="flex items-center gap-2.5 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl mb-4 text-sm text-amber-700">
+    <svg width="16" height="16" fill="none" stroke="#d97706" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+    {{ session('warning') }}
+</div>
+@endif
+
+@if($missingProofCount > 0)
+<div class="flex items-center gap-2.5 px-4 py-3 bg-red-50 border border-red-200 rounded-xl mb-4 text-sm text-red-700">
+    <svg width="16" height="16" fill="none" stroke="#dc2626" stroke-width="2" viewBox="0 0 24 24" class="shrink-0"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+    <span><strong>{{ $missingProofCount }} pencairan belum ada bukti transfer.</strong> Jangan lupa upload bukti pada kartu yang bertanda merah di bawah.</span>
+</div>
+@endif
 
 {{-- Header --}}
 <div class="flex items-start justify-between gap-4 mb-5 flex-wrap">
@@ -72,7 +85,7 @@
     $sudahCair  = $fundRequests->getCollection()->filter(fn($fr) => !is_null($fr->disbursed_at))->count();
     $totalBelum = $fundRequests->getCollection()->filter(fn($fr) => is_null($fr->disbursed_at))->sum('amount');
 @endphp
-<div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
     <div class="bg-white rounded-xl shadow-sm px-4 py-3.5">
         <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Belum Cair</div>
         <div class="text-2xl font-extrabold text-orange-500">{{ $belumCair }}</div>
@@ -82,6 +95,11 @@
         <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Sudah Cair</div>
         <div class="text-2xl font-extrabold text-green-500">{{ $sudahCair }}</div>
         <div class="text-xs text-slate-400 mt-0.5">halaman ini</div>
+    </div>
+    <div class="rounded-xl shadow-sm px-4 py-3.5 {{ $missingProofCount > 0 ? 'bg-red-50 border border-red-200' : 'bg-white' }}">
+        <div class="text-[10px] font-bold {{ $missingProofCount > 0 ? 'text-red-400' : 'text-slate-400' }} uppercase tracking-widest mb-0.5">Belum Ada Bukti</div>
+        <div class="text-2xl font-extrabold {{ $missingProofCount > 0 ? 'text-red-500' : 'text-slate-300' }}">{{ $missingProofCount }}</div>
+        <div class="text-xs {{ $missingProofCount > 0 ? 'text-red-400' : 'text-slate-400' }} mt-0.5">{{ $missingProofCount > 0 ? 'perlu upload bukti transfer' : 'semua bukti lengkap' }}</div>
     </div>
     <div class="bg-white rounded-xl shadow-sm px-4 py-3.5 col-span-2 sm:col-span-1">
         <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Total Halaman Ini</div>
@@ -122,6 +140,12 @@
                             <svg width="9" height="9" fill="#16a34a" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
                             Sudah Cair
                         </span>
+                        @if($fr->disbursementProofs->isEmpty())
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-600 animate-pulse">
+                            <svg width="9" height="9" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01"/><circle cx="12" cy="12" r="10"/></svg>
+                            Bukti Belum Diupload
+                        </span>
+                        @endif
                     @else
                         <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-700">
                             <svg width="9" height="9" fill="#ea580c" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
@@ -264,7 +288,10 @@
                 </button>
                 @else
                 <button type="button"
-                    class="btn-upload-proof inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-50 text-purple-600 hover:bg-purple-100 transition-colors border-0 cursor-pointer"
+                    class="btn-upload-proof inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors border-0 cursor-pointer
+                        {{ $fr->disbursementProofs->isEmpty()
+                            ? 'bg-gradient-to-br from-red-500 to-red-600 text-white shadow-sm hover:opacity-90'
+                            : 'bg-purple-50 text-purple-600 hover:bg-purple-100' }}"
                     data-upload-url="{{ route('finance.upload-proof', $fr) }}"
                     data-ref="{{ $fr->reference }}">
                     <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -278,8 +305,12 @@
 </div>
 
 {{-- Pagination --}}
+<div class="mt-4 flex items-center justify-between gap-3 flex-wrap">
+    <span class="text-xs text-slate-400">
+        Menampilkan {{ $fundRequests->firstItem() ?? 0 }}–{{ $fundRequests->lastItem() ?? 0 }} dari {{ $fundRequests->total() }} pencairan
+    </span>
 @if($fundRequests->hasPages())
-<div class="mt-4 flex justify-end gap-1">
+<div class="flex justify-end gap-1">
     @if($fundRequests->onFirstPage())
         <span class="inline-flex items-center px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs text-slate-300 pointer-events-none">&laquo;</span>
     @else
@@ -295,6 +326,7 @@
     @endif
 </div>
 @endif
+</div>
 @endif
 
 {{-- Proof Upload Modal --}}

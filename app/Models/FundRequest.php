@@ -99,6 +99,18 @@ class FundRequest extends Model
         return $this->hasMany(FundReport::class)->latest();
     }
 
+    public function fundRefunds()
+    {
+        return $this->hasMany(FundRefund::class)->latest();
+    }
+
+    // Jenis "pembayaran" langsung ditransfer ke tujuan (vendor/tagihan),
+    // bukan ke rekening pengaju, sehingga tidak perlu laporan penggunaan dana.
+    public function needsReport(): bool
+    {
+        return $this->budgetProgram?->type !== 'pembayaran';
+    }
+
     public function isDraft(): bool      { return $this->status === 'draft'; }
     public function isDisbursed(): bool  { return !is_null($this->disbursed_at); }
     public function isPending(): bool  { return $this->status === 'pending'; }

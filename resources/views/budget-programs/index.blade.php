@@ -139,6 +139,12 @@
             <tr class="border-b border-slate-50 hover:bg-slate-50/60 transition-colors last:border-0">
                 <td class="px-5 py-3.5 align-middle">
                     <div class="font-semibold text-sm text-slate-800">{{ $prog->name }}</div>
+                    @if($prog->type)
+                        <span class="inline-block mt-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold
+                            {{ $prog->type === 'pengadaan' ? 'bg-sky-50 text-sky-600' : ($prog->type === 'kegiatan' ? 'bg-violet-50 text-violet-600' : 'bg-emerald-50 text-emerald-600') }}">
+                            {{ $prog->type_label }}
+                        </span>
+                    @endif
                     @if($prog->notes)
                         <div class="text-xs text-slate-400 mt-0.5 truncate max-w-[220px]">{{ $prog->notes }}</div>
                     @endif

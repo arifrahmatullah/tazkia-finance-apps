@@ -42,6 +42,11 @@ class FundReport extends Model
         return $this->hasMany(FundReportFile::class)->latest();
     }
 
+    public function fundRefund()
+    {
+        return $this->hasOne(FundRefund::class);
+    }
+
     public function isWaiting(): bool   { return $this->status === 'waiting'; }
     public function isApproved(): bool  { return $this->status === 'approved'; }
     public function isRejected(): bool  { return $this->status === 'rejected'; }

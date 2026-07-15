@@ -24,6 +24,13 @@
             {{ $budgetProgram->budgetAllocation->budgetPeriod->name }}
             <span class="mx-1 text-slate-300">·</span>
             <span class="font-semibold text-slate-500">{{ $freq }}× per periode</span>
+            @if($budgetProgram->type)
+            <span class="mx-1 text-slate-300">·</span>
+            <span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold
+                {{ $budgetProgram->type === 'pengadaan' ? 'bg-sky-50 text-sky-600' : ($budgetProgram->type === 'kegiatan' ? 'bg-violet-50 text-violet-600' : 'bg-emerald-50 text-emerald-600') }}">
+                {{ $budgetProgram->type_label }}
+            </span>
+            @endif
         </p>
     </div>
     <a href="{{ route('budget-programs.edit', $budgetProgram) }}"
@@ -145,7 +152,7 @@
 </div>
 
 {{-- Estimasi Jadwal --}}
-<div class="bg-white rounded-xl shadow-sm overflow-hidden mb-4">
+<div id="jadwal" class="bg-white rounded-xl shadow-sm overflow-hidden mb-4" style="scroll-margin-top: 90px">
     <div class="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between flex-wrap gap-2">
         <div class="flex items-center gap-2.5">
             <span class="text-sm font-bold text-slate-900">Estimasi Jadwal Pengeluaran</span>
@@ -425,6 +432,17 @@ function toggleCustomInterval(val) {
 
 document.getElementById('modal-autofill').addEventListener('click', function(e) {
     if (e.target === this) closeAutoFill();
+});
+
+// ----- Arahkan langsung ke Estimasi Jadwal saat dibuka dengan #jadwal (mis. setelah buat program) -----
+document.addEventListener('DOMContentLoaded', () => {
+    if (window.location.hash !== '#jadwal') return;
+    const card = document.getElementById('jadwal');
+    if (!card) return;
+    setTimeout(() => card.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
+    card.style.transition = 'box-shadow .4s';
+    card.style.boxShadow = '0 0 0 3px rgba(249,115,22,.5)';
+    setTimeout(() => { card.style.boxShadow = ''; }, 2800);
 });
 </script>
 
