@@ -39,17 +39,15 @@ class FundReportController extends Controller
             ->latest()
             ->paginate(15);
 
-        // Tagihan pengembalian sisa dana milik pengaju
-        $refunds = collect();
+        // Tagihan pengembalian yang belum dibayar (pengingat menuju halaman pengembalian dana)
+        $pendingRefundCount = 0;
         if ($employee) {
-            $refunds = FundRefund::with(['fundRequest', 'refundAccount'])
+            $pendingRefundCount = FundRefund::where('status', 'pending')
                 ->whereHas('fundRequest', fn($q) => $q->where('requester_id', $employee->id))
-                ->orderByRaw("FIELD(status, 'pending', 'waiting', 'confirmed')")
-                ->latest()
-                ->get();
+                ->count();
         }
 
-        return view('fund-reports.index', compact('reports', 'pendingFundRequests', 'refunds'));
+        return view('fund-reports.index', compact('reports', 'pendingFundRequests', 'pendingRefundCount'));
     }
 
     public function create(Request $request)

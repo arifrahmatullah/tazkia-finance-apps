@@ -66,6 +66,17 @@
 <div class="bg-white rounded-xl shadow-sm p-6 mb-3.5">
     <div class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3.5 pb-2 border-b border-slate-100">Baris Jurnal</div>
 
+    {{-- Template picker --}}
+    <div class="flex items-center gap-2.5 mb-4 flex-wrap bg-indigo-50/60 border border-indigo-100 rounded-xl px-3.5 py-2.5">
+        <svg width="15" height="15" fill="none" stroke="#4f46e5" stroke-width="2" viewBox="0 0 24 24" class="flex-shrink-0"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+        <label class="text-xs font-semibold text-indigo-700 flex-shrink-0">Gunakan Template</label>
+        <select id="template-select" onchange="applyTemplate(this.value)"
+            class="flex-1 min-w-[220px] px-3 py-2 border border-indigo-200 rounded-lg text-sm text-slate-800 bg-white outline-none focus:border-indigo-400 transition-colors">
+            <option value="">-- Tanpa template (isi manual) --</option>
+        </select>
+        <span class="text-[11px] text-indigo-400">Baris akun terisi otomatis, tinggal isi nominal</span>
+    </div>
+
     <div class="overflow-x-auto">
         <table class="w-full border-collapse" style="min-width:700px;">
             <thead>
@@ -249,6 +260,7 @@ function updateTotals() {
 }
 
 async function loadAccounts(orgId) {
+    loadTemplates(orgId);
     if (!orgId) { accountOptions = []; rebuildAllAccountSelects(); updateTotals(); return; }
     try {
         const res = await fetch(`{{ route('journal-entries.accounts') }}?organization_id=${orgId}`);
@@ -256,6 +268,59 @@ async function loadAccounts(orgId) {
     } catch(e) { accountOptions = []; }
     rebuildAllAccountSelects();
     updateTotals();
+}
+
+async function loadTemplates(orgId) {
+    const sel = document.getElementById('template-select');
+    sel.innerHTML = '<option value="">-- Tanpa template (isi manual) --</option>';
+    if (!orgId) return;
+    try {
+        const res = await fetch(`{{ route('journal-templates.options') }}?organization_id=${orgId}`);
+        const templates = await res.json();
+        templates.forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = t.id;
+            opt.textContent = t.code + ' – ' + t.name + (t.category ? ' (' + t.category + ')' : '');
+            sel.appendChild(opt);
+        });
+    } catch(e) { /* biarkan kosong */ }
+}
+
+async function applyTemplate(templateId) {
+    if (!templateId) return;
+    try {
+        const res = await fetch(`{{ url('journal-templates') }}/${templateId}/lines`);
+        const data = await res.json();
+
+        document.getElementById('lines-body').innerHTML = '';
+        data.lines.forEach(line => {
+            addLine({
+                account_id:  line.account_id,
+                description: line.description || '',
+                debit:  0,
+                credit: 0,
+            });
+        });
+        // Tandai posisi debit/kredit dari template pada atribut data untuk fokus pertama
+        const rows = document.querySelectorAll('#lines-body tr');
+        rows.forEach((tr, i) => {
+            tr.dataset.balanceType = data.lines[i]?.balance_type || '';
+        });
+
+        const descInput = document.querySelector('input[name="description"]');
+        if (descInput && !descInput.value) descInput.value = data.name;
+
+        updateTotals();
+
+        // Fokus ke nominal baris pertama sesuai posisinya
+        const first = rows[0];
+        if (first) {
+            const field = first.dataset.balanceType === 'credit' ? '[credit]' : '[debit]';
+            first.querySelector(`input[name*="${field}"]`)?.focus();
+        }
+    } catch(e) {
+        alert('Gagal memuat template. Coba lagi.');
+    }
 }
 
 function rebuildAllAccountSelects() {
@@ -273,6 +338,10 @@ document.addEventListener('DOMContentLoaded', function() {
         addLine(); addLine(); addLine();
     }
     updateTotals();
+
+    const initialOrg = document.getElementById('org-select')?.value
+        || document.querySelector('input[name="organization_id"]')?.value;
+    loadTemplates(initialOrg);
 });
 
 document.getElementById('je-form').addEventListener('submit', function(e) {

@@ -256,9 +256,47 @@
                 <a href="{{ route('fund-requests.index') }}"
                    class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
                           {{ request()->routeIs('fund-requests.*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Pengajuan Saya</a>
+                @php
+                    // Pengajuan sudah cair tapi belum dilaporkan (untuk badge sidebar)
+                    $laporanPendingCount = 0;
+                    $laporanEmployee = auth()->user()->employee;
+                    if ($laporanEmployee) {
+                        $laporanReportedIds = \App\Models\FundReport::where('reported_by', auth()->id())
+                            ->whereIn('status', ['waiting', 'approved'])
+                            ->pluck('fund_request_id');
+                        $laporanPendingCount = \App\Models\FundRequest::where('requester_id', $laporanEmployee->id)
+                            ->whereNotNull('disbursed_at')
+                            ->whereNotIn('id', $laporanReportedIds)
+                            ->whereDoesntHave('budgetProgram', fn($p) => $p->where('type', 'pembayaran'))
+                            ->count();
+                    }
+                @endphp
                 <a href="{{ route('fund-reports.index') }}"
                    class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
-                          {{ request()->routeIs('fund-reports.*') || request()->routeIs('fund-refunds.*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Laporan Dana</a>
+                          {{ request()->routeIs('fund-reports.*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">
+                    Laporan Dana
+                    @if($laporanPendingCount > 0)
+                    <span class="ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full bg-red-500 text-white text-[10px] font-bold leading-none">{{ $laporanPendingCount }}</span>
+                    @endif
+                </a>
+                @php
+                    // Tagihan pengembalian dana milik pengaju yang belum dibayar (untuk badge sidebar)
+                    $refundPendingCount = 0;
+                    $refundEmployee = auth()->user()->employee;
+                    if ($refundEmployee) {
+                        $refundPendingCount = \App\Models\FundRefund::where('status', 'pending')
+                            ->whereHas('fundRequest', fn($q) => $q->where('requester_id', $refundEmployee->id))
+                            ->count();
+                    }
+                @endphp
+                <a href="{{ route('fund-refunds.index') }}"
+                   class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
+                          {{ request()->routeIs('fund-refunds.*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">
+                    Pengembalian Dana
+                    @if($refundPendingCount > 0)
+                    <span class="ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full bg-red-500 text-white text-[10px] font-bold leading-none">{{ $refundPendingCount }}</span>
+                    @endif
+                </a>
                 @endif
                 <a href="{{ route('fund-approvals.inbox') }}"
                    class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
@@ -329,6 +367,15 @@
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
             </svg>
             Jurnal Umum
+        </a>
+        <a href="{{ route('journal-templates.index') }}"
+           class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg no-underline text-[0.835rem] transition-all relative
+                  {{ request()->routeIs('journal-templates.*') ? 'active bg-orange-500/[0.15] text-white font-[550]' : 'text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white' }}">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                class="{{ request()->routeIs('journal-templates.*') ? 'text-orange-300' : 'opacity-80' }}">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+            </svg>
+            Template Jurnal
         </a>
         @endif
 
@@ -422,7 +469,10 @@
             </div>
             <div class="flex-1 min-w-0">
                 <div class="text-white text-[0.8rem] font-semibold truncate">{{ auth()->user()->name }}</div>
-                <div class="text-blue-300 text-[0.68rem] mt-px">{{ ucfirst(auth()->user()->role?->slug ?? '-') }}</div>
+                {{-- Tampilkan jabatan; kalau tidak punya jabatan aktif, baru pakai role --}}
+                <div class="text-blue-300 text-[0.68rem] mt-px truncate">
+                    {{ auth()->user()->employee?->activePosition?->position?->name ?? ucfirst(auth()->user()->role?->slug ?? '-') }}
+                </div>
             </div>
             <form method="POST" action="{{ route('logout') }}">
                 @csrf

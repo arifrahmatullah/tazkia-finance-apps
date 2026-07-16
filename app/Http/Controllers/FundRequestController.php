@@ -37,7 +37,15 @@ class FundRequestController extends Controller
         }
 
         if ($request->filled('status')) {
-            $query->where('status', $request->status);
+            match ($request->status) {
+                'draft'               => $query->where('status', 'draft'),
+                'pending'             => $query->where('status', 'pending'),
+                'diproses'            => $query->where('status', 'approved')->whereNull('disbursed_at'),
+                'rejected'            => $query->where('status', 'rejected'),
+                'menunggu_konfirmasi' => $query->whereNotNull('disbursed_at')->whereNull('receipt_status'),
+                'sudah_cair'          => $query->whereNotNull('disbursed_at'),
+                default               => null,
+            };
         }
 
         if ($request->filled('search')) {
@@ -47,7 +55,16 @@ class FundRequestController extends Controller
 
         $fundRequests = $query->orderByDesc('created_at')->paginate(10)->withQueryString();
 
-        return view('fund-requests.index', compact('fundRequests', 'organizations'));
+        // Statistik ringkas (seluruh pengajuan milik pengaju, tanpa filter)
+        $statsBase = FundRequest::where('requester_id', $employee->id);
+        $stats = [
+            'total'        => (clone $statsBase)->count(),
+            'total_amount' => (float) (clone $statsBase)->where('status', '!=', 'draft')->sum('amount'),
+            'cair'         => (clone $statsBase)->whereNotNull('disbursed_at')->count(),
+            'pending'      => (clone $statsBase)->where('status', 'pending')->count(),
+        ];
+
+        return view('fund-requests.index', compact('fundRequests', 'organizations', 'stats'));
     }
 
     public function create(Request $request)

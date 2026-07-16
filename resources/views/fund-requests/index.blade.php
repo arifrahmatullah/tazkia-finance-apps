@@ -1,12 +1,14 @@
 <x-layouts.app title="Pengajuan Dana Saya">
 
-<div class="flex items-center justify-between mb-5">
+<div class="flex items-start justify-between mb-6 gap-5 flex-wrap">
     <div>
-        <h2 class="text-lg font-bold text-slate-900 m-0 mb-0.5">Pengajuan Dana Saya</h2>
-        <p class="text-xs text-slate-400 m-0">Riwayat pengajuan dan status persetujuan</p>
+        <h2 class="text-[1.6rem] font-extrabold text-slate-900 m-0 tracking-tight">Pengajuan Dana Saya</h2>
+        <p class="text-sm text-slate-500 m-0 mt-1">Riwayat pengajuan dan status persetujuan</p>
     </div>
-    <a href="{{ route('fund-requests.create') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-br from-orange-400 to-orange-500 text-white text-sm font-semibold shadow-sm hover:-translate-y-px transition-all no-underline">
-        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+    <a href="{{ route('fund-requests.create') }}"
+       class="inline-flex items-center gap-2 px-5 py-3 rounded-[10px] bg-orange-500 text-white text-sm font-semibold no-underline hover:bg-orange-600 transition-colors flex-shrink-0"
+       style="box-shadow:0 4px 12px rgba(249,115,22,0.3);">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
         Buat Pengajuan
     </a>
 </div>
@@ -24,60 +26,108 @@
 </div>
 @endif
 
-{{-- Filter --}}
-<form method="GET" action="{{ route('fund-requests.index') }}" class="bg-white rounded-xl shadow-sm px-4 py-3 mb-4 flex gap-2.5 flex-wrap items-center">
-    <select name="status" class="px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 bg-white outline-none focus:border-orange-400 transition-colors">
-        <option value="">Semua Status</option>
-        <option value="draft"    {{ request('status') === 'draft'    ? 'selected' : '' }}>Draft</option>
-        <option value="pending"  {{ request('status') === 'pending'  ? 'selected' : '' }}>Menunggu Approval</option>
-        <option value="approved" {{ request('status') === 'approved' ? 'selected' : '' }}>Disetujui / Cair</option>
-        <option value="rejected" {{ request('status') === 'rejected' ? 'selected' : '' }}>Ditolak</option>
-    </select>
-    <div class="relative flex-1 min-w-[200px]">
-        <svg width="14" height="14" fill="none" stroke="#94a3b8" stroke-width="2" viewBox="0 0 24 24" class="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-        <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari no. pengajuan atau judul..."
-            class="pl-9 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 bg-white outline-none focus:border-orange-400 transition-colors">
+{{-- Stats --}}
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+    <div class="bg-white rounded-[14px] p-5 border border-slate-100">
+        <div class="flex items-center justify-between">
+            <div class="text-[12.5px] font-semibold text-slate-500">Total Pengajuan</div>
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:#eef2ff;">
+                <svg width="16" height="16" fill="none" stroke="#4f46e5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h5"/></svg>
+            </div>
+        </div>
+        <div class="text-[26px] font-extrabold text-slate-900 mt-2.5 leading-none">{{ $stats['total'] }}</div>
     </div>
-    <button type="submit" class="px-4 py-2 rounded-lg border-0 cursor-pointer text-sm font-semibold bg-gradient-to-br from-orange-400 to-orange-500 text-white">Cari</button>
+    <div class="bg-white rounded-[14px] p-5 border border-slate-100">
+        <div class="flex items-center justify-between">
+            <div class="text-[12.5px] font-semibold text-slate-500">Total Dana Diajukan</div>
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:#fff7ed;">
+                <svg width="16" height="16" fill="none" stroke="#f97316" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M15 9.5c0-1.4-1.3-2.5-3-2.5s-3 1.1-3 2.5 1.3 2 3 2.5 3 1.1 3 2.5-1.3 2.5-3 2.5-3-1.1-3-2.5"/></svg>
+            </div>
+        </div>
+        <div class="text-[22px] font-extrabold text-slate-900 mt-2.5 leading-none">Rp {{ number_format($stats['total_amount'], 0, ',', '.') }}</div>
+    </div>
+    <div class="bg-white rounded-[14px] p-5 border border-slate-100">
+        <div class="flex items-center justify-between">
+            <div class="text-[12.5px] font-semibold text-slate-500">Sudah Cair</div>
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:#eff6ff;">
+                <svg width="16" height="16" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+            </div>
+        </div>
+        <div class="text-[26px] font-extrabold text-slate-900 mt-2.5 leading-none">{{ $stats['cair'] }} <span class="text-[13px] font-semibold text-slate-400">pengajuan</span></div>
+    </div>
+    <div class="bg-white rounded-[14px] p-5 border border-slate-100">
+        <div class="flex items-center justify-between">
+            <div class="text-[12.5px] font-semibold text-slate-500">Menunggu Approval</div>
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:#fef3c7;">
+                <svg width="16" height="16" fill="none" stroke="#b45309" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+            </div>
+        </div>
+        <div class="text-[26px] font-extrabold text-slate-900 mt-2.5 leading-none">{{ $stats['pending'] }}</div>
+    </div>
+</div>
+
+{{-- Filter --}}
+<form method="GET" action="{{ route('fund-requests.index') }}" class="bg-white rounded-[14px] p-4 border border-slate-100 flex gap-3 mb-5 flex-wrap items-center">
+    <select name="status" class="w-full sm:w-[220px] flex-shrink-0 px-3.5 py-2.5 border border-slate-200 rounded-[9px] text-sm font-medium text-slate-900 bg-white outline-none focus:border-orange-400 transition-colors cursor-pointer">
+        <option value="">Semua Status</option>
+        <option value="draft"               {{ request('status') === 'draft'               ? 'selected' : '' }}>Draft</option>
+        <option value="pending"             {{ request('status') === 'pending'             ? 'selected' : '' }}>Menunggu Approval</option>
+        <option value="diproses"            {{ request('status') === 'diproses'            ? 'selected' : '' }}>Diproses</option>
+        <option value="rejected"            {{ request('status') === 'rejected'            ? 'selected' : '' }}>Ditolak</option>
+        <option value="menunggu_konfirmasi" {{ request('status') === 'menunggu_konfirmasi' ? 'selected' : '' }}>Menunggu Konfirmasi</option>
+        <option value="sudah_cair"          {{ request('status') === 'sudah_cair'          ? 'selected' : '' }}>Sudah Cair</option>
+    </select>
+    <div class="relative flex-1 min-w-[200px] flex items-center">
+        <svg width="16" height="16" fill="none" stroke="#94a3b8" stroke-width="2" viewBox="0 0 24 24" class="absolute left-3.5 pointer-events-none"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari no. pengajuan atau judul..."
+            class="w-full pl-10 pr-3.5 py-2.5 border border-slate-200 rounded-[9px] text-sm text-slate-900 bg-white outline-none focus:border-orange-400 transition-colors">
+    </div>
+    <button type="submit" class="px-6 py-2.5 rounded-[9px] border-0 cursor-pointer text-sm font-semibold bg-orange-500 text-white hover:bg-orange-600 transition-colors">Cari</button>
     @if(request()->hasAny(['search','status']))
-        <a href="{{ route('fund-requests.index') }}" class="px-3.5 py-2 rounded-lg border border-slate-200 text-sm text-slate-500 no-underline bg-white hover:bg-slate-50 transition-colors">Reset</a>
+        <a href="{{ route('fund-requests.index') }}" class="px-3.5 py-2.5 rounded-[9px] border border-slate-200 text-sm text-slate-500 no-underline bg-white hover:bg-slate-50 transition-colors">Reset</a>
     @endif
 </form>
 
 @if($fundRequests->isEmpty())
-<div class="bg-white rounded-xl shadow-sm py-16 px-5 text-center">
+<div class="bg-white rounded-[14px] py-14 px-6 text-center" style="border:1px dashed #dfe3ec;">
+    @if(request()->hasAny(['search','status']))
+    <div class="text-[15px] font-semibold text-slate-700">Tidak ada pengajuan yang cocok</div>
+    <div class="text-[13.5px] text-slate-400 mt-1.5">Coba ubah filter status atau kata kunci pencarian.</div>
+    @else
     <div class="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center mx-auto mb-4">
         <svg width="24" height="24" fill="none" stroke="#94a3b8" stroke-width="1.5" viewBox="0 0 24 24"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
     </div>
-    <div class="text-sm font-semibold text-slate-700 mb-1">Belum ada pengajuan</div>
-    <div class="text-xs text-slate-400 mb-4">Klik "Buat Pengajuan" untuk memulai pengajuan dana.</div>
-    <a href="{{ route('fund-requests.create') }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-br from-orange-400 to-orange-500 text-white text-sm font-semibold no-underline">
+    <div class="text-[15px] font-semibold text-slate-700 mb-1">Belum ada pengajuan</div>
+    <div class="text-[13.5px] text-slate-400 mb-4">Klik "Buat Pengajuan" untuk memulai pengajuan dana.</div>
+    <a href="{{ route('fund-requests.create') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-[10px] bg-orange-500 text-white text-sm font-semibold no-underline hover:bg-orange-600 transition-colors">
         <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
         Buat Pengajuan
     </a>
+    @endif
 </div>
 
 @else
-<div class="flex flex-col gap-3">
+<div class="flex flex-col gap-4">
     @foreach($fundRequests as $fr)
     @php
         $isDisbursed = $fr->isDisbursed();
-        $stripeClass = match(true) {
-            $fr->status === 'draft'              => 'bg-gradient-to-r from-slate-300 to-slate-400',
-            $fr->status === 'pending'            => 'bg-gradient-to-r from-amber-400 to-orange-400',
-            $fr->status === 'rejected'           => 'bg-gradient-to-r from-red-400 to-red-500',
-            $isDisbursed                         => 'bg-gradient-to-r from-blue-400 to-blue-500',
-            default                              => 'bg-gradient-to-r from-green-400 to-green-500',
+        $state = match(true) {
+            $fr->status === 'draft'                        => 'draft',
+            $fr->status === 'pending'                      => 'pending',
+            $fr->status === 'rejected'                     => 'rejected',
+            $isDisbursed && is_null($fr->receipt_status)   => 'menunggu_konfirmasi',
+            $isDisbursed                                   => 'sudah_cair',
+            default                                        => 'diproses',
         };
-        $statusConfig = [
-            'draft'    => ['bg-slate-100 text-slate-500',   'Draft'],
-            'pending'  => ['bg-amber-100 text-amber-700',   'Menunggu Approval'],
-            'approved' => $isDisbursed
-                            ? ['bg-blue-100 text-blue-700', 'Sudah Cair']
-                            : ['bg-green-100 text-green-700', 'Disetujui'],
-            'rejected' => ['bg-red-100 text-red-600',       'Ditolak'],
-        ];
-        [$badgeCls, $badgeLabel] = $statusConfig[$fr->status];
+        $cfg = [
+            'draft'               => ['label' => 'Draft',               'badge' => 'bg-slate-100 text-slate-500', 'bar' => '#94a3b8'],
+            'pending'             => ['label' => 'Menunggu Approval',   'badge' => 'bg-amber-100 text-amber-800', 'bar' => '#f59e0b'],
+            'diproses'            => ['label' => 'Diproses',            'badge' => 'bg-blue-100 text-blue-800',   'bar' => '#3b82f6'],
+            'rejected'            => ['label' => 'Ditolak',             'badge' => 'bg-red-100 text-red-700',     'bar' => '#ef4444'],
+            'menunggu_konfirmasi' => ['label' => 'Menunggu Konfirmasi', 'badge' => 'bg-amber-100 text-amber-800', 'bar' => '#3b82f6'],
+            'sudah_cair'          => ['label' => 'Sudah Cair',          'badge' => 'bg-blue-100 text-blue-800',   'bar' => '#3b82f6'],
+        ][$state];
+        $rejectedApproval = $fr->status === 'rejected' ? $fr->approvals->where('status', 'rejected')->first() : null;
         $approvalJson = $fr->approvals->sortBy('step')->map(fn($a) => [
             'step'        => $a->step,
             'status'      => $a->status,
@@ -89,150 +139,172 @@
         ])->values()->toJson();
     @endphp
 
-    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+    <div class="bg-white rounded-[14px] border border-slate-100 overflow-hidden">
         {{-- Status stripe --}}
-        <div class="h-1 {{ $stripeClass }}"></div>
+        <div class="h-1" style="background:{{ $cfg['bar'] }};"></div>
 
-        <div class="px-5 pt-4 pb-4">
-            {{-- Top row: ref + nominal --}}
-            <div class="flex items-start justify-between gap-3 mb-2.5">
-                <div class="flex items-center gap-2 flex-wrap">
-                    <span class="font-mono text-sm font-bold text-orange-500">{{ $fr->reference }}</span>
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold {{ $badgeCls }}">{{ $badgeLabel }}</span>
+        <div class="px-6 pt-5 pb-5">
+            {{-- Top row: ref + badge / nominal --}}
+            <div class="flex items-start justify-between gap-4">
+                <div class="flex items-center gap-2.5 flex-wrap">
+                    <span class="font-mono text-[13px] font-semibold text-orange-500">{{ $fr->reference }}</span>
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold {{ $cfg['badge'] }}">{{ $cfg['label'] }}</span>
                     @if($fr->status === 'pending' && $fr->total_steps > 0)
                         <span class="text-[11px] text-slate-400">Level {{ $fr->current_step }}/{{ $fr->total_steps }}</span>
                     @endif
                 </div>
                 <div class="text-right flex-shrink-0">
-                    <div class="text-xl font-extrabold text-slate-900 font-mono leading-tight">Rp {{ number_format($fr->amount, 0, ',', '.') }}</div>
-                    <div class="text-[11px] text-slate-400 mt-0.5">{{ $fr->created_at->format('d/m/Y') }}</div>
+                    <div class="text-xl font-extrabold text-slate-900 leading-tight">Rp {{ number_format($fr->amount, 0, ',', '.') }}</div>
+                    <div class="text-[12.5px] text-slate-400 mt-0.5">{{ $fr->created_at->format('d/m/Y') }}</div>
                 </div>
             </div>
 
             {{-- Judul --}}
-            <div class="text-[15px] font-bold text-slate-900 mb-3 leading-snug">{{ $fr->title }}</div>
+            <div class="text-[17px] font-bold text-slate-900 mt-3.5 leading-snug">{{ $fr->title }}</div>
 
             {{-- Info grid --}}
-            <div class="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 mb-3">
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-4">
                 <div>
-                    <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-0.5">Departemen</div>
-                    <div class="text-xs font-medium text-slate-700">{{ $fr->department->name }}</div>
+                    <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Departemen</div>
+                    <div class="text-sm font-medium text-slate-800 mt-0.5">{{ $fr->department->name }}</div>
                 </div>
                 @if($fr->budgetProgram)
                 <div>
-                    <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-0.5">Program Kerja</div>
-                    <div class="text-xs font-medium text-slate-700 truncate">{{ $fr->budgetProgram->name }}</div>
+                    <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Program Kerja</div>
+                    <div class="text-sm font-medium text-slate-800 mt-0.5 truncate">{{ $fr->budgetProgram->name }}</div>
                 </div>
                 @endif
                 @if($fr->submitted_at)
                 <div>
-                    <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-0.5">Disubmit</div>
-                    <div class="text-xs font-medium text-slate-700">{{ $fr->submitted_at->format('d/m/Y H:i') }}</div>
+                    <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Disubmit</div>
+                    <div class="text-sm font-medium text-slate-800 mt-0.5">{{ $fr->submitted_at->format('d/m/Y H:i') }}</div>
                 </div>
                 @endif
             </div>
 
-            {{-- Approval progress (pending) --}}
-            @if($fr->total_steps > 0 && !$isDisbursed && $fr->status !== 'rejected')
+            {{-- Approval steps (nama inline, klik untuk detail) --}}
+            @if($fr->total_steps > 0 && !$isDisbursed && $fr->status !== 'rejected' && $fr->status !== 'draft')
             <button type="button" onclick="openApprovalModal('{{ addslashes($fr->reference) }}', '{{ addslashes($fr->title) }}', {{ $fr->current_step }}, {{ $fr->total_steps }}, {{ $approvalJson }})"
-                class="flex items-center gap-2 mb-3 group bg-transparent border-0 cursor-pointer p-0 text-left w-full">
-                <div class="flex items-center gap-1">
-                    @foreach($fr->approvals->sortBy('step') as $approval)
-                    @php
-                        $dotCls = match($approval->status) {
-                            'approved' => 'w-3 h-3 rounded-full bg-green-500',
-                            'rejected' => 'w-3 h-3 rounded-full bg-red-500',
-                            default    => $fr->current_step == $approval->step
-                                            ? 'w-3 h-3 rounded-full bg-orange-400 ring-2 ring-orange-200'
-                                            : 'w-3 h-3 rounded-full bg-slate-200',
-                        };
-                    @endphp
-                    <div class="{{ $dotCls }}"></div>
-                    @if(!$loop->last)<div class="w-5 h-0.5 bg-slate-200 rounded"></div>@endif
-                    @endforeach
-                </div>
-                <span class="text-[11px] text-slate-400 group-hover:text-orange-500 transition-colors">Lihat progres approval →</span>
+                class="flex items-center gap-2 flex-wrap w-full mt-4 px-3.5 py-3 bg-slate-50 rounded-[10px] border-0 cursor-pointer text-left hover:bg-slate-100 transition-colors">
+                @foreach($fr->approvals->sortBy('step') as $approval)
+                @php
+                    $isActive = $approval->status === 'waiting' && $fr->current_step == $approval->step && $fr->status === 'pending';
+                @endphp
+                <span class="inline-flex items-center gap-1.5">
+                    @if($approval->status === 'approved')
+                    <svg width="15" height="15" fill="none" stroke="#16a34a" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+                    <span class="text-[13px] font-semibold text-green-600">{{ $approval->approverPosition->name }}</span>
+                    @elseif($approval->status === 'rejected')
+                    <svg width="15" height="15" fill="none" stroke="#dc2626" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                    <span class="text-[13px] font-semibold text-red-600">{{ $approval->approverPosition->name }}</span>
+                    @elseif($isActive)
+                    <span class="w-[9px] h-[9px] rounded-full flex-shrink-0" style="background:#f59e0b;"></span>
+                    <span class="text-[13px] font-semibold text-amber-800">{{ $approval->approverPosition->name }}</span>
+                    @else
+                    <span class="w-[9px] h-[9px] rounded-full flex-shrink-0" style="background:#cbd5e1;"></span>
+                    <span class="text-[13px] font-semibold text-slate-400">{{ $approval->approverPosition->name }}</span>
+                    @endif
+                </span>
+                @if(!$loop->last || $state === 'diproses')
+                <svg width="13" height="13" fill="none" stroke="#cbd5e1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" class="flex-shrink-0"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                @endif
+                @endforeach
+                @if($state === 'diproses')
+                <span class="inline-flex items-center gap-1.5">
+                    <span class="w-[9px] h-[9px] rounded-full flex-shrink-0" style="background:#f59e0b;"></span>
+                    <span class="text-[13px] font-semibold text-amber-800">Pencairan Dana</span>
+                </span>
+                @else
+                <span class="text-[11px] text-slate-400 ml-auto">Lihat detail →</span>
+                @endif
             </button>
+            @endif
+
+            {{-- Ditolak: catatan --}}
+            @if($rejectedApproval)
+            <div class="flex items-start gap-2.5 mt-4 p-3.5 bg-red-50 rounded-[10px]">
+                <svg width="16" height="16" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" class="flex-shrink-0 mt-0.5"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+                <div>
+                    <div class="text-[13px] font-bold text-red-700">Ditolak oleh {{ $rejectedApproval->approverPosition->name }}</div>
+                    @if($rejectedApproval->notes)
+                    <div class="text-[13px] text-red-900/80 mt-0.5">{{ $rejectedApproval->notes }}</div>
+                    @endif
+                </div>
+            </div>
             @endif
 
             {{-- Pencairan info --}}
             @if($isDisbursed)
-            @php $needsConfirm = is_null($fr->receipt_status); @endphp
-            @if($needsConfirm)
+            @if(is_null($fr->receipt_status))
             <button type="button"
-                class="btn-receipt-confirm w-full flex items-center gap-3 px-3 py-2.5 bg-amber-50 border border-amber-300 rounded-xl mb-3 transition-colors hover:bg-amber-100 cursor-pointer text-left group"
+                class="btn-receipt-confirm w-full flex items-center justify-between gap-3 mt-4 p-3.5 bg-amber-50 border border-amber-200 rounded-[10px] transition-colors hover:bg-amber-100 cursor-pointer text-left group"
                 data-confirm-url="{{ route('fund-requests.confirm-receipt', $fr) }}"
                 data-dispute-url="{{ route('fund-requests.dispute-receipt', $fr) }}"
                 data-ref="{{ $fr->reference }}"
                 data-amount="Rp {{ number_format($fr->amount, 0, ',', '.') }}">
-                <svg width="14" height="14" fill="none" stroke="#d97706" stroke-width="2" viewBox="0 0 24 24" class="flex-shrink-0"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-                <div class="flex-1 min-w-0">
-                    <div class="text-[11px] font-semibold text-amber-700">Dicairkan {{ $fr->disbursed_at->format('d/m/Y') }}</div>
-                    <div class="text-[11px] text-amber-600 font-semibold mt-0.5">Klik untuk konfirmasi penerimaan dana →</div>
-                </div>
-                <svg width="14" height="14" fill="none" stroke="#d97706" stroke-width="2" viewBox="0 0 24 24" class="flex-shrink-0 group-hover:translate-x-0.5 transition-transform"><path d="M9 18l6-6-6-6"/></svg>
+                <span class="flex items-center gap-3">
+                    <svg width="18" height="18" fill="none" stroke="#b45309" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" class="flex-shrink-0"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+                    <span>
+                        <span class="block text-[13.5px] font-bold text-amber-800">Dicairkan {{ $fr->disbursed_at->format('d/m/Y') }}</span>
+                        <span class="block text-[13px] font-semibold text-amber-700 mt-0.5">Klik untuk konfirmasi penerimaan dana →</span>
+                    </span>
+                </span>
+                <svg width="16" height="16" fill="none" stroke="#b45309" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" class="flex-shrink-0 group-hover:translate-x-0.5 transition-transform"><path d="M9 18l6-6-6-6"/></svg>
             </button>
             @else
-            <div class="flex items-center gap-3 px-3 py-2.5 bg-blue-50 border border-blue-100 rounded-xl mb-3">
-                <svg width="14" height="14" fill="none" stroke="#2563eb" stroke-width="2" viewBox="0 0 24 24" class="flex-shrink-0"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-                <div class="flex-1 min-w-0">
-                    <div class="text-[11px] font-semibold text-blue-700">Dicairkan {{ $fr->disbursed_at->format('d/m/Y') }}</div>
+            <div class="flex items-center gap-3 mt-4 p-3.5 bg-blue-50 rounded-[10px]">
+                <svg width="18" height="18" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" class="flex-shrink-0"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+                <div>
+                    <div class="text-[13.5px] font-bold text-blue-800">Dicairkan {{ $fr->disbursed_at->format('d/m/Y') }}</div>
                     @if($fr->receipt_status === 'confirmed')
-                    <div class="text-[11px] text-green-600 font-medium mt-0.5">
-                        <svg width="10" height="10" fill="#16a34a" viewBox="0 0 20 20" class="inline mr-0.5"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                    <div class="text-[13px] font-semibold text-green-600 mt-0.5 flex items-center gap-1.5">
+                        <svg width="13" height="13" fill="none" stroke="#16a34a" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
                         Dana diterima{{ $fr->auto_confirmed ? ' (auto-konfirmasi)' : '' }}
                     </div>
                     @elseif($fr->receipt_status === 'disputed')
-                    <div class="text-[11px] text-red-500 font-medium mt-0.5">⚠ Ada kendala dilaporkan</div>
+                    <div class="text-[13px] font-semibold text-red-500 mt-0.5">⚠ Ada kendala dilaporkan</div>
                     @endif
                 </div>
             </div>
             @endif
             @endif
 
-            {{-- Ditolak: tampilkan catatan --}}
-            @if($fr->status === 'rejected' && $fr->approvals->where('status','rejected')->first()?->notes)
-            @php $rejNote = $fr->approvals->where('status','rejected')->first()->notes; @endphp
-            <div class="flex items-start gap-2 px-3 py-2.5 bg-red-50 border border-red-100 rounded-xl mb-3 text-xs text-red-600">
-                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" class="flex-shrink-0 mt-px"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
-                {{ $rejNote }}
-            </div>
-            @endif
-
             {{-- Actions --}}
-            <div class="flex items-center gap-2 pt-3 border-t border-slate-100 flex-wrap">
+            <div class="flex items-center gap-2.5 mt-[18px] flex-wrap">
                 <a href="{{ route('fund-requests.show', $fr) }}"
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors no-underline">
-                    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-semibold bg-slate-50 border border-slate-200 text-slate-700 hover:bg-slate-100 transition-colors no-underline">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                     Lihat Detail
                 </a>
                 @if($isDisbursed && $fr->needsReport())
                 <a href="{{ route('fund-reports.create', ['fund_request' => $fr->id]) }}"
-                   class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white no-underline"
-                   style="background:linear-gradient(135deg,#7c3aed,#8b5cf6);">
-                    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                   class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-semibold text-white no-underline hover:opacity-90 transition-opacity"
+                   style="background:#7c3aed;">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
                     Buat Laporan
                 </a>
                 @endif
                 @if($fr->isDraft())
                 <a href="{{ route('fund-requests.edit', $fr) }}"
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors no-underline">
-                    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-semibold bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors no-underline">
+                    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     Edit
                 </a>
                 <form id="del-fr-{{ $fr->id }}" method="POST" action="{{ route('fund-requests.destroy', $fr) }}">@csrf @method('DELETE')</form>
                 <button type="button"
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-50 text-red-600 hover:bg-red-100 transition-colors border-0 cursor-pointer"
+                    class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-semibold bg-red-50 text-red-600 hover:bg-red-100 transition-colors border-0 cursor-pointer"
                     onclick="confirmDelete('del-fr-{{ $fr->id }}', '{{ addslashes($fr->reference) }}')">
-                    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+                    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
                     Hapus
                 </button>
                 @endif
+                <div class="flex-1"></div>
                 @if($fr->total_steps > 0)
                 <button type="button"
                     onclick="openApprovalModal('{{ addslashes($fr->reference) }}', '{{ addslashes($fr->title) }}', {{ $fr->current_step }}, {{ $fr->total_steps }}, {{ $approvalJson }})"
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-orange-50 text-orange-600 hover:bg-orange-100 transition-colors border-0 cursor-pointer ml-auto">
-                    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+                    class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-semibold border border-orange-200 text-orange-700 cursor-pointer transition-colors hover:bg-orange-100"
+                    style="background:#fff7ed;">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
                     Approval
                 </button>
                 @endif
@@ -243,8 +315,8 @@
 </div>
 
 {{-- Pagination --}}
-<div class="mt-4 flex items-center justify-between gap-3 flex-wrap">
-    <span class="text-xs text-slate-400">
+<div class="mt-5 flex items-center justify-between gap-3 flex-wrap">
+    <span class="text-[13px] text-slate-400">
         Menampilkan {{ $fundRequests->firstItem() ?? 0 }}–{{ $fundRequests->lastItem() ?? 0 }} dari {{ $fundRequests->total() }} pengajuan
     </span>
 @if($fundRequests->hasPages())

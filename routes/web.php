@@ -36,7 +36,7 @@ Route::get('/auth/google', [GoogleAuthController::class, 'redirect'])->name('aut
 Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->name('auth.google.callback');
 
 Route::middleware('auth')->group(function () {
-    Route::get('/dashboard', fn() => view('dashboard'))->name('dashboard');
+    Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
     Route::resource('organizations', OrganizationController::class)->except(['show']);
     Route::resource('departments', DepartmentController::class)->except(['show']);
     Route::resource('positions', PositionController::class)->except(['show']);
@@ -62,6 +62,11 @@ Route::middleware('auth')->group(function () {
     Route::resource('journal-entries', JournalEntryController::class);
     Route::post('journal-entries/{journal_entry}/post', [JournalEntryController::class, 'post'])->name('journal-entries.post');
     Route::get('journal-accounts', [JournalEntryController::class, 'getAccounts'])->name('journal-entries.accounts');
+
+    // Template Jurnal
+    Route::get('journal-template-options', [\App\Http\Controllers\JournalTemplateController::class, 'options'])->name('journal-templates.options');
+    Route::get('journal-templates/{journal_template}/lines', [\App\Http\Controllers\JournalTemplateController::class, 'lines'])->name('journal-templates.lines');
+    Route::resource('journal-templates', \App\Http\Controllers\JournalTemplateController::class)->except(['show']);
 
     // Estimasi Pendapatan
     Route::resource('income-estimates', IncomeEstimateController::class);
@@ -93,6 +98,8 @@ Route::middleware('auth')->group(function () {
     Route::delete('fund-report-files/{fundReportFile}', [FundReportController::class, 'deleteFile'])->name('fund-reports.files.delete');
 
     // Pengembalian Dana (sisi pengaju)
+    Route::get('fund-refunds', [FundRefundController::class, 'index'])->name('fund-refunds.index');
+    Route::post('fund-refunds/pay-bulk', [FundRefundController::class, 'payBulk'])->name('fund-refunds.pay-bulk');
     Route::get('fund-refunds/{fundRefund}', [FundRefundController::class, 'show'])->name('fund-refunds.show');
     Route::post('fund-refunds/{fundRefund}/pay', [FundRefundController::class, 'pay'])->name('fund-refunds.pay');
 

@@ -15,10 +15,10 @@
     @endif
 
     {{-- Back --}}
-    <a href="{{ route('fund-reports.index') }}"
+    <a href="{{ route('fund-refunds.index') }}"
        style="display:inline-flex; align-items:center; gap:6px; font-size:0.8rem; color:#64748b; text-decoration:none; margin-bottom:20px;">
         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
-        Kembali ke Laporan Dana
+        Kembali ke Pengembalian Dana
     </a>
 
     {{-- Status header --}}

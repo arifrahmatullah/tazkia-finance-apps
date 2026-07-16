@@ -41,4 +41,9 @@ return [
         'redirect'      => env('GOOGLE_REDIRECT_URI', '/auth/google/callback'),
     ],
 
+    // API key untuk aplikasi eksternal (header X-API-Key)
+    'external_api' => [
+        'key' => env('EXTERNAL_API_KEY'),
+    ],
+
 ];

@@ -1,26 +1,81 @@
 <x-layouts.app title="Dashboard" breadcrumb="Tazkia Finance / Dashboard">
 
-    {{-- Stats Cards --}}
-    <div class="grid grid-cols-4 gap-4 mb-6">
-        @foreach([
-            ['label'=>'Total Organisasi', 'value'=>'3', 'icon'=>'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4', 'color'=>'#0d2d6b', 'bg'=>'#eff6ff', 'iconbg'=>'#dbeafe'],
-            ['label'=>'Total Karyawan', 'value'=>'0', 'icon'=>'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z', 'color'=>'#065f46', 'bg'=>'#ecfdf5', 'iconbg'=>'#d1fae5'],
-            ['label'=>'Pengajuan Aktif', 'value'=>'0', 'icon'=>'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z', 'color'=>'#92400e', 'bg'=>'#fffbeb', 'iconbg'=>'#fde68a'],
-            ['label'=>'Total User', 'value'=>'8', 'icon'=>'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z', 'color'=>'#6b21a8', 'bg'=>'#faf5ff', 'iconbg'=>'#e9d5ff'],
-        ] as $card)
-        <div class="bg-white rounded-xl p-5 border border-slate-100 shadow-sm">
-            <div class="flex items-center justify-between mb-3.5">
-                <span class="text-[0.78rem] font-medium text-slate-500">{{ $card['label'] }}</span>
-                <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:{{ $card['iconbg'] }}">
-                    <svg width="17" height="17" fill="none" stroke="{{ $card['color'] }}" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="{{ $card['icon'] }}"/>
-                    </svg>
-                </div>
-            </div>
-            <div class="text-[1.9rem] font-bold text-slate-900 leading-none">{{ $card['value'] }}</div>
+    {{-- Ringkasan personal staf pengaju --}}
+    @if($stafStats)
+    <div class="mb-6">
+        <div class="flex items-center gap-2.5 mb-3.5">
+            <h3 class="text-[0.9rem] font-bold text-slate-900 m-0">Ringkasan Pengajuan Saya</h3>
+            <span class="text-[0.72rem] text-slate-400">{{ auth()->user()->name }}</span>
         </div>
-        @endforeach
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+
+            {{-- Total pengajuan --}}
+            <a href="{{ route('fund-requests.index') }}" class="bg-white rounded-xl p-5 border border-slate-100 shadow-sm no-underline hover:shadow-md transition-shadow">
+                <div class="flex items-center justify-between mb-3.5">
+                    <span class="text-[0.78rem] font-medium text-slate-500">Pengajuan Saya</span>
+                    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:#dbeafe">
+                        <svg width="17" height="17" fill="none" stroke="#1d4ed8" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                </div>
+                <div class="text-[1.9rem] font-bold text-slate-900 leading-none">{{ $stafStats['total_pengajuan'] }}</div>
+                <div class="text-[0.7rem] text-slate-400 mt-2">{{ $stafStats['sedang_proses'] }} sedang proses approval</div>
+            </a>
+
+            {{-- Sudah laporan --}}
+            <a href="{{ route('fund-reports.index') }}" class="bg-white rounded-xl p-5 border border-slate-100 shadow-sm no-underline hover:shadow-md transition-shadow">
+                <div class="flex items-center justify-between mb-3.5">
+                    <span class="text-[0.78rem] font-medium text-slate-500">Sudah Laporan</span>
+                    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:#d1fae5">
+                        <svg width="17" height="17" fill="none" stroke="#065f46" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                </div>
+                <div class="text-[1.9rem] font-bold text-slate-900 leading-none">{{ $stafStats['sudah_laporan'] }}</div>
+                <div class="text-[0.7rem] text-slate-400 mt-2">laporan terkirim / disetujui</div>
+            </a>
+
+            {{-- Belum laporan --}}
+            <a href="{{ route('fund-reports.index') }}" class="rounded-xl p-5 border shadow-sm no-underline hover:shadow-md transition-shadow {{ $stafStats['belum_laporan'] > 0 ? 'bg-amber-50 border-amber-200' : 'bg-white border-slate-100' }}">
+                <div class="flex items-center justify-between mb-3.5">
+                    <span class="text-[0.78rem] font-medium {{ $stafStats['belum_laporan'] > 0 ? 'text-amber-700' : 'text-slate-500' }}">Belum Laporan</span>
+                    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:#fde68a">
+                        <svg width="17" height="17" fill="none" stroke="#92400e" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                </div>
+                <div class="text-[1.9rem] font-bold leading-none {{ $stafStats['belum_laporan'] > 0 ? 'text-amber-600' : 'text-slate-900' }}">{{ $stafStats['belum_laporan'] }}</div>
+                <div class="text-[0.7rem] mt-2 {{ $stafStats['belum_laporan'] > 0 ? 'text-amber-600 font-semibold' : 'text-slate-400' }}">
+                    {{ $stafStats['belum_laporan'] > 0 ? 'segera buat laporannya!' : 'semua sudah dilaporkan' }}
+                </div>
+            </a>
+
+            {{-- Pengembalian dana --}}
+            <a href="{{ route('fund-refunds.index') }}" class="rounded-xl p-5 border shadow-sm no-underline hover:shadow-md transition-shadow {{ $stafStats['refund_pending'] > 0 ? 'bg-red-50 border-red-200' : 'bg-white border-slate-100' }}">
+                <div class="flex items-center justify-between mb-3.5">
+                    <span class="text-[0.78rem] font-medium {{ $stafStats['refund_pending'] > 0 ? 'text-red-700' : 'text-slate-500' }}">Pengembalian Dana</span>
+                    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:#fecaca">
+                        <svg width="17" height="17" fill="none" stroke="#991b1b" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 15v-1a4 4 0 00-4-4H8m0 0l3 3m-3-3l3-3"/></svg>
+                    </div>
+                </div>
+                <div class="text-[1.9rem] font-bold leading-none {{ $stafStats['refund_pending'] > 0 ? 'text-red-600' : 'text-slate-900' }}">{{ $stafStats['refund_total'] }}</div>
+                <div class="text-[0.7rem] mt-2 {{ $stafStats['refund_pending'] > 0 ? 'text-red-600 font-semibold' : 'text-slate-400' }}">
+                    {{ $stafStats['refund_pending'] > 0 ? $stafStats['refund_pending'] . ' belum dikembalikan' : 'tidak ada tagihan aktif' }}
+                </div>
+            </a>
+
+            {{-- Selesai / closed --}}
+            <a href="{{ route('fund-requests.index') }}" class="bg-white rounded-xl p-5 border border-slate-100 shadow-sm no-underline hover:shadow-md transition-shadow">
+                <div class="flex items-center justify-between mb-3.5">
+                    <span class="text-[0.78rem] font-medium text-slate-500">Selesai</span>
+                    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:#e9d5ff">
+                        <svg width="17" height="17" fill="none" stroke="#6b21a8" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                    </div>
+                </div>
+                <div class="text-[1.9rem] font-bold text-slate-900 leading-none">{{ $stafStats['closed'] }}</div>
+                <div class="text-[0.7rem] text-slate-400 mt-2">cair, laporan &amp; refund tuntas</div>
+            </a>
+
+        </div>
     </div>
+    @endif
 
     {{-- Content Row --}}
     <div class="grid grid-cols-[1fr_340px] gap-4">

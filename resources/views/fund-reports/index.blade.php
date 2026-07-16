@@ -45,74 +45,17 @@
     </div>
     @endif
 
-    {{-- BAGIAN 2: Pengembalian Dana --}}
-    @if($refunds->count() > 0)
-    <div style="margin-bottom:28px;">
-        <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
-            @if($refunds->where('status', 'pending')->count() > 0)
-            <div style="width:8px; height:8px; border-radius:50%; background:#ef4444; animation: pulse 1.5s infinite;"></div>
-            @endif
-            <h3 style="font-size:0.9rem; font-weight:700; color:#0f172a; margin:0;">Pengembalian Dana</h3>
-            @if($refunds->where('status', 'pending')->count() > 0)
-            <span style="padding:2px 9px; background:#fee2e2; color:#991b1b; border-radius:999px; font-size:0.68rem; font-weight:700;">
-                {{ $refunds->where('status', 'pending')->count() }} perlu dikembalikan
-            </span>
-            @endif
+    {{-- Pengembalian dana pindah ke halaman sendiri; sisakan pengingat jika masih ada tagihan --}}
+    @if($pendingRefundCount > 0)
+    <div style="background:#fef2f2; border:1.5px solid #fca5a5; border-radius:12px; padding:14px 18px; margin-bottom:28px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+        <div style="width:8px; height:8px; border-radius:50%; background:#ef4444; animation: pulse 1.5s infinite; flex-shrink:0;"></div>
+        <div style="flex:1; min-width:0; font-size:0.82rem; color:#991b1b;">
+            Anda memiliki <strong>{{ $pendingRefundCount }} tagihan pengembalian dana</strong> yang perlu dikembalikan.
         </div>
-
-        @foreach($refunds as $refund)
-        @php
-            $rfBorder = match($refund->status) {
-                'pending'   => '#fca5a5',
-                'waiting'   => '#fcd34d',
-                'confirmed' => '#86efac',
-                default     => '#e2e8f0',
-            };
-            $rfBg = match($refund->status) {
-                'pending'   => '#fef2f2',
-                'waiting'   => '#fffbeb',
-                'confirmed' => '#f0fdf4',
-                default     => '#fff',
-            };
-            $rfLabel = match($refund->status) {
-                'pending'   => 'Perlu Dikembalikan',
-                'waiting'   => 'Menunggu Konfirmasi Keuangan',
-                'confirmed' => 'Selesai — Dana Diterima',
-                default     => '-',
-            };
-            $rfLabelColor = match($refund->status) {
-                'pending'   => '#991b1b',
-                'waiting'   => '#92400e',
-                'confirmed' => '#166534',
-                default     => '#475569',
-            };
-        @endphp
-        <div style="background:{{ $rfBg }}; border:1.5px solid {{ $rfBorder }}; border-radius:12px; padding:16px 18px; margin-bottom:10px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
-            <div style="flex:1; min-width:0;">
-                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:4px;">
-                    <span style="font-size:0.72rem; font-family:monospace; font-weight:700; color:#64748b;">{{ $refund->fundRequest?->reference }}</span>
-                    <span style="padding:2px 10px; border-radius:999px; font-size:0.68rem; font-weight:700; background:#fff; color:{{ $rfLabelColor }}; border:1px solid {{ $rfBorder }};">{{ $rfLabel }}</span>
-                </div>
-                <div style="font-size:0.88rem; font-weight:700; color:#0f172a; margin-bottom:4px;">{{ $refund->fundRequest?->title }}</div>
-                <div style="font-size:0.78rem; color:#64748b;">
-                    Sisa dana yang harus dikembalikan:
-                    <strong style="color:#0f172a;">Rp {{ number_format($refund->amount, 0, ',', '.') }}</strong>
-                </div>
-                @if($refund->isPending() && $refund->confirmation_notes)
-                <div style="margin-top:8px; padding:8px 12px; background:#fff; border:1px solid #fecaca; border-radius:7px; font-size:0.75rem; color:#991b1b;">
-                    <strong>Bukti sebelumnya ditolak:</strong> {{ $refund->confirmation_notes }}
-                </div>
-                @endif
-            </div>
-            <a href="{{ route('fund-refunds.show', $refund) }}"
-               style="display:inline-flex; align-items:center; gap:7px; padding:9px 20px; border-radius:9px; font-size:0.82rem; font-weight:700; text-decoration:none; white-space:nowrap;
-                      {{ $refund->isPending()
-                          ? 'color:#fff; background:linear-gradient(135deg,#dc2626,#ef4444); box-shadow:0 2px 8px rgba(220,38,38,0.3);'
-                          : 'color:#475569; background:#f1f5f9;' }}">
-                {{ $refund->isPending() ? 'Kembalikan Dana' : 'Lihat Detail' }}
-            </a>
-        </div>
-        @endforeach
+        <a href="{{ route('fund-refunds.index') }}"
+           style="display:inline-flex; align-items:center; gap:7px; padding:8px 18px; border-radius:9px; font-size:0.8rem; font-weight:700; color:#fff; text-decoration:none; white-space:nowrap; background:linear-gradient(135deg,#dc2626,#ef4444); box-shadow:0 2px 8px rgba(220,38,38,0.3);">
+            Lihat Pengembalian Dana
+        </a>
     </div>
     @endif
 
