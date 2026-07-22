@@ -377,6 +377,15 @@
             </svg>
             Template Jurnal
         </a>
+        <a href="{{ route('beginning-balances.index') }}"
+           class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg no-underline text-[0.835rem] transition-all relative
+                  {{ request()->routeIs('beginning-balances.*') ? 'active bg-orange-500/[0.15] text-white font-[550]' : 'text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white' }}">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                class="{{ request()->routeIs('beginning-balances.*') ? 'text-orange-300' : 'opacity-80' }}">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 6l9-3 9 3M4 10h16M6 10v8m4-8v8m4-8v8m4-8v8M3 21h18"/>
+            </svg>
+            Saldo Awal
+        </a>
         @endif
 
         @if(auth()->user()->hasPermission('menu.coa'))
@@ -396,9 +405,11 @@
         @if(auth()->user()->hasPermission('menu.laporan'))
         <div class="px-5 pt-4 pb-1.5 text-[0.65rem] font-semibold text-slate-400/70 tracking-[0.1em] uppercase">Laporan</div>
         <div>
-            <div class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg cursor-pointer text-[0.835rem] text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white transition-all relative"
+            <div class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg cursor-pointer text-[0.835rem] transition-all relative
+                        {{ request()->routeIs('reports.*') ? 'active bg-orange-500/[0.15] text-white font-[550]' : 'text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white' }}"
                  onclick="toggleSubmenu('sub-laporan')">
-                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" class="opacity-80">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                    class="{{ request()->routeIs('reports.*') ? 'text-orange-300' : 'opacity-80' }}">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                 </svg>
                 Laporan Keuangan
@@ -407,11 +418,22 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
                 </svg>
             </div>
-            <div class="nav-submenu hidden" id="sub-laporan">
-                <a href="#" class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] text-slate-400/80 hover:bg-white/5 hover:text-white transition-all">Realisasi Anggaran</a>
-                <a href="#" class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] text-slate-400/80 hover:bg-white/5 hover:text-white transition-all">Arus Kas</a>
-                <a href="#" class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] text-slate-400/80 hover:bg-white/5 hover:text-white transition-all">Neraca</a>
-                <a href="#" class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] text-slate-400/80 hover:bg-white/5 hover:text-white transition-all">Laba Rugi</a>
+            <div class="nav-submenu {{ request()->routeIs('reports.*') ? 'open' : '' }} hidden" id="sub-laporan">
+                <a href="{{ route('reports.fund-requests') }}"
+                   class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
+                          {{ request()->routeIs('reports.fund-requests') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Pengajuan Dana</a>
+                <a href="{{ route('reports.disbursements') }}"
+                   class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
+                          {{ request()->routeIs('reports.disbursements') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Pencairan Dana</a>
+                <a href="{{ route('reports.budget-realization') }}"
+                   class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
+                          {{ request()->routeIs('reports.budget-realization') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Realisasi Anggaran</a>
+                <a href="{{ route('reports.general-ledger') }}"
+                   class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
+                          {{ request()->routeIs('reports.general-ledger') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Buku Besar</a>
+                <a href="{{ route('reports.trial-balance') }}"
+                   class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
+                          {{ request()->routeIs('reports.trial-balance') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Neraca Saldo</a>
             </div>
         </div>
         @endif

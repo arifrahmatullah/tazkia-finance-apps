@@ -63,6 +63,12 @@ Route::middleware('auth')->group(function () {
     Route::post('journal-entries/{journal_entry}/post', [JournalEntryController::class, 'post'])->name('journal-entries.post');
     Route::get('journal-accounts', [JournalEntryController::class, 'getAccounts'])->name('journal-entries.accounts');
 
+    // Saldo Awal (beginning balance)
+    Route::middleware('permission:menu.jurnal-umum')->group(function () {
+        Route::get('beginning-balances', [\App\Http\Controllers\BeginningBalanceController::class, 'index'])->name('beginning-balances.index');
+        Route::post('beginning-balances', [\App\Http\Controllers\BeginningBalanceController::class, 'save'])->name('beginning-balances.save');
+    });
+
     // Template Jurnal
     Route::get('journal-template-options', [\App\Http\Controllers\JournalTemplateController::class, 'options'])->name('journal-templates.options');
     Route::get('journal-templates/{journal_template}/lines', [\App\Http\Controllers\JournalTemplateController::class, 'lines'])->name('journal-templates.lines');
@@ -121,6 +127,15 @@ Route::middleware('auth')->group(function () {
         Route::get('finance/pengembalian', [FinanceController::class, 'pengembalianIndex'])->name('finance.pengembalian');
         Route::post('finance/pengembalian/{fundRefund}/confirm', [FinanceController::class, 'confirmRefund'])->name('finance.pengembalian.confirm');
         Route::post('finance/pengembalian/{fundRefund}/reject', [FinanceController::class, 'rejectRefund'])->name('finance.pengembalian.reject');
+    });
+
+    // Laporan (rekap untuk keuangan/pimpinan)
+    Route::middleware('permission:menu.laporan')->group(function () {
+        Route::get('reports/pengajuan-dana', [\App\Http\Controllers\FinanceReportController::class, 'fundRequests'])->name('reports.fund-requests');
+        Route::get('reports/pencairan-dana', [\App\Http\Controllers\FinanceReportController::class, 'disbursements'])->name('reports.disbursements');
+        Route::get('reports/realisasi-anggaran', [\App\Http\Controllers\FinanceReportController::class, 'budgetRealization'])->name('reports.budget-realization');
+        Route::get('reports/buku-besar', [\App\Http\Controllers\FinanceReportController::class, 'generalLedger'])->name('reports.general-ledger');
+        Route::get('reports/neraca-saldo', [\App\Http\Controllers\FinanceReportController::class, 'trialBalance'])->name('reports.trial-balance');
     });
 
     // Inbox Approval

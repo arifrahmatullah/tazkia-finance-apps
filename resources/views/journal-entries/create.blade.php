@@ -181,14 +181,18 @@ function addLine(data) {
                 class="${inputCls}" placeholder="Keterangan (opsional)" maxlength="255">
         </td>
         <td class="px-2 py-1.5 align-middle w-[160px]">
-            <input type="number" name="lines[${n}][debit]" value="${data ? data.debit : 0}"
-                class="${debitCls}" min="0" step="1"
+            <input type="text" inputmode="numeric" autocomplete="off"
+                value="${data && data.debit > 0 ? Number(data.debit).toLocaleString('id-ID') : ''}"
+                class="${debitCls}" placeholder="0" data-line="${n}" data-field="debit"
                 oninput="onDebitInput(this, ${n})" onfocus="this.select()">
+            <input type="hidden" name="lines[${n}][debit]" value="${data ? data.debit : 0}">
         </td>
         <td class="px-2 py-1.5 align-middle w-[160px]">
-            <input type="number" name="lines[${n}][credit]" value="${data ? data.credit : 0}"
-                class="${creditCls}" min="0" step="1"
+            <input type="text" inputmode="numeric" autocomplete="off"
+                value="${data && data.credit > 0 ? Number(data.credit).toLocaleString('id-ID') : ''}"
+                class="${creditCls}" placeholder="0" data-line="${n}" data-field="credit"
                 oninput="onCreditInput(this, ${n})" onfocus="this.select()">
+            <input type="hidden" name="lines[${n}][credit]" value="${data ? data.credit : 0}">
         </td>
         <td class="px-2 py-1.5 text-center align-middle">
             <button type="button" onclick="removeLine(${n})" title="Hapus baris"
@@ -214,18 +218,34 @@ function updateLineNumbers() {
     });
 }
 
+function formatLineInput(el) {
+    const digits = el.value.replace(/\D/g, '');
+    el.value = digits ? Number(digits).toLocaleString('id-ID') : '';
+    return digits ? Number(digits) : 0;
+}
+
 function onDebitInput(el, n) {
-    if ((parseFloat(el.value) || 0) > 0) {
-        const cr = document.querySelector(`input[name="lines[${n}][credit]"]`);
-        if (cr) cr.value = 0;
+    const val = formatLineInput(el);
+    const hiddenDebit = document.querySelector(`input[type="hidden"][name="lines[${n}][debit]"]`);
+    if (hiddenDebit) hiddenDebit.value = val;
+    if (val > 0) {
+        const crDisplay = document.querySelector(`input[data-line="${n}"][data-field="credit"]`);
+        const crHidden  = document.querySelector(`input[type="hidden"][name="lines[${n}][credit]"]`);
+        if (crDisplay) crDisplay.value = '';
+        if (crHidden) crHidden.value = 0;
     }
     updateTotals();
 }
 
 function onCreditInput(el, n) {
-    if ((parseFloat(el.value) || 0) > 0) {
-        const dr = document.querySelector(`input[name="lines[${n}][debit]"]`);
-        if (dr) dr.value = 0;
+    const val = formatLineInput(el);
+    const hiddenCredit = document.querySelector(`input[type="hidden"][name="lines[${n}][credit]"]`);
+    if (hiddenCredit) hiddenCredit.value = val;
+    if (val > 0) {
+        const drDisplay = document.querySelector(`input[data-line="${n}"][data-field="debit"]`);
+        const drHidden  = document.querySelector(`input[type="hidden"][name="lines[${n}][debit]"]`);
+        if (drDisplay) drDisplay.value = '';
+        if (drHidden) drHidden.value = 0;
     }
     updateTotals();
 }
@@ -315,8 +335,8 @@ async function applyTemplate(templateId) {
         // Fokus ke nominal baris pertama sesuai posisinya
         const first = rows[0];
         if (first) {
-            const field = first.dataset.balanceType === 'credit' ? '[credit]' : '[debit]';
-            first.querySelector(`input[name*="${field}"]`)?.focus();
+            const field = first.dataset.balanceType === 'credit' ? 'credit' : 'debit';
+            first.querySelector(`input[data-field="${field}"]`)?.focus();
         }
     } catch(e) {
         alert('Gagal memuat template. Coba lagi.');
