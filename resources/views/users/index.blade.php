@@ -19,45 +19,59 @@
 @endif
 
 {{-- Filter --}}
-<form method="GET" action="{{ route('users.index') }}" class="flex gap-2.5 flex-wrap items-center mb-4">
-    <div class="relative flex-1 min-w-[200px]">
-        <svg width="15" height="15" fill="none" stroke="#94a3b8" stroke-width="2" viewBox="0 0 24 24" class="absolute left-[11px] top-1/2 -translate-y-1/2 pointer-events-none"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-        <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama atau email..."
-            class="w-full pl-[34px] px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors">
+<form method="GET" action="{{ route('users.index') }}" class="bg-white rounded-xl shadow-sm border border-slate-100 p-4 mb-4 flex flex-wrap gap-3 items-end">
+    <div class="flex-1 min-w-[200px]">
+        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">Cari</label>
+        <div class="relative">
+            <svg width="15" height="15" fill="none" stroke="#94a3b8" stroke-width="2" viewBox="0 0 24 24" class="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            <input type="text" name="search" value="{{ request('search') }}" placeholder="Nama atau email..."
+                class="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors">
+        </div>
     </div>
 
-    <select name="role_id" class="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors min-w-[150px]">
-        <option value="">Semua Role</option>
-        @foreach($roles as $role)
-            <option value="{{ $role->id }}" {{ request('role_id') == $role->id ? 'selected' : '' }}>{{ $role->name }}</option>
-        @endforeach
-    </select>
+    <div class="min-w-[160px]">
+        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">Role</label>
+        <select name="role_id" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors">
+            <option value="">Semua Role</option>
+            @foreach($roles as $role)
+                <option value="{{ $role->id }}" {{ request('role_id') == $role->id ? 'selected' : '' }}>{{ $role->name }}</option>
+            @endforeach
+        </select>
+    </div>
 
     @if($organizations->count() > 1)
-    <select name="organization_id" class="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors min-w-[160px]">
-        <option value="">Semua Organisasi</option>
-        @foreach($organizations as $org)
-            <option value="{{ $org->id }}" {{ request('organization_id') == $org->id ? 'selected' : '' }}>{{ $org->name }}</option>
-        @endforeach
-    </select>
+    <div class="min-w-[170px]">
+        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">Organisasi</label>
+        <select name="organization_id" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors">
+            <option value="">Semua Organisasi</option>
+            @foreach($organizations as $org)
+                <option value="{{ $org->id }}" {{ request('organization_id') == $org->id ? 'selected' : '' }}>{{ $org->name }}</option>
+            @endforeach
+        </select>
+    </div>
     @endif
 
-    <select name="status" class="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors min-w-[130px]">
-        <option value="">Semua Status</option>
-        <option value="1" {{ request('status') === '1' ? 'selected' : '' }}>Aktif</option>
-        <option value="0" {{ request('status') === '0' ? 'selected' : '' }}>Nonaktif</option>
-    </select>
+    <div class="min-w-[140px]">
+        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">Status</label>
+        <select name="status" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors">
+            <option value="">Semua Status</option>
+            <option value="1" {{ request('status') === '1' ? 'selected' : '' }}>Aktif</option>
+            <option value="0" {{ request('status') === '0' ? 'selected' : '' }}>Nonaktif</option>
+        </select>
+    </div>
 
-    <button type="submit" class="px-4 py-2 rounded-xl border-0 cursor-pointer text-sm font-semibold bg-gradient-to-br from-orange-400 to-orange-500 text-white">Cari</button>
-    @if(request()->hasAny(['search','role_id','organization_id','status']))
-        <a href="{{ route('users.index') }}" class="px-3.5 py-2 rounded-xl border border-slate-200 text-sm text-slate-500 no-underline bg-white">Reset</a>
-    @endif
+    <div class="flex gap-2">
+        <button type="submit" class="px-4 py-2 rounded-lg border-0 cursor-pointer text-sm font-semibold bg-gradient-to-br from-orange-400 to-orange-500 text-white shadow-sm hover:-translate-y-px transition-all">Cari</button>
+        @if(request()->hasAny(['search','role_id','organization_id','status']))
+            <a href="{{ route('users.index') }}" class="px-3.5 py-2 rounded-lg border border-slate-200 text-sm text-slate-500 no-underline bg-white hover:bg-slate-50 transition-colors">Reset</a>
+        @endif
+    </div>
 </form>
 
 <div class="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
     <div class="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
         <span class="text-sm font-bold text-slate-900">Daftar User</span>
-        <span class="text-[11px] font-semibold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full">{{ $users->count() }} user</span>
+        <span class="text-[11px] font-semibold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full">{{ $users->total() }} user</span>
     </div>
     @if($users->isEmpty())
         <div class="py-14 px-5 text-center text-slate-400">
@@ -138,4 +152,11 @@
     </table>
     @endif
 </div>
+
+@if($users->hasPages())
+<div class="mt-4 flex items-center justify-between text-xs text-slate-400">
+    <span>Menampilkan {{ $users->firstItem() }}–{{ $users->lastItem() }} dari {{ $users->total() }} user</span>
+    {{ $users->links() }}
+</div>
+@endif
 </x-layouts.app>

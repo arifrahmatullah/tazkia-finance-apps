@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 
 class JournalTemplate extends Model
 {
-    use HasUuids;
+    use HasUuids, Auditable;
 
     protected $fillable = [
         'organization_id', 'code', 'name', 'category', 'is_active',

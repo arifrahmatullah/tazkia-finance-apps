@@ -37,7 +37,8 @@ class UserController extends Controller
             )
             ->where('id', '!=', auth()->id())
             ->orderBy('name')
-            ->get();
+            ->paginate(15)
+            ->withQueryString();
 
         $roles         = Role::orderBy('name')->get();
         $organizations = $this->allowedOrgs()->orderBy('name')->get();

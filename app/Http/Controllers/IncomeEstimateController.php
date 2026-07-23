@@ -107,7 +107,11 @@ class IncomeEstimateController extends Controller
     {
         abort_unless(auth()->user()->canAccessOrganization($incomeEstimate->organization_id), 403);
 
-        $incomeEstimate->load(['organization', 'budgetPeriod', 'details' => fn($q) => $q->orderBy('estimate_date')]);
+        $incomeEstimate->load([
+            'organization', 'budgetPeriod',
+            'details'  => fn($q) => $q->orderBy('estimate_date'),
+            'receipts' => fn($q) => $q->orderBy('receipt_date'),
+        ]);
 
         return view('income-estimates.show', compact('incomeEstimate'));
     }

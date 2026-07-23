@@ -27,8 +27,8 @@
 - [x] **Buku besar per akun** — riwayat mutasi debit/kredit per akun (ref: `ReportAccountController`, aplikasi-akunting) ✅ `/reports/buku-besar`
 - [x] **Neraca saldo (trial balance)** — saldo semua akun per periode (ref: `ReportController /report/neraca-saldo`) ✅ `/reports/neraca-saldo`
 - [x] **Saldo awal (beginning balance)** — input saldo awal per akun per periode; prasyarat neraca balance (ref: `BeginningBalanceController`) ✅ `/beginning-balances`
-- [ ] **Penerimaan real (realisasi pendapatan)** — pencatatan penerimaan yang benar-benar masuk + rencana penerimaan per bulan (ref: `PenerimaanRealController`, `RencanaPenerimaanController`)
-- [ ] **API POST jurnal** — endpoint agar aplikasi lain bisa mengirim jurnal otomatis, pelengkap API GET template (ref: `ApiJournalController /public/api/journal` & `/journal-array`)
+- [x] **Penerimaan real (realisasi pendapatan)** — pencatatan penerimaan yang benar-benar masuk + rencana penerimaan per bulan (ref: `PenerimaanRealController`, `RencanaPenerimaanController`) ✅ `/income-estimates/{id}` (rencana per bulan = jadwal estimasi yang sudah ada, realisasi = fitur baru `income-receipts`)
+- [x] **API POST jurnal** — endpoint agar aplikasi lain bisa mengirim jurnal otomatis, pelengkap API GET template (ref: `ApiJournalController /public/api/journal` & `/journal-array`) ✅ `POST /api/journal-entries` (lihat `docs/api-jurnal-template-dan-jurnal.md`)
 
 ## 📒 Akuntansi (ref: aplikasi-akunting)
 

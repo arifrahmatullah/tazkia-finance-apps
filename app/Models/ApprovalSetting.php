@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 
 class ApprovalSetting extends Model
 {
-    use HasUuids;
+    use HasUuids, Auditable;
 
     protected $fillable = [
         'organization_id', 'requester_position_id', 'approver_position_id',

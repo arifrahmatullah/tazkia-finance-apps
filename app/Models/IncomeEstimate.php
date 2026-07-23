@@ -25,10 +25,16 @@ class IncomeEstimate extends Model
     public function organization()  { return $this->belongsTo(Organization::class); }
     public function budgetPeriod()  { return $this->belongsTo(BudgetPeriod::class); }
     public function details()       { return $this->hasMany(IncomeEstimateDetail::class); }
+    public function receipts()      { return $this->hasMany(IncomeReceipt::class); }
 
     public function recalculateTotal(): void
     {
         $total = $this->details()->sum('total') ?: $this->unit_price;
         $this->update(['total_amount' => $total]);
+    }
+
+    public function getRealizedTotalAttribute(): float
+    {
+        return (float) $this->receipts()->sum('total');
     }
 }

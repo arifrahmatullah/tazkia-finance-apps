@@ -78,12 +78,12 @@
                     </td>
                     <td class="px-5 py-3 align-top">
                         <span class="text-sm text-slate-500 font-mono break-all">
-                            {{ is_null($oldVal) ? '—' : (is_bool($oldVal) ? ($oldVal ? 'true' : 'false') : $oldVal) }}
+                            {{ is_null($oldVal) ? '—' : (is_array($oldVal) ? json_encode($oldVal) : (is_bool($oldVal) ? ($oldVal ? 'true' : 'false') : $oldVal)) }}
                         </span>
                     </td>
                     <td class="px-5 py-3 align-top">
                         <span class="text-sm text-slate-800 font-mono break-all font-semibold">
-                            {{ is_null($newVal) ? '—' : (is_bool($newVal) ? ($newVal ? 'true' : 'false') : $newVal) }}
+                            {{ is_null($newVal) ? '—' : (is_array($newVal) ? json_encode($newVal) : (is_bool($newVal) ? ($newVal ? 'true' : 'false') : $newVal)) }}
                         </span>
                     </td>
                 </tr>
@@ -121,13 +121,38 @@
                     </td>
                     <td class="px-5 py-3 align-top">
                         <span class="text-sm text-slate-700 font-mono break-all">
-                            {{ is_null($val) ? '—' : (is_bool($val) ? ($val ? 'true' : 'false') : $val) }}
+                            {{ is_null($val) ? '—' : (is_array($val) ? json_encode($val) : (is_bool($val) ? ($val ? 'true' : 'false') : $val)) }}
                         </span>
                     </td>
                 </tr>
                 @empty
                 <tr><td colspan="2" class="px-5 py-3 text-sm text-slate-400">Tidak ada data tercatat.</td></tr>
                 @endforelse
+            </tbody>
+        </table>
+    </div>
+</div>
+@endif
+
+{{-- Detail tambahan untuk aksi non-CRUD (login, login gagal, logout, sync permission, dll) --}}
+@if(!in_array($auditLog->action, ['created', 'deleted', 'restored']) && $auditLog->action !== 'updated' && $auditLog->new_values)
+<div class="bg-white rounded-xl shadow-sm overflow-hidden mb-4">
+    <div class="px-5 py-3.5 border-b border-slate-100">
+        <span class="text-sm font-bold text-slate-900">Detail</span>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full border-collapse">
+            <tbody>
+                @foreach($auditLog->new_values as $field => $val)
+                <tr class="border-b border-slate-50 last:border-0">
+                    <td class="px-5 py-3 align-top w-1/3"><span class="text-xs font-mono text-slate-600">{{ $field }}</span></td>
+                    <td class="px-5 py-3 align-top">
+                        <span class="text-sm text-slate-700 font-mono break-all">
+                            {{ is_null($val) ? '—' : (is_array($val) ? json_encode($val) : (is_bool($val) ? ($val ? 'true' : 'false') : $val)) }}
+                        </span>
+                    </td>
+                </tr>
+                @endforeach
             </tbody>
         </table>
     </div>

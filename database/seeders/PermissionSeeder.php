@@ -40,6 +40,7 @@ class PermissionSeeder extends Seeder
             // Sistem
             ['slug' => 'menu.users',                'name' => 'Manajemen User',         'group' => 'sistem'],
             ['slug' => 'menu.role-permissions',     'name' => 'Setting Permission',     'group' => 'sistem'],
+            ['slug' => 'menu.audit-logs',           'name' => 'Audit Log',              'group' => 'sistem'],
         ];
 
         foreach ($permissions as $perm) {

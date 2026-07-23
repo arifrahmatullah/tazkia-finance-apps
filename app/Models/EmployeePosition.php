@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 
 class EmployeePosition extends Model
 {
-    use HasUuids;
+    use HasUuids, Auditable;
 
     protected $fillable = [
         'employee_id', 'position_id', 'start_date', 'end_date', 'notes', 'is_active',

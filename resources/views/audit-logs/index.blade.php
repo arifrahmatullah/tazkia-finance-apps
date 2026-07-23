@@ -31,10 +31,13 @@
 
     <select name="action" class="no-select2 px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-700 bg-white outline-none focus:border-orange-400 min-w-[130px] cursor-pointer" onchange="this.form.submit()">
         <option value="">Semua Aksi</option>
-        <option value="created"  {{ request('action') == 'created'  ? 'selected' : '' }}>Dibuat</option>
-        <option value="updated"  {{ request('action') == 'updated'  ? 'selected' : '' }}>Diubah</option>
-        <option value="deleted"  {{ request('action') == 'deleted'  ? 'selected' : '' }}>Dihapus</option>
-        <option value="restored" {{ request('action') == 'restored' ? 'selected' : '' }}>Dipulihkan</option>
+        <option value="created"      {{ request('action') == 'created'      ? 'selected' : '' }}>Dibuat</option>
+        <option value="updated"      {{ request('action') == 'updated'      ? 'selected' : '' }}>Diubah</option>
+        <option value="deleted"      {{ request('action') == 'deleted'      ? 'selected' : '' }}>Dihapus</option>
+        <option value="restored"     {{ request('action') == 'restored'     ? 'selected' : '' }}>Dipulihkan</option>
+        <option value="login"        {{ request('action') == 'login'        ? 'selected' : '' }}>Login</option>
+        <option value="login_failed" {{ request('action') == 'login_failed' ? 'selected' : '' }}>Login Gagal</option>
+        <option value="logout"       {{ request('action') == 'logout'       ? 'selected' : '' }}>Logout</option>
     </select>
 
     <input type="date" name="date_from" value="{{ request('date_from') }}"

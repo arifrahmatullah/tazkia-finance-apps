@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 
 class UserOrganizationRole extends Model
 {
-    use HasUuids;
+    use HasUuids, Auditable;
 
     protected $fillable = ['user_id', 'organization_id', 'role_id'];
 

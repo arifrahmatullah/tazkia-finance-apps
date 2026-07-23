@@ -79,6 +79,10 @@ Route::middleware('auth')->group(function () {
     Route::resource('income-estimate-details', IncomeEstimateDetailController::class)
         ->only(['create', 'store', 'edit', 'update', 'destroy']);
 
+    // Realisasi Penerimaan (penerimaan real)
+    Route::resource('income-receipts', \App\Http\Controllers\IncomeReceiptController::class)
+        ->only(['create', 'store', 'edit', 'update', 'destroy']);
+
     // Approval Settings
     Route::get('approval-settings/edit-chain', [ApprovalSettingController::class, 'editChain'])->name('approval-settings.edit-chain');
     Route::post('approval-settings/update-chain', [ApprovalSettingController::class, 'updateChain'])->name('approval-settings.update-chain');

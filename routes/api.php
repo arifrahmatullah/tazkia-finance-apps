@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\JournalEntryApiController;
 use App\Http\Controllers\Api\JournalTemplateApiController;
 use Illuminate\Support\Facades\Route;
 
@@ -7,4 +8,5 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('api.key')->group(function () {
     Route::get('journal-templates', [JournalTemplateApiController::class, 'index']);
     Route::get('journal-templates/{journalTemplate}', [JournalTemplateApiController::class, 'show']);
+    Route::post('journal-entries', [JournalEntryApiController::class, 'store']);
 });

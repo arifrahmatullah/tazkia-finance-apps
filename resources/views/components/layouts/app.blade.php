@@ -696,6 +696,12 @@
             if (arrow) arrow.style.transform = 'rotate(180deg)';
         }
     });
+
+    // Scroll sidebar so the active menu item is visible without manual scrolling
+    const activeNavEl = document.querySelector('.sidebar-nav .nav-item.active, .sidebar-nav .nav-subitem.active');
+    if (activeNavEl) {
+        activeNavEl.scrollIntoView({ block: 'center' });
+    }
 </script>
 
 </body>

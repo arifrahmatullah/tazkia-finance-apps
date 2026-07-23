@@ -1,3 +1,4 @@
+
 # SRS — API Template Jurnal & API Kirim Jurnal dari Aplikasi Lain
 
 | | |
@@ -6,7 +7,7 @@
 | Aplikasi | tazkia-finance-apps |
 | Referensi | `aplikasi-akunting` — `ApiJournalTemplateController`, `ApiJournalController` |
 | Status | Lihat tabel status implementasi di bawah |
-| Terakhir diperbarui | 2026-07-22 |
+| Terakhir diperbarui | 2026-07-23 |
 
 ## 1. Pendahuluan
 
@@ -31,11 +32,9 @@ lewat `routes/api.php`.
 |---|---|---|---|
 | `/api/journal-templates` | GET | ✅ **Sudah tersedia** | Implementasi: `App\Http\Controllers\Api\JournalTemplateApiController@index` |
 | `/api/journal-templates/{id}` | GET | ✅ **Sudah tersedia** | `JournalTemplateApiController@show` |
-| `/api/journal-entries` | POST | 🚧 **Rancangan (belum dibangun)** | Ini spesifikasi untuk item TODO *"API POST jurnal"* — belum ada controller/route-nya di kode saat ini |
+| `/api/journal-entries` | POST | ✅ **Sudah tersedia** | Implementasi: `App\Http\Controllers\Api\JournalEntryApiController@store` |
 
-Bagian 3 mendokumentasikan API yang **sudah bisa dipakai hari ini**. Bagian 4 adalah **spesifikasi rancangan**
-untuk endpoint POST yang belum dibangun, supaya tim aplikasi lain bisa mulai menyiapkan integrasinya dan tim
-`tazkia-finance-apps` punya acuan saat mengimplementasikannya nanti.
+Bagian 3 dan 4 sama-sama mendokumentasikan API yang **sudah bisa dipakai hari ini**.
 
 ## 2. Autentikasi & Konvensi Umum
 
@@ -213,11 +212,10 @@ Jika `{id}` tidak ditemukan, Laravel route-model-binding akan mengembalikan `404
 (bukan amplop JSON `response_code`/`response_message` — ini perlu diseragamkan jika endpoint ini
 dipakai serius oleh pihak eksternal, lihat §5).
 
-## 4. API Kirim Jurnal dari Aplikasi Lain (RANCANGAN)
+## 4. API Kirim Jurnal dari Aplikasi Lain (LIVE)
 
-> ⚠️ Bagian ini adalah **spesifikasi rancangan**, endpoint belum ada di `routes/api.php`. Tujuannya
-> supaya tim aplikasi lain (mis. SPMB) bisa mulai menyiapkan payload sesuai kontrak ini, sambil endpoint
-> aslinya dikerjakan menyusul (item TODO *"API POST jurnal"*).
+Endpoint ini sudah tersedia di `routes/api.php`, diimplementasikan di
+`App\Http\Controllers\Api\JournalEntryApiController@store`.
 
 ### 4.1 Konsep & alur
 
@@ -352,29 +350,36 @@ hitung di sisi pengirim.
    retry akibat timeout jaringan), API mengembalikan jurnal `JU-202607-0031` yang sama — bukan
    entri dobel.
 
-## 5. Catatan implementasi (untuk dikerjakan tim `tazkia-finance-apps`)
+## 5. Catatan implementasi
 
-Poin-poin ini perlu diputuskan/dikerjakan saat endpoint POST di §4 benar-benar dibangun:
+Yang sudah dikerjakan saat endpoint POST §4 dibangun (2026-07-23):
 
-1. **Route** — tambahkan ke `routes/api.php` di dalam grup `Route::middleware('api.key')`:
-   `Route::post('journal-entries', [JournalEntryApiController::class, 'store']);`
-2. **Controller baru** — `App\Http\Controllers\Api\JournalEntryApiController`, meniru pola validasi
+1. **Route** — `Route::post('journal-entries', [JournalEntryApiController::class, 'store']);` di dalam
+   grup `Route::middleware('api.key')`, `routes/api.php`.
+2. **Controller** — `App\Http\Controllers\Api\JournalEntryApiController@store`, meniru pola validasi
    balance yang sudah ada di `BeginningBalanceController::save()` (toleransi `abs($totalDebit - $totalCredit) > 0.01`).
-3. **`source_type`** — set `'api'` pada `JournalEntry` yang dibuat, konsisten dengan kolom
-   `source_type`/`source_id` yang sudah ditambahkan migrasi `2026_07_13_000003_add_source_to_journal_entries_table.php`
-   untuk fitur Saldo Awal (`'beginning_balance'`).
-4. **Idempotensi (`external_reference`)** — butuh kolom baru (mis. `journal_entries.external_reference`,
-   unique bersama `organization_id`) kalau mau benar-benar dicek di database, bukan cuma disimpan di
-   `description`. Ini belum ada di skema saat ini.
-5. **Multi-key per partner** — saat ini `EXTERNAL_API_KEY` satu untuk semua. Kalau butuh mencabut akses
+3. **`source_type`** — di-set `'api'` pada `JournalEntry` yang dibuat, konsisten dengan kolom
+   `source_type`/`source_id` dari migrasi `2026_07_13_000003_add_source_to_journal_entries_table.php`.
+4. **Idempotensi (`external_reference`)** — kolom baru `journal_entries.external_reference` ditambahkan
+   lewat migrasi `2026_07_23_000001_add_external_reference_to_journal_entries_table.php`, dengan unique
+   index gabungan `(organization_id, external_reference)`. Dicek betulan di database sebelum insert.
+5. **`created_by` nullable** — kolom `journal_entries.created_by` sebelumnya wajib diisi (FK ke `users`,
+   NOT NULL), padahal jurnal dari API tidak punya pembuat manusia. Diubah jadi nullable lewat migrasi
+   `2026_07_23_000002_make_created_by_nullable_on_journal_entries_table.php`. View `journal-entries/show.blade.php`
+   sudah null-safe (`$journalEntry->creator->name ?? '-'`) jadi tidak perlu perubahan tambahan.
+
+Yang **masih belum dikerjakan**, dicatat sebagai perbaikan lanjutan (bukan penghambat endpoint ini dipakai):
+
+6. **Multi-key per partner** — saat ini `EXTERNAL_API_KEY` satu untuk semua. Kalau butuh mencabut akses
    satu aplikasi tanpa mengganggu yang lain, perlu tabel `api_clients` (nama, key, organisasi yang boleh
    diakses) menggantikan `VerifyApiKey` yang sekarang membandingkan ke satu key statis di `.env`.
-6. **Format error 404 route-model-binding** (§3.2) — saat ini `GET /api/journal-templates/{id}` dengan id
-   tak ditemukan akan menghasilkan halaman 404 default Laravel, bukan JSON `response_code`/`response_message`
-   yang konsisten. Sebaiknya diseragamkan bersamaan saat endpoint POST dibangun.
+7. **Format error 404 route-model-binding** (§3.2) — `GET /api/journal-templates/{id}` dengan id tak
+   ditemukan masih menghasilkan halaman 404 default Laravel, bukan JSON `response_code`/`response_message`
+   yang konsisten seperti endpoint lain.
 
 ## 6. Riwayat perubahan dokumen
 
 | Tanggal | Perubahan |
 |---|---|
 | 2026-07-22 | Draf awal — dokumentasi API Template Jurnal (live) + rancangan API POST Jurnal (belum dibangun) |
+| 2026-07-23 | `POST /api/journal-entries` dibangun dan diuji (lihat §5) — dokumen diperbarui dari "rancangan" jadi "live" |

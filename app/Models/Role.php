@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 
 class Role extends Model
 {
-    use HasUuids;
+    use HasUuids, Auditable;
 
     protected $fillable = ['name', 'slug', 'description', 'icon', 'color'];
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AuditLog;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
@@ -39,6 +40,7 @@ class GoogleAuthController extends Controller
         }
 
         Auth::login($user, remember: true);
+        AuditLog::record('login', $user, ['via' => 'google']);
 
         return redirect()->intended(route('dashboard'));
     }

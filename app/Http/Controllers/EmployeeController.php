@@ -147,10 +147,10 @@ class EmployeeController extends Controller
         ]);
 
         \DB::transaction(function () use ($employee, $validated) {
-            $employee->positions()->where('is_active', true)->update([
-                'is_active' => false,
-                'end_date'  => $validated['start_date'],
-            ]);
+            // Update satu per satu (bukan mass update) agar event model terpicu untuk audit log
+            $employee->positions()->where('is_active', true)->get()->each(function ($p) use ($validated) {
+                $p->update(['is_active' => false, 'end_date' => $validated['start_date']]);
+            });
 
             $employee->positions()->create([
                 'position_id' => $validated['position_id'],

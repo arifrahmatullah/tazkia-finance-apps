@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 
 class FundReport extends Model
 {
-    use HasUuids;
+    use HasUuids, Auditable;
 
     protected $fillable = [
         'fund_request_id', 'reported_by',
