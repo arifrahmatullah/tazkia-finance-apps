@@ -48,7 +48,7 @@
 - [ ] **Laporan estimasi vs realisasi pendapatan** (ref: `EstimateRevenueReportController`, `RealizedRevenuesReportController`)
 - [ ] **Standar biaya + satuan** — master standar harga satuan sebagai acuan/validasi nilai pengajuan (ref: `StandardController`, `StandardDetailController`, `SatuanDao`)
 - [ ] **PIC & porsi anggaran** — penanggung jawab per mata anggaran + pembagian porsi antar unit (ref: `PicAnggaranController`, `AnggaranDetailPorsiController`)
-- [ ] **Blokir pengajuan** — tutup/blokir pengajuan dana pada periode tertentu (ref: `BlockPengajuanDao`)
+- [x] **Blokir pengajuan** — tutup/buka sementara fitur pengajuan dana per organisasi, khusus role Keuangan & Superadmin (ref: `BlockPengajuanDao`) ✅ `/fund-request-blocks`
 - [ ] **Kwitansi / terbilang** — cetak bukti pencairan dengan nominal terbilang (ref: `Terbilang.java`)
 
 ## 🤔 Kemungkinan tidak relevan (spesifik aplikasi lama)

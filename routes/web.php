@@ -4,6 +4,7 @@ use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\BudgetProgramScheduleController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\FundRefundController;
+use App\Http\Controllers\FundRequestBlockController;
 use App\Http\Controllers\FundReportController;
 use App\Http\Controllers\GoogleAuthController;
 use App\Http\Controllers\IncomeEstimateController;
@@ -41,9 +42,9 @@ Route::middleware('auth')->group(function () {
     Route::resource('departments', DepartmentController::class)->except(['show']);
     Route::resource('positions', PositionController::class)->except(['show']);
     Route::get('budget-periods/active-period', [BudgetPeriodController::class, 'activePeriod'])->name('budget-periods.active');
-    Route::resource('budget-periods', BudgetPeriodController::class)->except(['show']);
-    Route::resource('budget-allocations', BudgetAllocationController::class)->except(['show']);
-    Route::get('budget-allocations-departments', [BudgetAllocationController::class, 'getDepartments'])->name('budget-allocations.departments');
+    Route::resource('budget-periods', BudgetPeriodController::class)->except(['show'])->middleware('permission:menu.periode-anggaran');
+    Route::resource('budget-allocations', BudgetAllocationController::class)->except(['show'])->middleware('permission:menu.pagu-anggaran');
+    Route::get('budget-allocations-departments', [BudgetAllocationController::class, 'getDepartments'])->name('budget-allocations.departments')->middleware('permission:menu.pagu-anggaran');
 
     // Budget Programs & Details
     Route::resource('budget-programs', BudgetProgramController::class)->middleware('permission:menu.program-kerja');
@@ -99,6 +100,12 @@ Route::middleware('auth')->group(function () {
     Route::delete('fund-request-files/{fundRequestFile}', [FundRequestController::class, 'deleteFile'])->name('fund-requests.files.delete');
     Route::post('fund-requests/{fund_request}/confirm-receipt', [FundRequestController::class, 'confirmReceipt'])->name('fund-requests.confirm-receipt');
     Route::post('fund-requests/{fund_request}/dispute-receipt', [FundRequestController::class, 'disputeReceipt'])->name('fund-requests.dispute-receipt');
+
+    // Blokir Pengajuan
+    Route::middleware('permission:menu.blokir-pengajuan')->group(function () {
+        Route::get('fund-request-blocks', [FundRequestBlockController::class, 'index'])->name('fund-request-blocks.index');
+        Route::put('fund-request-blocks/{organization}', [FundRequestBlockController::class, 'update'])->name('fund-request-blocks.update');
+    });
 
     // Laporan Dana
     Route::get('fund-reports', [FundReportController::class, 'index'])->name('fund-reports.index');

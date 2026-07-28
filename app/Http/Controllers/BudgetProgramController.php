@@ -145,6 +145,7 @@ class BudgetProgramController extends Controller
             auth()->user()->canAccessOrganization($allocation->department->organization_id),
             403
         );
+        $this->assertDepartmentAccess($allocation->department_id, 'Anda hanya dapat membuat program kerja untuk departemen Anda sendiri.');
 
         $validated = $request->validate([
             'budget_allocation_id' => 'required|exists:budget_allocations,id',
@@ -217,7 +218,7 @@ class BudgetProgramController extends Controller
             auth()->user()->canAccessOrganization($budgetProgram->budgetAllocation->department->organization_id),
             403
         );
-        $this->assertDepartmentAccess($budgetProgram);
+        $this->assertDepartmentAccess($budgetProgram->budgetAllocation->department_id);
 
         $accounts = Account::where('account_type', 'beban')
             ->where('is_active', true)
@@ -236,7 +237,7 @@ class BudgetProgramController extends Controller
             auth()->user()->canAccessOrganization($budgetProgram->budgetAllocation->department->organization_id),
             403
         );
-        $this->assertDepartmentAccess($budgetProgram);
+        $this->assertDepartmentAccess($budgetProgram->budgetAllocation->department_id);
 
         return view('budget-programs.edit', compact('budgetProgram'));
     }
@@ -249,7 +250,7 @@ class BudgetProgramController extends Controller
             auth()->user()->canAccessOrganization($budgetProgram->budgetAllocation->department->organization_id),
             403
         );
-        $this->assertDepartmentAccess($budgetProgram);
+        $this->assertDepartmentAccess($budgetProgram->budgetAllocation->department_id);
 
         $validated = $request->validate([
             'name'      => 'required|string|max:255',
@@ -292,7 +293,7 @@ class BudgetProgramController extends Controller
             auth()->user()->canAccessOrganization($budgetProgram->budgetAllocation->department->organization_id),
             403
         );
-        $this->assertDepartmentAccess($budgetProgram);
+        $this->assertDepartmentAccess($budgetProgram->budgetAllocation->department_id);
 
         $budgetProgram->delete();
 
@@ -301,9 +302,9 @@ class BudgetProgramController extends Controller
             ->with('success', 'Program kerja berhasil dihapus.');
     }
 
-    // Staf hanya boleh mengakses program departemennya sendiri;
+    // Staf hanya boleh mengakses/membuat program untuk departemennya sendiri;
     // superadmin & keuangan (pencairan dana) bebas dalam organisasinya
-    private function assertDepartmentAccess(BudgetProgram $budgetProgram): void
+    private function assertDepartmentAccess(string $departmentId, string $errorMessage = 'Anda hanya dapat mengakses program kerja departemen Anda sendiri.'): void
     {
         $user = auth()->user();
 
@@ -315,10 +316,6 @@ class BudgetProgramController extends Controller
             ->with('activePosition.position')->first()
             ?->activePosition?->position?->department_id;
 
-        abort_unless(
-            $userDeptId && $budgetProgram->budgetAllocation->department_id === $userDeptId,
-            403,
-            'Anda hanya dapat mengakses program kerja departemen Anda sendiri.'
-        );
+        abort_unless($userDeptId && $departmentId === $userDeptId, 403, $errorMessage);
     }
 }

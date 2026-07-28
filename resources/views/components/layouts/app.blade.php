@@ -166,7 +166,7 @@
         @endif
 
         {{-- KEUANGAN --}}
-        @php $showKeuangan = auth()->user()->hasPermission('menu.periode-anggaran') || auth()->user()->hasPermission('menu.estimasi-pendapatan') || auth()->user()->hasPermission('menu.pagu-anggaran') || auth()->user()->hasPermission('menu.program-kerja') || auth()->user()->hasPermission('menu.pengajuan-dana') || auth()->user()->hasPermission('menu.inbox-approval') || auth()->user()->hasPermission('menu.pencairan-dana') || auth()->user()->employee?->activePosition; @endphp
+        @php $showKeuangan = auth()->user()->hasPermission('menu.periode-anggaran') || auth()->user()->hasPermission('menu.estimasi-pendapatan') || auth()->user()->hasPermission('menu.pagu-anggaran') || auth()->user()->hasPermission('menu.program-kerja') || auth()->user()->hasPermission('menu.pengajuan-dana') || auth()->user()->hasPermission('menu.inbox-approval') || auth()->user()->hasPermission('menu.pencairan-dana') || auth()->user()->hasPermission('menu.blokir-pengajuan') || auth()->user()->employee?->activePosition; @endphp
         @if($showKeuangan)
         <div class="px-5 pt-4 pb-1.5 text-[0.65rem] font-semibold text-slate-400/70 tracking-[0.1em] uppercase">Keuangan</div>
 
@@ -351,6 +351,19 @@
                           {{ request()->routeIs('finance.pengembalian*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Pengembalian Dana</a>
             </div>
         </div>
+        @endif
+
+        @if(auth()->user()->hasPermission('menu.blokir-pengajuan'))
+        <a href="{{ route('fund-request-blocks.index') }}"
+           class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg no-underline text-[0.835rem] transition-all relative
+                  {{ request()->routeIs('fund-request-blocks.*') ? 'active bg-orange-500/[0.15] text-white font-[550]' : 'text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white' }}">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                class="{{ request()->routeIs('fund-request-blocks.*') ? 'text-orange-300' : 'opacity-80' }}">
+                <rect x="3" y="11" width="18" height="10" rx="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M7 11V7a5 5 0 0110 0v4"/>
+            </svg>
+            Blokir Pengajuan
+        </a>
         @endif
         @endif
 

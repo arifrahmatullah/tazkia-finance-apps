@@ -76,6 +76,13 @@ class FundRequestController extends Controller
         $employee->load('organization', 'activePosition.position.department');
         $activePosition = $employee->activePosition?->position;
 
+        if ($employee->organization?->fund_request_blocked) {
+            return redirect()->route('fund-requests.index')->withErrors([
+                'blocked' => 'Pengajuan dana baru untuk "' . $employee->organization->name . '" sedang ditutup sementara.'
+                    . ($employee->organization->fund_request_block_reason ? ' Alasan: ' . $employee->organization->fund_request_block_reason : ''),
+            ]);
+        }
+
         return view('fund-requests.create', compact('employee', 'activePosition'));
     }
 
@@ -84,6 +91,9 @@ class FundRequestController extends Controller
         $user     = auth()->user();
         $employee = $user->employee;
         abort_unless($employee, 403);
+
+        $employee->loadMissing('organization');
+        abort_if($employee->organization?->fund_request_blocked, 422, 'Pengajuan dana baru untuk organisasi ini sedang ditutup sementara.');
 
         $request->validate([
             'budget_program_id'  => 'required|exists:budget_programs,id',
@@ -110,11 +120,8 @@ class FundRequestController extends Controller
         $program = BudgetProgram::with('budgetAllocation')->findOrFail($request->budget_program_id);
         abort_unless($program->budgetAllocation->department_id === $department->id, 403, 'Program tidak sesuai departemen Anda.');
 
-        $programTotal = (float) $program->total_amount;
-        if ((float) $request->amount > $programTotal) {
-            return back()->withInput()->withErrors([
-                'amount' => 'Nominal melebihi pagu program (Rp ' . number_format($programTotal, 0, ',', '.') . ').',
-            ]);
+        if ($error = $this->programBudgetError($program, (float) $request->amount)) {
+            return back()->withInput()->withErrors(['amount' => $error]);
         }
 
         $orgId          = $employee->organization_id;
@@ -219,6 +226,14 @@ class FundRequestController extends Controller
             'bank_account_number.regex' => 'Nomor rekening hanya boleh berisi angka.',
             'purpose.required'          => 'Tujuan / keterangan wajib diisi.',
         ]);
+
+        $fundRequest->loadMissing('budgetProgram');
+        if ($fundRequest->budgetProgram) {
+            $error = $this->programBudgetError($fundRequest->budgetProgram, (float) $request->amount, $fundRequest->id);
+            if ($error) {
+                return back()->withInput()->withErrors(['amount' => $error]);
+            }
+        }
 
         $fundRequest->update([
             'department_id'      => $request->department_id,
@@ -428,6 +443,29 @@ class FundRequestController extends Controller
         ]);
 
         return back()->with('success', 'Kendala berhasil dilaporkan. Tim keuangan akan menindaklanjuti.');
+    }
+
+    /**
+     * Menghitung sisa pagu program (total_amount dikurangi pengajuan lain yang masih berlaku)
+     * dan mengembalikan pesan error jika nominal baru melebihi sisa tersebut, atau null jika aman.
+     */
+    private function programBudgetError(BudgetProgram $program, float $newAmount, ?string $excludeFundRequestId = null): ?string
+    {
+        $programTotal = (float) $program->total_amount;
+
+        $usedByOthers = (float) FundRequest::where('budget_program_id', $program->id)
+            ->where('status', '!=', 'rejected')
+            ->when($excludeFundRequestId, fn($q) => $q->where('id', '!=', $excludeFundRequestId))
+            ->sum('amount');
+
+        $remaining = $programTotal - $usedByOthers;
+
+        if ($newAmount > $remaining) {
+            return 'Nominal melebihi sisa pagu program (Rp ' . number_format(max($remaining, 0), 0, ',', '.')
+                . ' dari total pagu Rp ' . number_format($programTotal, 0, ',', '.') . ').';
+        }
+
+        return null;
     }
 
     private function currentUserCanApprove(FundRequest $fundRequest, $user): bool
