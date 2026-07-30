@@ -106,11 +106,16 @@
                     </div>
                 </td>
                 <td class="px-4 py-3 text-sm text-slate-600 align-middle">
-                    @if($user->role)
-                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold"
-                            style="background:{{ $user->role->color ? $user->role->color.'20' : '#f1f5f9' }};color:{{ $user->role->color ?? '#64748b' }};">
-                            {{ $user->role->name }}
-                        </span>
+                    @php $userRoles = $user->availableRoles(); @endphp
+                    @if($userRoles->isNotEmpty())
+                        <div class="flex flex-wrap gap-1">
+                            @foreach($userRoles as $role)
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold"
+                                style="background:{{ $role->color ? $role->color.'20' : '#f1f5f9' }};color:{{ $role->color ?? '#64748b' }};">
+                                {{ $role->name }}
+                            </span>
+                            @endforeach
+                        </div>
                     @else
                         <span class="text-slate-300 text-sm">—</span>
                     @endif

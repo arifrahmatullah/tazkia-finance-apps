@@ -39,12 +39,14 @@
 {{-- Role --}}
 <div class="mb-6">
     <div class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3.5 pb-2 border-b border-slate-100">Role</div>
+    <p class="text-xs text-slate-400 -mt-2 mb-3">Satu user bisa memiliki lebih dari satu role. Saat login, user akan diminta memilih role yang aktif.</p>
     <div class="grid grid-cols-[repeat(auto-fill,minmax(170px,1fr))] gap-2.5" id="roleGrid">
+        @php $selectedRoleIds = old('role_ids', $assignedRoleIds ?? ($usr?->role_id ? [$usr->role_id] : [])); @endphp
         @foreach($roles as $role)
         <label class="relative flex flex-col gap-1 px-3.5 py-3 border rounded-xl cursor-pointer transition-all hover:border-orange-400 hover:bg-orange-50/50 has-[:checked]:border-orange-400 has-[:checked]:bg-orange-50">
-            <input type="radio" name="role_id" id="role-{{ $role->id }}" value="{{ $role->id }}"
-                {{ old('role_id', $usr?->role_id) == $role->id ? 'checked' : '' }}
-                onchange="handleRoleChange(this)" class="sr-only">
+            <input type="checkbox" name="role_ids[]" id="role-{{ $role->id }}" value="{{ $role->id }}"
+                {{ in_array($role->id, $selectedRoleIds) ? 'checked' : '' }}
+                onchange="handleRoleChange()" class="sr-only">
             <span class="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
                 <span class="inline-block w-2 h-2 rounded-full shrink-0" style="background:{{ $role->color ?? '#64748b' }};"></span>
                 {{ $role->name }}
@@ -55,7 +57,7 @@
         </label>
         @endforeach
     </div>
-    @error('role_id') <span class="text-xs text-red-500 mt-1.5 block">{{ $message }}</span> @enderror
+    @error('role_ids') <span class="text-xs text-red-500 mt-1.5 block">{{ $message }}</span> @enderror
 </div>
 
 {{-- Organisasi --}}
@@ -98,9 +100,12 @@
 <script>
 const superadminRoleId = '{{ $roles->firstWhere('slug', 'superadmin')?->id }}';
 
-function handleRoleChange(radio) {
-    const orgSection = document.getElementById('org-section');
-    if (radio.value === superadminRoleId) {
+function handleRoleChange() {
+    const orgSection   = document.getElementById('org-section');
+    const checkedRoles = Array.from(document.querySelectorAll('input[name="role_ids[]"]:checked')).map(el => el.value);
+    const onlySuperadmin = checkedRoles.length > 0 && checkedRoles.every(id => id === superadminRoleId);
+
+    if (onlySuperadmin) {
         orgSection.style.opacity = '0.4';
         orgSection.style.pointerEvents = 'none';
     } else {
@@ -121,7 +126,6 @@ function toggleOrgLabel(cb) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    const checked = document.querySelector('input[name=role_id]:checked');
-    if (checked) handleRoleChange(checked);
+    handleRoleChange();
 });
 </script>

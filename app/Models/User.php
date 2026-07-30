@@ -34,6 +34,9 @@ class User extends Authenticatable
         'remember_token',
     ];
 
+    private bool $_activeRoleResolved = false;
+    private ?Role $_activeRole        = null;
+
     /**
      * Get the attributes that should be cast.
      *
@@ -65,12 +68,12 @@ class User extends Authenticatable
 
     public function isSuperAdmin(): bool
     {
-        return $this->role?->slug === 'superadmin';
+        return $this->activeRole()?->slug === 'superadmin';
     }
 
     public function hasRole(string $slug): bool
     {
-        return $this->role?->slug === $slug;
+        return $this->activeRole()?->slug === $slug;
     }
 
     public function hasPermission(string $slug): bool
@@ -79,9 +82,14 @@ class User extends Authenticatable
             return true;
         }
 
-        $this->loadMissing('role.permissions');
+        $role = $this->activeRole();
+        if (!$role) {
+            return false;
+        }
 
-        return $this->role?->permissions->contains('slug', $slug) ?? false;
+        $role->loadMissing('permissions');
+
+        return $role->permissions->contains('slug', $slug);
     }
 
     public function hasRoleInOrganization(string $slug, string $organizationId): bool
@@ -93,21 +101,76 @@ class User extends Authenticatable
     }
 
     /**
-     * Kembalikan array organization_id milik user.
-     * Superadmin mengembalikan null (berarti tidak ada filter / lihat semua).
+     * Semua role unik milik user: role utama (role_id) + semua role dari
+     * penugasan per-organisasi (user_organization_roles).
+     */
+    public function availableRoles(): \Illuminate\Support\Collection
+    {
+        $roleIds = $this->organizationRoles()->pluck('role_id');
+
+        if ($this->role_id) {
+            $roleIds->push($this->role_id);
+        }
+
+        $roleIds = $roleIds->unique()->filter()->values();
+
+        if ($roleIds->isEmpty()) {
+            return collect();
+        }
+
+        return Role::whereIn('id', $roleIds)->orderBy('name')->get();
+    }
+
+    public function hasMultipleRoles(): bool
+    {
+        return $this->availableRoles()->count() > 1;
+    }
+
+    /**
+     * Role yang sedang aktif untuk sesi saat ini. Kalau user cuma punya
+     * satu role dipakai otomatis; kalau lebih dari satu diambil dari
+     * pilihan role di sesi (login / ganti role).
+     */
+    public function activeRole(): ?Role
+    {
+        if ($this->_activeRoleResolved) {
+            return $this->_activeRole;
+        }
+
+        $roles = $this->availableRoles();
+
+        if ($roles->count() <= 1) {
+            $active = $roles->first() ?? $this->role;
+        } else {
+            $sessionRoleId = session('active_role_id');
+            $active = $sessionRoleId ? $roles->firstWhere('id', $sessionRoleId) : null;
+            $active = $active ?? $this->role ?? $roles->first();
+        }
+
+        $this->_activeRoleResolved = true;
+        $this->_activeRole         = $active;
+
+        return $active;
+    }
+
+    /**
+     * Kembalikan array organization_id milik user untuk role yang sedang
+     * aktif. Superadmin mengembalikan null (berarti tidak ada filter / lihat semua).
      */
     public function organizationIds(): ?array
     {
-        if ($this->isSuperAdmin()) {
+        $active = $this->activeRole();
+
+        if ($active?->slug === 'superadmin') {
             return null;
         }
 
-        $orgIds = $this->organizationRoles()
-            ->whereNotNull('organization_id')
-            ->pluck('organization_id')
-            ->unique()
-            ->values()
-            ->toArray();
+        $query = $this->organizationRoles()->whereNotNull('organization_id');
+        if ($active) {
+            $query->where('role_id', $active->id);
+        }
+
+        $orgIds = $query->pluck('organization_id')->unique()->values()->toArray();
 
         if (!empty($orgIds)) {
             return $orgIds;

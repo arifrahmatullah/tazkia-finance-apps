@@ -506,8 +506,14 @@
                 <div class="text-white text-[0.8rem] font-semibold truncate">{{ auth()->user()->name }}</div>
                 {{-- Tampilkan jabatan; kalau tidak punya jabatan aktif, baru pakai role --}}
                 <div class="text-blue-300 text-[0.68rem] mt-px truncate">
-                    {{ auth()->user()->employee?->activePosition?->position?->name ?? ucfirst(auth()->user()->role?->slug ?? '-') }}
+                    {{ auth()->user()->employee?->activePosition?->position?->name ?? (auth()->user()->activeRole()?->name ?? '-') }}
                 </div>
+                @if(auth()->user()->hasMultipleRoles())
+                <a href="{{ route('role-select.show') }}" class="text-orange-300 text-[0.64rem] mt-0.5 inline-flex items-center gap-1 no-underline hover:text-orange-200 transition-colors">
+                    <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    Ganti Role
+                </a>
+                @endif
             </div>
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
@@ -547,9 +553,22 @@
 
         {{-- Header Right --}}
         <div class="flex items-center gap-2.5">
+            @php
+                $activeRole = auth()->user()->activeRole();
+                $orgRow     = auth()->user()->organizationRoles->firstWhere('role_id', $activeRole?->id);
+                $orgLabel   = auth()->user()->isSuperAdmin() ? 'Semua Organisasi' : ($orgRow?->organization?->name ?? auth()->user()->organizationRoles->first()?->organization?->name ?? '-');
+            @endphp
+
+            {{-- Role badge --}}
+            @if(auth()->user()->hasMultipleRoles())
+            <div class="px-3 py-1.5 rounded-full bg-orange-50 border border-orange-200 text-[0.72rem] font-semibold text-orange-700">
+                {{ $activeRole?->name ?? '-' }}
+            </div>
+            @endif
+
             {{-- Org badge --}}
             <div class="px-3 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-[0.72rem] font-semibold text-blue-700">
-                {{ auth()->user()->role?->slug === 'superadmin' ? 'Semua Organisasi' : (auth()->user()->organizationRoles->first()?->organization?->name ?? '-') }}
+                {{ $orgLabel }}
             </div>
 
             {{-- Notification --}}

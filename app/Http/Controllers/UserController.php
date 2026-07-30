@@ -20,7 +20,7 @@ class UserController extends Controller
         $filterOrg    = $request->input('organization_id');
         $filterStatus = $request->input('status');
 
-        $users = User::with(['role', 'organizationRoles.organization'])
+        $users = User::with(['role', 'organizationRoles.organization', 'organizationRoles.role'])
             ->when(!$isSuperAdmin, fn($q) => $q->whereHas('organizationRoles',
                 fn($r) => $r->whereIn('organization_id', $orgIds)
             ))
@@ -28,7 +28,10 @@ class UserController extends Controller
                 ->where('name', 'like', "%{$search}%")
                 ->orWhere('email', 'like', "%{$search}%")
             ))
-            ->when($filterRole, fn($q) => $q->where('role_id', $filterRole))
+            ->when($filterRole, fn($q) => $q->where(fn($q2) => $q2
+                ->where('role_id', $filterRole)
+                ->orWhereHas('organizationRoles', fn($r) => $r->where('role_id', $filterRole))
+            ))
             ->when($filterOrg, fn($q) => $q->whereHas('organizationRoles',
                 fn($r) => $r->where('organization_id', $filterOrg)
             ))
@@ -65,18 +68,19 @@ class UserController extends Controller
         $isSuperAdmin = auth()->user()->isSuperAdmin();
 
         $validated = $request->validate([
-            'name'             => 'required|string|max:100',
-            'email'            => 'required|email|max:150|unique:users,email',
-            'password'         => 'required|string|min:8|confirmed',
-            'role_id'          => 'required|exists:roles,id',
-            'organization_ids' => 'nullable|array',
-            'organization_ids.*' => 'exists:organizations,id',
+            'name'                => 'required|string|max:100',
+            'email'               => 'required|email|max:150|unique:users,email',
+            'password'            => 'required|string|min:8|confirmed',
+            'role_ids'            => 'required|array|min:1',
+            'role_ids.*'          => 'exists:roles,id',
+            'organization_ids'    => 'nullable|array',
+            'organization_ids.*'  => 'exists:organizations,id',
         ]);
 
-        $role = Role::findOrFail($validated['role_id']);
+        $roles = Role::whereIn('id', $validated['role_ids'])->get();
 
         // Hanya superadmin yang bisa buat user superadmin
-        if ($role->slug === 'superadmin') {
+        if ($roles->contains('slug', 'superadmin')) {
             abort_unless($isSuperAdmin, 403);
         }
 
@@ -89,21 +93,30 @@ class UserController extends Controller
             }
         }
 
-        $user = \DB::transaction(function () use ($validated, $role, $orgIds) {
+        $nonSuperadminRoles = $roles->reject(fn($r) => $r->slug === 'superadmin');
+        if ($nonSuperadminRoles->isNotEmpty() && empty($orgIds)) {
+            return back()->withInput()->withErrors([
+                'organization_ids' => 'Pilih minimal satu organisasi untuk role yang dipilih.',
+            ]);
+        }
+
+        $primaryRole = $roles->firstWhere('slug', 'superadmin') ?? $roles->first();
+
+        $user = \DB::transaction(function () use ($validated, $roles, $nonSuperadminRoles, $orgIds, $primaryRole) {
             $user = User::create([
                 'name'      => $validated['name'],
                 'email'     => $validated['email'],
                 'password'  => Hash::make($validated['password']),
-                'role_id'   => $validated['role_id'],
+                'role_id'   => $primaryRole->id,
                 'is_active' => true,
             ]);
 
-            if ($role->slug !== 'superadmin') {
+            foreach ($nonSuperadminRoles as $role) {
                 foreach ($orgIds as $orgId) {
                     UserOrganizationRole::create([
                         'user_id'         => $user->id,
                         'organization_id' => $orgId,
-                        'role_id'         => $validated['role_id'],
+                        'role_id'         => $role->id,
                     ]);
                 }
             }
@@ -122,8 +135,18 @@ class UserController extends Controller
         $roles         = Role::orderBy('name')->get();
         $organizations = $this->allowedOrgs()->orderBy('name')->get();
         $assignedOrgIds = $user->organizationRoles()->pluck('organization_id')->toArray();
+        $assignedRoleIds = $user->availableRoles()->pluck('id')->toArray();
 
-        return view('users.edit', compact('user', 'roles', 'organizations', 'assignedOrgIds'));
+        // Akun lama kadang cuma punya role_id tanpa baris user_organization_roles.
+        // Supaya checkbox organisasi tidak kosong (dan gampang lupa dicentang), fallback ke organisasi karyawannya.
+        if (empty($assignedOrgIds)) {
+            $user->loadMissing('employee');
+            if ($user->employee?->organization_id) {
+                $assignedOrgIds = [$user->employee->organization_id];
+            }
+        }
+
+        return view('users.edit', compact('user', 'roles', 'organizations', 'assignedOrgIds', 'assignedRoleIds'));
     }
 
     public function update(Request $request, User $user)
@@ -133,17 +156,18 @@ class UserController extends Controller
         $isSuperAdmin = auth()->user()->isSuperAdmin();
 
         $validated = $request->validate([
-            'name'               => 'required|string|max:100',
-            'email'              => 'required|email|max:150|unique:users,email,' . $user->id,
-            'password'           => 'nullable|string|min:8|confirmed',
-            'role_id'            => 'required|exists:roles,id',
-            'organization_ids'   => 'nullable|array',
-            'organization_ids.*' => 'exists:organizations,id',
-            'is_active'          => 'boolean',
+            'name'                => 'required|string|max:100',
+            'email'               => 'required|email|max:150|unique:users,email,' . $user->id,
+            'password'            => 'nullable|string|min:8|confirmed',
+            'role_ids'            => 'required|array|min:1',
+            'role_ids.*'          => 'exists:roles,id',
+            'organization_ids'    => 'nullable|array',
+            'organization_ids.*'  => 'exists:organizations,id',
+            'is_active'           => 'boolean',
         ]);
 
-        $role = Role::findOrFail($validated['role_id']);
-        if ($role->slug === 'superadmin') {
+        $roles = Role::whereIn('id', $validated['role_ids'])->get();
+        if ($roles->contains('slug', 'superadmin')) {
             abort_unless($isSuperAdmin, 403);
         }
 
@@ -155,28 +179,35 @@ class UserController extends Controller
             }
         }
 
+        $nonSuperadminRoles = $roles->reject(fn($r) => $r->slug === 'superadmin');
+        if ($nonSuperadminRoles->isNotEmpty() && empty($orgIds)) {
+            return back()->withInput()->withErrors([
+                'organization_ids' => 'Pilih minimal satu organisasi untuk role yang dipilih.',
+            ]);
+        }
+
+        $primaryRole = $roles->firstWhere('slug', 'superadmin') ?? $roles->first();
+
         $data = [
             'name'      => $validated['name'],
             'email'     => $validated['email'],
-            'role_id'   => $validated['role_id'],
+            'role_id'   => $primaryRole->id,
             'is_active' => $request->boolean('is_active'),
         ];
         if (!empty($validated['password'])) {
             $data['password'] = Hash::make($validated['password']);
         }
 
-        \DB::transaction(function () use ($user, $data, $role, $orgIds, $validated) {
+        \DB::transaction(function () use ($user, $data, $nonSuperadminRoles, $orgIds) {
             $user->update($data);
 
-            if ($role->slug === 'superadmin') {
-                $user->organizationRoles()->delete();
-            } else {
-                $user->organizationRoles()->delete();
+            $user->organizationRoles()->delete();
+            foreach ($nonSuperadminRoles as $role) {
                 foreach ($orgIds as $orgId) {
                     UserOrganizationRole::create([
                         'user_id'         => $user->id,
                         'organization_id' => $orgId,
-                        'role_id'         => $validated['role_id'],
+                        'role_id'         => $role->id,
                     ]);
                 }
             }

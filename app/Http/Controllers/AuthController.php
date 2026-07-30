@@ -24,7 +24,17 @@ class AuthController extends Controller
 
         if (auth()->attempt($credentials, $request->boolean('remember'))) {
             $request->session()->regenerate();
+            $request->session()->forget('active_role_id');
             AuditLog::record('login', auth()->user());
+
+            $roles = auth()->user()->availableRoles();
+            if ($roles->count() > 1) {
+                return redirect()->route('role-select.show');
+            }
+            if ($roles->count() === 1) {
+                $request->session()->put('active_role_id', $roles->first()->id);
+            }
+
             return redirect()->intended(route('dashboard'));
         }
 

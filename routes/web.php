@@ -25,6 +25,7 @@ use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\PositionController;
 use App\Http\Controllers\RolePermissionController;
+use App\Http\Controllers\RoleSelectionController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn() => redirect()->route('login'));
@@ -37,6 +38,11 @@ Route::get('/auth/google', [GoogleAuthController::class, 'redirect'])->name('aut
 Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->name('auth.google.callback');
 
 Route::middleware('auth')->group(function () {
+    Route::get('/pilih-role', [RoleSelectionController::class, 'show'])->name('role-select.show');
+    Route::post('/pilih-role', [RoleSelectionController::class, 'select'])->name('role-select.select');
+});
+
+Route::middleware(['auth', 'role.selected'])->group(function () {
     Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
     Route::resource('organizations', OrganizationController::class)->except(['show']);
     Route::resource('departments', DepartmentController::class)->except(['show']);

@@ -40,7 +40,16 @@ class GoogleAuthController extends Controller
         }
 
         Auth::login($user, remember: true);
+        session()->forget('active_role_id');
         AuditLog::record('login', $user, ['via' => 'google']);
+
+        $roles = $user->availableRoles();
+        if ($roles->count() > 1) {
+            return redirect()->route('role-select.show');
+        }
+        if ($roles->count() === 1) {
+            session(['active_role_id' => $roles->first()->id]);
+        }
 
         return redirect()->intended(route('dashboard'));
     }

@@ -13,8 +13,9 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
-            'permission' => \App\Http\Middleware\CheckPermission::class,
-            'api.key'    => \App\Http\Middleware\VerifyApiKey::class,
+            'permission'    => \App\Http\Middleware\CheckPermission::class,
+            'api.key'       => \App\Http\Middleware\VerifyApiKey::class,
+            'role.selected' => \App\Http\Middleware\EnsureRoleSelected::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
