@@ -12,7 +12,7 @@
 
 <a href="{{ route('accounts.index', ['organization_id' => $account->organization_id]) }}" class="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-orange-500 mb-5 no-underline">
     <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-    Kembali ke Chart of Accounts
+    Kembali ke Bagan Akun
 </a>
 
 <h1 class="text-xl font-bold text-slate-900 m-0 mb-2">Edit Akun</h1>

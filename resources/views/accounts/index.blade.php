@@ -1,4 +1,4 @@
-<x-layouts.app title="Chart of Accounts">
+<x-layouts.app title="Bagan Akun">
 @php
 $typeInfo = App\Models\Account::TYPES;
 $typeOrder = ['aset','kewajiban','ekuitas','pendapatan','beban'];
@@ -6,7 +6,7 @@ $typeOrder = ['aset','kewajiban','ekuitas','pendapatan','beban'];
 
 <div class="flex items-center justify-between mb-5">
     <div>
-        <h2 class="text-lg font-bold text-slate-900 m-0 mb-0.5">Chart of Accounts</h2>
+        <h2 class="text-lg font-bold text-slate-900 m-0 mb-0.5">Bagan Akun</h2>
         <p class="text-xs text-slate-400 m-0">Bagan akun akuntansi per organisasi</p>
     </div>
     <a href="{{ route('accounts.create', ['organization_id' => request('organization_id')]) }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-br from-orange-400 to-orange-500 text-white text-sm font-semibold shadow-sm hover:-translate-y-px transition-all no-underline">

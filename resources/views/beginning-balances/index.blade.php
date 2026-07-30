@@ -68,7 +68,7 @@
 @if($accounts->isEmpty())
 <div class="bg-white rounded-xl shadow-sm py-16 px-5 text-center">
     <div class="text-sm font-semibold text-slate-600 mb-1">Belum ada akun</div>
-    <div class="text-xs text-slate-400">Tambahkan akun pada menu <strong>Chart of Accounts</strong> terlebih dahulu.</div>
+    <div class="text-xs text-slate-400">Tambahkan akun pada menu <strong>Bagan Akun</strong> terlebih dahulu.</div>
 </div>
 @else
 

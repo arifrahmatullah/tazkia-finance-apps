@@ -37,6 +37,7 @@ class PermissionSeeder extends Seeder
 
             // Laporan
             ['slug' => 'menu.laporan',              'name' => 'Laporan Keuangan',       'group' => 'laporan'],
+            ['slug' => 'menu.laporan-akuntansi',    'name' => 'Laporan Akuntansi',      'group' => 'laporan'],
 
             // Sistem
             ['slug' => 'menu.users',                'name' => 'Manajemen User',         'group' => 'sistem'],
@@ -56,11 +57,11 @@ class PermissionSeeder extends Seeder
                 'menu.pagu-anggaran', 'menu.program-kerja',
                 'menu.pengajuan-dana', 'menu.inbox-approval',
                 'menu.pencairan-dana', 'menu.blokir-pengajuan',
-                'menu.coa', 'menu.laporan',
+                'menu.coa', 'menu.laporan', 'menu.laporan-akuntansi',
             ],
             'akunting' => [
                 'menu.dashboard',
-                'menu.jurnal-umum', 'menu.coa', 'menu.laporan',
+                'menu.jurnal-umum', 'menu.coa', 'menu.laporan-akuntansi',
             ],
             'staf' => [
                 'menu.dashboard',

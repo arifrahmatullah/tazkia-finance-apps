@@ -385,7 +385,7 @@
                     @if($bankAccounts->isEmpty())
                     <div class="flex items-center gap-2 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-700">
                         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
-                        Tidak ada akun REKENING BANK di COA. Tambahkan dulu di Chart of Accounts.
+                        Tidak ada akun REKENING BANK di Bagan Akun. Tambahkan dulu di Bagan Akun.
                     </div>
                     @else
                     <select name="disburse_account_id" id="disburse-account-select" required

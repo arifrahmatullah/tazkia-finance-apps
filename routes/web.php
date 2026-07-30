@@ -146,11 +146,15 @@ Route::middleware(['auth', 'role.selected'])->group(function () {
         Route::post('finance/pengembalian/{fundRefund}/reject', [FinanceController::class, 'rejectRefund'])->name('finance.pengembalian.reject');
     });
 
-    // Laporan (rekap untuk keuangan/pimpinan)
+    // Laporan (rekap untuk keuangan/pimpinan) — khusus Keuangan
     Route::middleware('permission:menu.laporan')->group(function () {
         Route::get('reports/pengajuan-dana', [\App\Http\Controllers\FinanceReportController::class, 'fundRequests'])->name('reports.fund-requests');
         Route::get('reports/pencairan-dana', [\App\Http\Controllers\FinanceReportController::class, 'disbursements'])->name('reports.disbursements');
         Route::get('reports/realisasi-anggaran', [\App\Http\Controllers\FinanceReportController::class, 'budgetRealization'])->name('reports.budget-realization');
+    });
+
+    // Laporan Akuntansi — Keuangan & Akunting
+    Route::middleware('permission:menu.laporan-akuntansi')->group(function () {
         Route::get('reports/buku-besar', [\App\Http\Controllers\FinanceReportController::class, 'generalLedger'])->name('reports.general-ledger');
         Route::get('reports/neraca-saldo', [\App\Http\Controllers\FinanceReportController::class, 'trialBalance'])->name('reports.trial-balance');
     });

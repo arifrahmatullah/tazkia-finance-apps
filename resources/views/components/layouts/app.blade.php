@@ -409,13 +409,13 @@
                 class="{{ request()->routeIs('accounts.*') ? 'text-orange-300' : 'opacity-80' }}">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/>
             </svg>
-            Chart of Accounts
+            Bagan Akun
         </a>
         @endif
         @endif
 
         {{-- LAPORAN --}}
-        @if(auth()->user()->hasPermission('menu.laporan'))
+        @if(auth()->user()->hasPermission('menu.laporan') || auth()->user()->hasPermission('menu.laporan-akuntansi'))
         <div class="px-5 pt-4 pb-1.5 text-[0.65rem] font-semibold text-slate-400/70 tracking-[0.1em] uppercase">Laporan</div>
         <div>
             <div class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg cursor-pointer text-[0.835rem] transition-all relative
@@ -432,6 +432,7 @@
                 </svg>
             </div>
             <div class="nav-submenu {{ request()->routeIs('reports.*') ? 'open' : '' }} hidden" id="sub-laporan">
+                @if(auth()->user()->hasPermission('menu.laporan'))
                 <a href="{{ route('reports.fund-requests') }}"
                    class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
                           {{ request()->routeIs('reports.fund-requests') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Pengajuan Dana</a>
@@ -441,12 +442,15 @@
                 <a href="{{ route('reports.budget-realization') }}"
                    class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
                           {{ request()->routeIs('reports.budget-realization') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Realisasi Anggaran</a>
+                @endif
+                @if(auth()->user()->hasPermission('menu.laporan-akuntansi'))
                 <a href="{{ route('reports.general-ledger') }}"
                    class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
                           {{ request()->routeIs('reports.general-ledger') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Buku Besar</a>
                 <a href="{{ route('reports.trial-balance') }}"
                    class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
                           {{ request()->routeIs('reports.trial-balance') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Neraca Saldo</a>
+                @endif
             </div>
         </div>
         @endif

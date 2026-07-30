@@ -12,11 +12,11 @@
 
 <a href="{{ route('accounts.index', ['organization_id' => request('organization_id')]) }}" class="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-orange-500 mb-5 no-underline">
     <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-    Kembali ke Chart of Accounts
+    Kembali ke Bagan Akun
 </a>
 
 <h1 class="text-xl font-bold text-slate-900 m-0 mb-0.5">Tambah Akun Baru</h1>
-<p class="text-sm text-slate-400 mb-5">Isi detail akun akuntansi sesuai standar COA</p>
+<p class="text-sm text-slate-400 mb-5">Isi detail akun akuntansi sesuai standar Bagan Akun</p>
 
 <div class="bg-white rounded-xl shadow-sm p-6">
     <form method="POST" action="{{ route('accounts.store') }}">
