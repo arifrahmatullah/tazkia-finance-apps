@@ -9,8 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('budget_program_details', function (Blueprint $table) {
-            $table->foreignUuid('account_id')->nullable()->change();
-            $table->foreign('account_id')->references('id')->on('accounts')->nullOnDelete();
+            $table->foreignUuid('account_id')->nullable()->after('budget_program_id')->constrained('accounts')->nullOnDelete();
         });
     }
 
