@@ -30,10 +30,12 @@ class PermissionSeeder extends Seeder
             ['slug' => 'menu.inbox-approval',       'name' => 'Inbox Approval',         'group' => 'keuangan'],
             ['slug' => 'menu.pencairan-dana',       'name' => 'Pencairan Dana',         'group' => 'keuangan'],
             ['slug' => 'menu.blokir-pengajuan',     'name' => 'Blokir Pengajuan',       'group' => 'keuangan'],
+            ['slug' => 'menu.rekonsiliasi-bank',    'name' => 'Rekonsiliasi Bank',      'group' => 'keuangan'],
 
             // Akunting
             ['slug' => 'menu.jurnal-umum',          'name' => 'Jurnal Umum',            'group' => 'akunting'],
             ['slug' => 'menu.coa',                  'name' => 'Chart of Accounts',      'group' => 'akunting'],
+            ['slug' => 'menu.aset-tetap',            'name' => 'Aset Tetap',             'group' => 'akunting'],
 
             // Laporan
             ['slug' => 'menu.laporan',              'name' => 'Laporan Keuangan',       'group' => 'laporan'],
@@ -56,12 +58,12 @@ class PermissionSeeder extends Seeder
                 'menu.periode-anggaran', 'menu.estimasi-pendapatan',
                 'menu.pagu-anggaran', 'menu.program-kerja',
                 'menu.pengajuan-dana', 'menu.inbox-approval',
-                'menu.pencairan-dana', 'menu.blokir-pengajuan',
-                'menu.coa', 'menu.laporan', 'menu.laporan-akuntansi',
+                'menu.pencairan-dana', 'menu.blokir-pengajuan', 'menu.rekonsiliasi-bank',
+                'menu.coa', 'menu.laporan', 'menu.laporan-akuntansi', 'menu.aset-tetap',
             ],
             'akunting' => [
                 'menu.dashboard',
-                'menu.jurnal-umum', 'menu.coa', 'menu.laporan-akuntansi',
+                'menu.jurnal-umum', 'menu.coa', 'menu.laporan-akuntansi', 'menu.aset-tetap',
             ],
             'staf' => [
                 'menu.dashboard',

@@ -383,6 +383,267 @@ class FinanceReportController extends Controller
         ));
     }
 
+    // Laporan Laba Rugi — pendapatan dikurangi beban pada satu periode (hanya jurnal posted)
+    public function incomeStatement(Request $request)
+    {
+        $orgIds = auth()->user()->organizationIds();
+        $organizations = $this->organizationOptions($orgIds);
+
+        $orgId = $request->input('organization_id');
+        if (!$organizations->contains('id', $orgId)) {
+            $orgId = $organizations->first()?->id;
+        }
+
+        [$dateFrom, $dateTo] = $this->trialBalanceDateRange($request);
+
+        $sections = null;
+
+        if ($orgId) {
+            $accounts = Account::where('organization_id', $orgId)
+                ->where('is_header', false)
+                ->whereIn('account_type', ['pendapatan', 'beban'])
+                ->orderBy('code')
+                ->get(['id', 'code', 'name', 'account_type', 'normal_balance']);
+
+            $mutation = $this->sumsPerAccount($accounts->pluck('id'), from: $dateFrom, to: $dateTo);
+
+            $rowsFor = function (string $type) use ($accounts, $mutation) {
+                return $accounts->where('account_type', $type)->map(function ($acc) use ($mutation) {
+                    $m = $mutation[$acc->id] ?? ['debit' => 0.0, 'credit' => 0.0];
+                    $sign = $acc->normal_balance === 'kredit' ? -1 : 1;
+
+                    return (object) [
+                        'account' => $acc,
+                        'amount'  => $sign * ($m['debit'] - $m['credit']),
+                    ];
+                })->filter(fn($r) => abs($r->amount) > 0.005)->values();
+            };
+
+            $pendapatan = $rowsFor('pendapatan');
+            $beban = $rowsFor('beban');
+            $totalPendapatan = $pendapatan->sum('amount');
+            $totalBeban = $beban->sum('amount');
+
+            $sections = (object) [
+                'pendapatan'      => $pendapatan,
+                'beban'           => $beban,
+                'totalPendapatan' => $totalPendapatan,
+                'totalBeban'      => $totalBeban,
+                'labaBersih'      => $totalPendapatan - $totalBeban,
+            ];
+        }
+
+        return view('reports.income-statement', compact(
+            'organizations', 'orgId', 'dateFrom', 'dateTo', 'sections'
+        ));
+    }
+
+    // Laporan Neraca (Laporan Posisi Keuangan) — saldo aset, kewajiban & ekuitas per tanggal (hanya jurnal posted)
+    public function balanceSheet(Request $request)
+    {
+        $orgIds = auth()->user()->organizationIds();
+        $organizations = $this->organizationOptions($orgIds);
+
+        $orgId = $request->input('organization_id');
+        if (!$organizations->contains('id', $orgId)) {
+            $orgId = $organizations->first()?->id;
+        }
+
+        $asOf = $request->input('as_of') ?: now()->toDateString();
+
+        $sections = null;
+        $isBalanced = null;
+
+        if ($orgId) {
+            $accounts = Account::where('organization_id', $orgId)
+                ->where('is_header', false)
+                ->orderBy('code')
+                ->get(['id', 'code', 'name', 'account_type', 'normal_balance']);
+
+            $balances = $this->sumsPerAccount($accounts->pluck('id'), to: $asOf);
+
+            $rowsFor = function (string $type) use ($accounts, $balances) {
+                return $accounts->where('account_type', $type)->map(function ($acc) use ($balances) {
+                    $b = $balances[$acc->id] ?? ['debit' => 0.0, 'credit' => 0.0];
+                    $sign = $acc->normal_balance === 'kredit' ? -1 : 1;
+
+                    return (object) [
+                        'account' => $acc,
+                        'amount'  => $sign * ($b['debit'] - $b['credit']),
+                    ];
+                })->filter(fn($r) => abs($r->amount) > 0.005)->values();
+            };
+
+            $aset = $rowsFor('aset');
+            $kewajiban = $rowsFor('kewajiban');
+            $ekuitas = $rowsFor('ekuitas');
+
+            // Belum ada proses tutup buku otomatis, jadi laba/rugi berjalan dihitung dari
+            // akumulasi pendapatan-beban sejak awal s.d. tanggal ini, supaya Aset = Kewajiban + Ekuitas.
+            $labaBerjalan = $rowsFor('pendapatan')->sum('amount') - $rowsFor('beban')->sum('amount');
+
+            $totalAset = $aset->sum('amount');
+            $totalKewajiban = $kewajiban->sum('amount');
+            $totalEkuitas = $ekuitas->sum('amount') + $labaBerjalan;
+
+            $sections = (object) [
+                'aset'           => $aset,
+                'kewajiban'      => $kewajiban,
+                'ekuitas'        => $ekuitas,
+                'labaBerjalan'   => $labaBerjalan,
+                'totalAset'      => $totalAset,
+                'totalKewajiban' => $totalKewajiban,
+                'totalEkuitas'   => $totalEkuitas,
+            ];
+
+            $isBalanced = abs($totalAset - ($totalKewajiban + $totalEkuitas)) < 0.5;
+        }
+
+        return view('reports.balance-sheet', compact(
+            'organizations', 'orgId', 'asOf', 'sections', 'isBalanced'
+        ));
+    }
+
+    // Laporan Arus Kas — mutasi kas/bank pada satu periode, diklasifikasi ke aktivitas operasi/investasi/pendanaan
+    // berdasarkan akun lawan pada tiap jurnal (metode langsung). Transfer antar rekening kas sendiri diabaikan.
+    public function cashFlow(Request $request)
+    {
+        $orgIds = auth()->user()->organizationIds();
+        $organizations = $this->organizationOptions($orgIds);
+
+        $orgId = $request->input('organization_id');
+        if (!$organizations->contains('id', $orgId)) {
+            $orgId = $organizations->first()?->id;
+        }
+
+        [$dateFrom, $dateTo] = $this->trialBalanceDateRange($request);
+
+        $sections = null;
+        $noCashAccounts = false;
+
+        if ($orgId) {
+            $kasAccountIds = Account::where('organization_id', $orgId)
+                ->where('is_header', false)
+                ->where('code', 'like', '1.1.01.%')
+                ->pluck('id');
+
+            if ($kasAccountIds->isEmpty()) {
+                $noCashAccounts = true;
+            } else {
+                $openingCash = 0.0;
+                if ($dateFrom) {
+                    $pre = $this->sumsPerAccount($kasAccountIds, lt: $dateFrom);
+                    foreach ($pre as $s) {
+                        $openingCash += $s['debit'] - $s['credit'];
+                    }
+                }
+
+                // Semua entri jurnal posted pada periode ini yang menyentuh akun kas/bank
+                $entryIds = JournalEntryLine::whereIn('account_id', $kasAccountIds)
+                    ->whereHas('journalEntry', fn($q) => $q->where('status', 'posted')
+                        ->when($dateFrom, fn($qq) => $qq->whereDate('entry_date', '>=', $dateFrom))
+                        ->when($dateTo, fn($qq) => $qq->whereDate('entry_date', '<=', $dateTo)))
+                    ->pluck('journal_entry_id')->unique();
+
+                $buckets = [
+                    'operasi'   => collect(),
+                    'investasi' => collect(),
+                    'pendanaan' => collect(),
+                ];
+
+                if ($entryIds->isNotEmpty()) {
+                    $lines = JournalEntryLine::with('account:id,code,name,account_type')
+                        ->whereIn('journal_entry_id', $entryIds)
+                        ->get()
+                        ->groupBy('journal_entry_id');
+
+                    foreach ($lines as $entryLines) {
+                        $otherLines = $entryLines->filter(fn($l) => !$kasAccountIds->contains($l->account_id));
+
+                        foreach ($otherLines as $line) {
+                            // Bagian arus kas yang berasal dari akun lawan ini (positif = kas masuk)
+                            $amount = (float) $line->credit - (float) $line->debit;
+                            if (abs($amount) < 0.005) {
+                                continue;
+                            }
+
+                            $activity = $this->classifyCashFlowActivity($line->account);
+                            $buckets[$activity]->push((object) [
+                                'account' => $line->account,
+                                'amount'  => $amount,
+                            ]);
+                        }
+                    }
+                }
+
+                $groupRows = function ($rows) {
+                    return $rows->groupBy('account.id')->map(function ($group) {
+                        return (object) [
+                            'account' => $group->first()->account,
+                            'amount'  => $group->sum('amount'),
+                        ];
+                    })->filter(fn($r) => abs($r->amount) > 0.005)->sortBy('account.code')->values();
+                };
+
+                $operasi = $groupRows($buckets['operasi']);
+                $investasi = $groupRows($buckets['investasi']);
+                $pendanaan = $groupRows($buckets['pendanaan']);
+
+                $totalOperasi = $operasi->sum('amount');
+                $totalInvestasi = $investasi->sum('amount');
+                $totalPendanaan = $pendanaan->sum('amount');
+                $kenaikanBersih = $totalOperasi + $totalInvestasi + $totalPendanaan;
+                $closingCash = $openingCash + $kenaikanBersih;
+
+                // Verifikasi silang terhadap saldo kas aktual (kumulatif) per tanggal akhir periode
+                $actualClosing = 0.0;
+                if ($dateTo) {
+                    $act = $this->sumsPerAccount($kasAccountIds, to: $dateTo);
+                    foreach ($act as $s) {
+                        $actualClosing += $s['debit'] - $s['credit'];
+                    }
+                } else {
+                    $actualClosing = $closingCash;
+                }
+
+                $sections = (object) [
+                    'operasi'         => $operasi,
+                    'investasi'       => $investasi,
+                    'pendanaan'       => $pendanaan,
+                    'totalOperasi'    => $totalOperasi,
+                    'totalInvestasi'  => $totalInvestasi,
+                    'totalPendanaan'  => $totalPendanaan,
+                    'openingCash'     => $openingCash,
+                    'kenaikanBersih'  => $kenaikanBersih,
+                    'closingCash'     => $closingCash,
+                    'actualClosing'   => $actualClosing,
+                    'isReconciled'    => abs($closingCash - $actualClosing) < 0.5,
+                ];
+            }
+        }
+
+        return view('reports.cash-flow', compact(
+            'organizations', 'orgId', 'dateFrom', 'dateTo', 'sections', 'noCashAccounts'
+        ));
+    }
+
+    // Klasifikasi aktivitas arus kas dari akun lawan: pendanaan (ekuitas/kewajiban jk panjang),
+    // investasi (aset tidak lancar/investasi), sisanya operasi (pendapatan, beban, aset & kewajiban lancar lainnya)
+    private function classifyCashFlowActivity(Account $account): string
+    {
+        if ($account->account_type === 'ekuitas' || str_starts_with($account->code, '2.2')) {
+            return 'pendanaan';
+        }
+
+        if (str_starts_with($account->code, '1.2')
+            || str_starts_with($account->code, '1.1.05')
+            || str_starts_with($account->code, '1.1.06')) {
+            return 'investasi';
+        }
+
+        return 'operasi';
+    }
+
     // Jumlah debit/kredit per akun dari jurnal posted, dibatasi salah satu: lt (sebelum tanggal), atau from/to (rentang)
     private function sumsPerAccount($accountIds, ?string $lt = null, ?string $from = null, ?string $to = null): array
     {

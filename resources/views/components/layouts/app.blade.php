@@ -365,10 +365,22 @@
             Blokir Pengajuan
         </a>
         @endif
+
+        @if(auth()->user()->hasPermission('menu.rekonsiliasi-bank'))
+        <a href="{{ route('bank-reconciliations.index') }}"
+           class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg no-underline text-[0.835rem] transition-all relative
+                  {{ request()->routeIs('bank-reconciliations.*') ? 'active bg-orange-500/[0.15] text-white font-[550]' : 'text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white' }}">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                class="{{ request()->routeIs('bank-reconciliations.*') ? 'text-orange-300' : 'opacity-80' }}">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+            </svg>
+            Rekonsiliasi Bank
+        </a>
+        @endif
         @endif
 
         {{-- AKUNTING --}}
-        @if(auth()->user()->hasPermission('menu.jurnal-umum') || auth()->user()->hasPermission('menu.coa'))
+        @if(auth()->user()->hasPermission('menu.jurnal-umum') || auth()->user()->hasPermission('menu.coa') || auth()->user()->hasPermission('menu.aset-tetap'))
         <div class="px-5 pt-4 pb-1.5 text-[0.65rem] font-semibold text-slate-400/70 tracking-[0.1em] uppercase">Akunting</div>
 
         @if(auth()->user()->hasPermission('menu.jurnal-umum'))
@@ -412,6 +424,18 @@
             Bagan Akun
         </a>
         @endif
+
+        @if(auth()->user()->hasPermission('menu.aset-tetap'))
+        <a href="{{ route('fixed-assets.index') }}"
+           class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg no-underline text-[0.835rem] transition-all relative
+                  {{ request()->routeIs('fixed-assets.*') ? 'active bg-orange-500/[0.15] text-white font-[550]' : 'text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white' }}">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                class="{{ request()->routeIs('fixed-assets.*') ? 'text-orange-300' : 'opacity-80' }}">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 21h18M5 21V7l8-4v18M13 21V11l6 3v7M9 9v.01M9 12v.01M9 15v.01"/>
+            </svg>
+            Aset Tetap
+        </a>
+        @endif
         @endif
 
         {{-- LAPORAN --}}
@@ -450,6 +474,15 @@
                 <a href="{{ route('reports.trial-balance') }}"
                    class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
                           {{ request()->routeIs('reports.trial-balance') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Neraca Saldo</a>
+                <a href="{{ route('reports.income-statement') }}"
+                   class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
+                          {{ request()->routeIs('reports.income-statement') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Laba Rugi</a>
+                <a href="{{ route('reports.balance-sheet') }}"
+                   class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
+                          {{ request()->routeIs('reports.balance-sheet') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Neraca</a>
+                <a href="{{ route('reports.cash-flow') }}"
+                   class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
+                          {{ request()->routeIs('reports.cash-flow') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Arus Kas</a>
                 @endif
             </div>
         </div>

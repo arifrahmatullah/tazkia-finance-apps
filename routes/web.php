@@ -11,7 +11,9 @@ use App\Http\Controllers\IncomeEstimateController;
 use App\Http\Controllers\IncomeEstimateDetailController;
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\ApprovalSettingController;
+use App\Http\Controllers\BankReconciliationController;
 use App\Http\Controllers\FinanceController;
+use App\Http\Controllers\FixedAssetController;
 use App\Http\Controllers\FundApprovalController;
 use App\Http\Controllers\FundRequestController;
 use App\Http\Controllers\JournalEntryController;
@@ -81,6 +83,12 @@ Route::middleware(['auth', 'role.selected'])->group(function () {
     Route::get('journal-templates/{journal_template}/lines', [\App\Http\Controllers\JournalTemplateController::class, 'lines'])->name('journal-templates.lines');
     Route::resource('journal-templates', \App\Http\Controllers\JournalTemplateController::class)->except(['show']);
 
+    // Aset Tetap & Penyusutan
+    Route::middleware('permission:menu.aset-tetap')->group(function () {
+        Route::resource('fixed-assets', FixedAssetController::class)->except(['show']);
+        Route::post('fixed-assets-depreciate', [FixedAssetController::class, 'depreciate'])->name('fixed-assets.depreciate');
+    });
+
     // Estimasi Pendapatan
     Route::resource('income-estimates', IncomeEstimateController::class);
     Route::resource('income-estimate-details', IncomeEstimateDetailController::class)
@@ -146,6 +154,18 @@ Route::middleware(['auth', 'role.selected'])->group(function () {
         Route::post('finance/pengembalian/{fundRefund}/reject', [FinanceController::class, 'rejectRefund'])->name('finance.pengembalian.reject');
     });
 
+    // Rekonsiliasi Bank
+    Route::middleware('permission:menu.rekonsiliasi-bank')->group(function () {
+        Route::get('bank-reconciliations', [BankReconciliationController::class, 'index'])->name('bank-reconciliations.index');
+        Route::post('bank-reconciliations', [BankReconciliationController::class, 'store'])->name('bank-reconciliations.store');
+        Route::get('bank-reconciliations/{bankReconciliation}', [BankReconciliationController::class, 'show'])->name('bank-reconciliations.show');
+        Route::delete('bank-reconciliations/{bankReconciliation}', [BankReconciliationController::class, 'destroy'])->name('bank-reconciliations.destroy');
+        Route::post('bank-reconciliations/{bankReconciliation}/items', [BankReconciliationController::class, 'storeItem'])->name('bank-reconciliations.items.store');
+        Route::delete('bank-reconciliation-items/{item}', [BankReconciliationController::class, 'destroyItem'])->name('bank-reconciliations.items.destroy');
+        Route::post('bank-reconciliations/{bankReconciliation}/post-adjustments', [BankReconciliationController::class, 'postAdjustments'])->name('bank-reconciliations.post-adjustments');
+        Route::post('bank-reconciliations/{bankReconciliation}/complete', [BankReconciliationController::class, 'complete'])->name('bank-reconciliations.complete');
+    });
+
     // Laporan (rekap untuk keuangan/pimpinan) — khusus Keuangan
     Route::middleware('permission:menu.laporan')->group(function () {
         Route::get('reports/pengajuan-dana', [\App\Http\Controllers\FinanceReportController::class, 'fundRequests'])->name('reports.fund-requests');
@@ -157,6 +177,9 @@ Route::middleware(['auth', 'role.selected'])->group(function () {
     Route::middleware('permission:menu.laporan-akuntansi')->group(function () {
         Route::get('reports/buku-besar', [\App\Http\Controllers\FinanceReportController::class, 'generalLedger'])->name('reports.general-ledger');
         Route::get('reports/neraca-saldo', [\App\Http\Controllers\FinanceReportController::class, 'trialBalance'])->name('reports.trial-balance');
+        Route::get('reports/laba-rugi', [\App\Http\Controllers\FinanceReportController::class, 'incomeStatement'])->name('reports.income-statement');
+        Route::get('reports/neraca', [\App\Http\Controllers\FinanceReportController::class, 'balanceSheet'])->name('reports.balance-sheet');
+        Route::get('reports/arus-kas', [\App\Http\Controllers\FinanceReportController::class, 'cashFlow'])->name('reports.cash-flow');
     });
 
     // Inbox Approval
