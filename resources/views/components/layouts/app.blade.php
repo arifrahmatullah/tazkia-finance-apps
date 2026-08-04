@@ -166,7 +166,7 @@
         @endif
 
         {{-- KEUANGAN --}}
-        @php $showKeuangan = auth()->user()->hasPermission('menu.periode-anggaran') || auth()->user()->hasPermission('menu.estimasi-pendapatan') || auth()->user()->hasPermission('menu.pagu-anggaran') || auth()->user()->hasPermission('menu.program-kerja') || auth()->user()->hasPermission('menu.pengajuan-dana') || auth()->user()->hasPermission('menu.inbox-approval') || auth()->user()->hasPermission('menu.pencairan-dana') || auth()->user()->hasPermission('menu.blokir-pengajuan') || auth()->user()->employee?->activePosition; @endphp
+        @php $showKeuangan = auth()->user()->hasPermission('menu.periode-anggaran') || auth()->user()->hasPermission('menu.estimasi-pendapatan') || auth()->user()->hasPermission('menu.pagu-anggaran') || auth()->user()->hasPermission('menu.program-kerja') || auth()->user()->hasPermission('menu.pengajuan-dana') || auth()->user()->hasPermission('menu.inbox-approval') || auth()->user()->hasPermission('menu.pencairan-dana') || auth()->user()->hasPermission('menu.blokir-pengajuan') || auth()->user()->hasPermission('menu.rekonsiliasi-bank') || auth()->user()->employee?->activePosition; @endphp
         @if($showKeuangan)
         <div class="px-5 pt-4 pb-1.5 text-[0.65rem] font-semibold text-slate-400/70 tracking-[0.1em] uppercase">Keuangan</div>
 

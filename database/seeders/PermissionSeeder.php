@@ -63,7 +63,7 @@ class PermissionSeeder extends Seeder
             ],
             'akunting' => [
                 'menu.dashboard',
-                'menu.jurnal-umum', 'menu.coa', 'menu.laporan-akuntansi', 'menu.aset-tetap',
+                'menu.jurnal-umum', 'menu.coa', 'menu.laporan-akuntansi', 'menu.aset-tetap', 'menu.rekonsiliasi-bank',
             ],
             'staf' => [
                 'menu.dashboard',
