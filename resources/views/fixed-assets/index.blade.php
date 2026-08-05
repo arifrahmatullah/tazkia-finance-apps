@@ -84,16 +84,15 @@
 {{-- Proses Penyusutan --}}
 <div class="bg-white rounded-xl shadow-sm p-4 mb-4">
     <div class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-3">Proses Penyusutan Bulanan</div>
-    <form method="POST" action="{{ route('fixed-assets.depreciate') }}" class="flex flex-wrap gap-3 items-end"
-        onsubmit="return confirm('Posting jurnal penyusutan untuk periode ini? Aset aktif yang belum diproses pada periode ini akan disusutkan otomatis.');">
+    <form method="POST" action="{{ route('fixed-assets.depreciate') }}" id="depreciateForm" class="flex flex-wrap gap-3 items-end">
         @csrf
         <input type="hidden" name="organization_id" value="{{ $orgId }}">
         <div class="min-w-[150px]">
             <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">Periode</label>
-            <input type="month" name="period" value="{{ old('period', substr($currentPeriod, 0, 7)) }}" required
+            <input type="month" name="period" id="depreciatePeriod" value="{{ old('period', substr($currentPeriod, 0, 7)) }}" required
                 class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 bg-white outline-none focus:border-blue-400 transition-colors">
         </div>
-        <button type="submit" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-orange-500 text-white border-0 cursor-pointer hover:bg-orange-600 transition-colors">
+        <button type="button" onclick="confirmDepreciate()" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-orange-500 text-white border-0 cursor-pointer hover:bg-orange-600 transition-colors">
             Proses Penyusutan
         </button>
     </form>
@@ -162,5 +161,26 @@
 </div>
 
 @endif
+
+<script>
+function confirmDepreciate() {
+    const form = document.getElementById('depreciateForm');
+    if (!form.reportValidity()) return;
+
+    const period = document.getElementById('depreciatePeriod').value;
+    const label = period
+        ? new Date(period + '-01T00:00:00').toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })
+        : 'periode ini';
+    const message = `Posting jurnal penyusutan untuk periode <strong>${label}</strong>?<br>Aset aktif yang belum diproses pada periode ini akan disusutkan otomatis.`;
+
+    if (window.confirmModal) {
+        confirmModal('Proses Penyusutan Aset', message, function () {
+            form.submit();
+        }, 'Ya, Proses', 'Jurnal yang sudah diposting tidak bisa dibatalkan otomatis dari sini.');
+    } else if (confirm(`Posting jurnal penyusutan untuk ${label}? Aset aktif yang belum diproses akan disusutkan otomatis.`)) {
+        form.submit();
+    }
+}
+</script>
 
 </x-layouts.app>

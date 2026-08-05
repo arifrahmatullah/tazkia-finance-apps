@@ -61,15 +61,26 @@
         <div class="min-w-[140px]">
             <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">Periode</label>
             <input type="month" name="period" required class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 bg-white outline-none focus:border-blue-400 transition-colors">
+            <div class="text-[10px] text-slate-400 mt-1">Bulan yang mau dicocokkan</div>
         </div>
         <div class="min-w-[180px]">
             <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">Saldo Akhir Rekening Koran (Rp)</label>
-            <input type="number" step="0.01" name="statement_balance" required class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 bg-white outline-none focus:border-blue-400 transition-colors">
+            <input type="text" id="statementBalanceDisplay" inputmode="numeric" placeholder="0" required
+                oninput="formatRupiah(this, 'statementBalanceHidden')"
+                class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 bg-white outline-none focus:border-blue-400 transition-colors">
+            <input type="hidden" name="statement_balance" id="statementBalanceHidden">
         </div>
         <button type="submit" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-orange-500 text-white border-0 cursor-pointer hover:bg-orange-600 transition-colors">
             Buat Rekonsiliasi
         </button>
     </form>
+    <script>
+    function formatRupiah(input, hiddenId) {
+        const raw = input.value.replace(/\D/g, '');
+        document.getElementById(hiddenId).value = raw;
+        input.value = raw ? parseInt(raw).toLocaleString('id-ID') : '';
+    }
+    </script>
     @endif
 </div>
 

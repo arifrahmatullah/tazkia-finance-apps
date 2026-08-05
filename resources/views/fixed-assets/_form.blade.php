@@ -95,14 +95,20 @@
             </div>
             <div class="flex flex-col gap-1.5">
                 <label class="text-xs font-semibold text-slate-600">Harga Perolehan (Rp) <span class="text-red-500 ml-0.5">*</span></label>
-                <input type="number" name="acquisition_cost" min="0" step="0.01" value="{{ old('acquisition_cost', $asset->acquisition_cost) }}"
+                <input type="text" id="acquisitionCostDisplay" inputmode="numeric" placeholder="0"
+                    value="{{ old('acquisition_cost') ? number_format((int) old('acquisition_cost'), 0, ',', '.') : ($asset->acquisition_cost ? number_format((int) $asset->acquisition_cost, 0, ',', '.') : '') }}"
+                    oninput="formatRupiah(this, 'acquisitionCostHidden')"
                     class="w-full px-3 py-2.5 border rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors {{ $errors->has('acquisition_cost') ? 'border-red-400' : 'border-slate-200' }}">
+                <input type="hidden" name="acquisition_cost" id="acquisitionCostHidden" value="{{ old('acquisition_cost', $asset->acquisition_cost) }}">
                 @error('acquisition_cost')<div class="text-xs text-red-500 mt-0.5">{{ $message }}</div>@enderror
             </div>
             <div class="flex flex-col gap-1.5">
                 <label class="text-xs font-semibold text-slate-600">Nilai Residu (Rp)</label>
-                <input type="number" name="salvage_value" min="0" step="0.01" value="{{ old('salvage_value', $asset->salvage_value ?? 0) }}"
+                <input type="text" id="salvageValueDisplay" inputmode="numeric" placeholder="0"
+                    value="{{ old('salvage_value') ? number_format((int) old('salvage_value'), 0, ',', '.') : (($asset->salvage_value ?? 0) ? number_format((int) $asset->salvage_value, 0, ',', '.') : '') }}"
+                    oninput="formatRupiah(this, 'salvageValueHidden')"
                     class="w-full px-3 py-2.5 border rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors {{ $errors->has('salvage_value') ? 'border-red-400' : 'border-slate-200' }}">
+                <input type="hidden" name="salvage_value" id="salvageValueHidden" value="{{ old('salvage_value', $asset->salvage_value ?? 0) }}">
                 <div class="text-xs text-slate-400 mt-0.5">Estimasi nilai jual aset di akhir umur manfaat (default 0)</div>
                 @error('salvage_value')<div class="text-xs text-red-500 mt-0.5">{{ $message }}</div>@enderror
             </div>
@@ -145,4 +151,10 @@ function filterAccounts() {
     });
 }
 document.addEventListener('DOMContentLoaded', filterAccounts);
+
+function formatRupiah(input, hiddenId) {
+    const raw = input.value.replace(/\D/g, '');
+    document.getElementById(hiddenId).value = raw;
+    input.value = raw ? parseInt(raw).toLocaleString('id-ID') : '';
+}
 </script>
