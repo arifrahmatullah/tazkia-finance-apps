@@ -295,8 +295,26 @@ class FundRequestController extends Controller
             ]);
         });
 
+        $this->notifyCurrentStepApprovers($fundRequest);
+
         return redirect()->route('fund-requests.show', $fundRequest)
             ->with('success', 'Pengajuan berhasil disubmit dan menunggu approval.');
+    }
+
+    private function notifyCurrentStepApprovers(FundRequest $fundRequest): void
+    {
+        $approval = $fundRequest->approvals()
+            ->where('step', $fundRequest->current_step)
+            ->where('status', 'waiting')
+            ->first();
+
+        if (!$approval) {
+            return;
+        }
+
+        foreach ($approval->approverUsers() as $user) {
+            $user->notify(new \App\Notifications\FundRequestNeedsApproval($approval));
+        }
     }
 
     public function getDependencies(Request $request)

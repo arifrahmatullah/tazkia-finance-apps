@@ -33,4 +33,20 @@ class FundRequestApproval extends Model
     {
         return $this->belongsTo(User::class, 'approver_user_id');
     }
+
+    /**
+     * User yang saat ini memegang jabatan approver_position_id secara aktif
+     * (biasanya satu orang, tapi bisa lebih dari satu kalau data tidak konsisten).
+     */
+    public function approverUsers(): \Illuminate\Support\Collection
+    {
+        return EmployeePosition::where('position_id', $this->approver_position_id)
+            ->where('is_active', true)
+            ->with('employee.user')
+            ->get()
+            ->pluck('employee.user')
+            ->filter()
+            ->unique('id')
+            ->values();
+    }
 }

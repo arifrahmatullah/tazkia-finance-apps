@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\FundRequest;
 use App\Models\FundRequestApproval;
 use App\Models\Organization;
+use App\Notifications\FundRequestNeedsApproval;
+use App\Notifications\FundRequestStatusChanged;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -79,7 +81,10 @@ class FundApprovalController extends Controller
             'notes' => 'nullable|string|max:500',
         ]);
 
-        DB::transaction(function () use ($request, $fundRequestApproval, $user) {
+        $nextApproval = null;
+        $fundRequest  = null;
+
+        DB::transaction(function () use ($request, $fundRequestApproval, $user, &$nextApproval, &$fundRequest) {
             $fundRequestApproval->update([
                 'status'           => 'approved',
                 'approver_user_id' => $user->id,
@@ -105,6 +110,17 @@ class FundApprovalController extends Controller
                 ]);
             }
         });
+
+        if ($nextApproval) {
+            foreach ($nextApproval->approverUsers() as $approver) {
+                $approver->notify(new FundRequestNeedsApproval($nextApproval));
+            }
+        } else {
+            $requesterUser = $fundRequest->requester->user;
+            if ($requesterUser) {
+                $requesterUser->notify(new FundRequestStatusChanged($fundRequest->fresh()));
+            }
+        }
 
         return redirect()->route('fund-approvals.inbox')
             ->with('success', 'Pengajuan berhasil disetujui.');
@@ -133,6 +149,12 @@ class FundApprovalController extends Controller
                 'rejected_at'  => now(),
             ]);
         });
+
+        $fundRequest    = $fundRequestApproval->fundRequest->fresh();
+        $requesterUser  = $fundRequest->requester->user;
+        if ($requesterUser) {
+            $requesterUser->notify(new FundRequestStatusChanged($fundRequest, $request->notes));
+        }
 
         return redirect()->route('fund-approvals.inbox')
             ->with('success', 'Pengajuan berhasil ditolak.');

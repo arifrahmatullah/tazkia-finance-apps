@@ -15,6 +15,7 @@ use App\Http\Controllers\BankReconciliationController;
 use App\Http\Controllers\FinanceController;
 use App\Http\Controllers\FixedAssetController;
 use App\Http\Controllers\FundApprovalController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\FundRequestController;
 use App\Http\Controllers\JournalEntryController;
 use App\Http\Controllers\BudgetAllocationController;
@@ -188,4 +189,10 @@ Route::middleware(['auth', 'role.selected'])->group(function () {
     Route::post('fund-approvals/{fundRequestApproval}/reject', [FundApprovalController::class, 'reject'])->name('fund-approvals.reject');
     Route::post('employees/{employee}/positions', [EmployeeController::class, 'assignPosition'])->name('employees.positions.assign');
     Route::delete('employees/{employee}/positions/{position}', [EmployeeController::class, 'removePosition'])->name('employees.positions.remove');
+
+    // Notifikasi
+    Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('notifications/recent', [NotificationController::class, 'recent'])->name('notifications.recent');
+    Route::post('notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
+    Route::post('notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
 });

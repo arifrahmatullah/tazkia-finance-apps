@@ -609,12 +609,25 @@
             </div>
 
             {{-- Notification --}}
-            <button class="relative w-9 h-9 rounded-[9px] bg-slate-50 border border-slate-200 flex items-center justify-center cursor-pointer text-slate-500 hover:bg-slate-100 transition-colors">
-                <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
-                </svg>
-                <span class="absolute top-[7px] right-[7px] w-[7px] h-[7px] bg-orange-400 rounded-full border-2 border-white"></span>
-            </button>
+            <div class="relative" id="notif-wrap">
+                <button type="button" onclick="toggleNotifDropdown()" class="relative w-9 h-9 rounded-[9px] bg-slate-50 border border-slate-200 flex items-center justify-center cursor-pointer text-slate-500 hover:bg-slate-100 transition-colors">
+                    <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                    </svg>
+                    <span id="notif-badge" class="hidden absolute top-[5px] right-[5px] min-w-[15px] h-[15px] px-[3px] rounded-full bg-orange-500 border-2 border-white text-white text-[9px] font-bold leading-[11px] text-center"></span>
+                </button>
+
+                {{-- Dropdown --}}
+                <div id="notif-dropdown" class="hidden absolute right-0 top-[calc(100%+8px)] w-[340px] max-h-[420px] bg-white rounded-xl shadow-2xl border border-slate-100 overflow-hidden z-50">
+                    <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+                        <span class="text-sm font-bold text-slate-800">Notifikasi</span>
+                        <a href="{{ route('notifications.index') }}" class="text-[11px] font-semibold text-orange-500 no-underline hover:underline">Lihat semua</a>
+                    </div>
+                    <div id="notif-list" class="overflow-y-auto max-h-[340px]">
+                        <div class="px-4 py-8 text-center text-xs text-slate-400">Memuat...</div>
+                    </div>
+                </div>
+            </div>
 
             {{-- Avatar --}}
             <div class="w-9 h-9 rounded-[9px] flex items-center justify-center font-bold text-[0.8rem] text-white cursor-pointer"
@@ -771,6 +784,71 @@
     if (activeNavEl) {
         activeNavEl.scrollIntoView({ block: 'center' });
     }
+
+    // ── Notifikasi ─────────────────────────────────────────
+    const notifCsrf = '{{ csrf_token() }}';
+
+    function toggleNotifDropdown() {
+        const dd = document.getElementById('notif-dropdown');
+        const isHidden = dd.classList.contains('hidden');
+        dd.classList.toggle('hidden');
+        if (isHidden) loadNotifications();
+    }
+
+    document.addEventListener('click', function (e) {
+        const wrap = document.getElementById('notif-wrap');
+        if (wrap && !wrap.contains(e.target)) {
+            document.getElementById('notif-dropdown').classList.add('hidden');
+        }
+    });
+
+    function renderNotifList(items) {
+        const list = document.getElementById('notif-list');
+        if (!items.length) {
+            list.innerHTML = '<div class="px-4 py-8 text-center text-xs text-slate-400">Belum ada notifikasi.</div>';
+            return;
+        }
+        list.innerHTML = items.map(function (n) {
+            const dot = n.read ? '' : '<span class="w-1.5 h-1.5 rounded-full bg-orange-400 flex-shrink-0 mt-1.5"></span>';
+            return '<button type="button" onclick="readNotif(\'' + n.id + '\', \'' + n.url + '\')" ' +
+                'class="w-full text-left px-4 py-3 flex items-start gap-2 border-0 border-b border-slate-50 last:border-0 cursor-pointer hover:bg-slate-50 transition-colors ' + (n.read ? '' : 'bg-orange-50/40') + '">' +
+                dot +
+                '<div class="flex-1 min-w-0">' +
+                '<div class="font-mono text-[10px] font-bold text-slate-400">' + (n.reference || '') + '</div>' +
+                '<div class="text-xs font-semibold text-slate-800 mt-0.5 leading-snug">' + (n.title || '') + '</div>' +
+                '<div class="text-[10px] text-slate-400 mt-1">' + n.created_at + '</div>' +
+                '</div></button>';
+        }).join('');
+    }
+
+    function loadNotifications() {
+        fetch('{{ route("notifications.recent") }}', { headers: { 'Accept': 'application/json' } })
+            .then(r => r.json())
+            .then(data => {
+                updateNotifBadge(data.unread_count);
+                renderNotifList(data.notifications);
+            });
+    }
+
+    function updateNotifBadge(count) {
+        const badge = document.getElementById('notif-badge');
+        if (count > 0) {
+            badge.textContent = count > 9 ? '9+' : count;
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+    }
+
+    function readNotif(id, url) {
+        fetch('/notifications/' + id + '/read', {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': notifCsrf, 'Accept': 'application/json' },
+        }).then(() => { window.location.href = url && url !== '#' ? url : '{{ route("notifications.index") }}'; });
+    }
+
+    updateNotifBadge({{ auth()->user()->unreadNotifications()->count() }});
+    setInterval(loadNotifications, 60000);
 </script>
 
 </body>
