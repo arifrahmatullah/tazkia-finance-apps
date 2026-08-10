@@ -172,6 +172,9 @@ Route::middleware(['auth', 'role.selected'])->group(function () {
         Route::get('reports/pengajuan-dana', [\App\Http\Controllers\FinanceReportController::class, 'fundRequests'])->name('reports.fund-requests');
         Route::get('reports/pencairan-dana', [\App\Http\Controllers\FinanceReportController::class, 'disbursements'])->name('reports.disbursements');
         Route::get('reports/realisasi-anggaran', [\App\Http\Controllers\FinanceReportController::class, 'budgetRealization'])->name('reports.budget-realization');
+        Route::get('reports/transaksi-departemen', [\App\Http\Controllers\FinanceReportController::class, 'departmentTransactions'])->name('reports.department-transactions');
+        Route::get('reports/realisasi-bulanan', [\App\Http\Controllers\FinanceReportController::class, 'monthlyRealization'])->name('reports.monthly-realization');
+        Route::get('reports/detail-transaksi', [\App\Http\Controllers\FinanceReportController::class, 'detailTransactions'])->name('reports.detail-transactions');
     });
 
     // Laporan Akuntansi — Keuangan & Akunting

@@ -241,6 +241,207 @@ class FinanceReportController extends Controller
         return view('reports.budget-realization', compact('periods', 'period', 'groups', 'departments', 'totals'));
     }
 
+    // Laporan Transaksi Departemen — rincian pengajuan dana satu departemen dalam satu periode, dikelompokkan per bulan
+    public function departmentTransactions(Request $request)
+    {
+        $orgIds = auth()->user()->organizationIds();
+        [$periods, $period] = $this->resolvePeriod($request, $orgIds);
+
+        $departments = collect();
+        $department  = null;
+        $months      = collect();
+        $pagu        = 0.0;
+        $totals      = null;
+
+        if ($period) {
+            $departments = BudgetAllocation::with('department:id,name')
+                ->where('budget_period_id', $period->id)
+                ->get()->pluck('department')->filter()->unique('id')->sortBy('name')->values();
+
+            $department = $request->filled('department_id')
+                ? $departments->firstWhere('id', $request->department_id)
+                : $departments->first();
+        }
+
+        if ($period && $department) {
+            $pagu = (float) BudgetAllocation::where('budget_period_id', $period->id)
+                ->where('department_id', $department->id)->sum('amount');
+
+            $rows = FundRequest::with(['requester', 'budgetProgram'])
+                ->where('budget_period_id', $period->id)
+                ->where('department_id', $department->id)
+                ->where('status', '!=', 'draft')
+                ->orderBy('submitted_at')
+                ->get();
+
+            $refundedByFr = $this->confirmedRefundsFor($rows->pluck('id'));
+
+            $rows->each(function ($fr) use ($refundedByFr) {
+                $fr->refunded = (float) ($refundedByFr[$fr->id] ?? 0);
+                $fr->realized = $fr->disbursed_at ? ((float) $fr->amount - $fr->refunded) : 0.0;
+            });
+
+            $months = $rows->groupBy(fn($fr) => $fr->submitted_at?->format('Y-m') ?? '-')
+                ->map(fn($group, $key) => (object) [
+                    'label'     => $key === '-' ? 'Belum Disubmit' : \Carbon\Carbon::createFromFormat('Y-m', $key)->translatedFormat('F Y'),
+                    'rows'      => $group->values(),
+                    'diajukan'  => $group->sum('amount'),
+                    'realisasi' => $group->sum('realized'),
+                ])->values();
+
+            $totalRealisasi = $months->sum('realisasi');
+            $totals = (object) [
+                'diajukan'  => $rows->sum('amount'),
+                'realisasi' => $totalRealisasi,
+                'pagu'      => $pagu,
+                'sisa'      => $pagu - $totalRealisasi,
+                'pct'       => $pagu > 0 ? round($totalRealisasi / $pagu * 100, 1) : null,
+            ];
+        }
+
+        return view('reports.department-transactions', compact(
+            'periods', 'period', 'departments', 'department', 'months', 'pagu', 'totals'
+        ));
+    }
+
+    // Laporan Realisasi Bulanan — tren pengajuan & realisasi dana per bulan dalam satu periode anggaran
+    public function monthlyRealization(Request $request)
+    {
+        $orgIds = auth()->user()->organizationIds();
+        [$periods, $period] = $this->resolvePeriod($request, $orgIds);
+
+        $departments = collect();
+        $department  = null;
+        $months      = collect();
+        $pagu        = 0.0;
+        $totals      = null;
+
+        if ($period) {
+            $departments = BudgetAllocation::with('department:id,name')
+                ->where('budget_period_id', $period->id)
+                ->get()->pluck('department')->filter()->unique('id')->sortBy('name')->values();
+
+            $department = $request->filled('department_id')
+                ? $departments->firstWhere('id', $request->department_id)
+                : null;
+
+            $pagu = (float) BudgetAllocation::where('budget_period_id', $period->id)
+                ->when($department, fn($q) => $q->where('department_id', $department->id))
+                ->sum('amount');
+
+            $rows = FundRequest::where('budget_period_id', $period->id)
+                ->where('status', '!=', 'draft')
+                ->when($department, fn($q) => $q->where('department_id', $department->id))
+                ->get(['id', 'amount', 'submitted_at', 'disbursed_at']);
+
+            $refundedByFr = $this->confirmedRefundsFor($rows->pluck('id'));
+
+            $rows->each(function ($fr) use ($refundedByFr) {
+                $fr->refunded = (float) ($refundedByFr[$fr->id] ?? 0);
+                $fr->realized = $fr->disbursed_at ? ((float) $fr->amount - $fr->refunded) : 0.0;
+            });
+
+            $byRequestMonth  = $rows->groupBy(fn($fr) => $fr->submitted_at?->format('Y-m'));
+            $byDisburseMonth = $rows->filter(fn($fr) => $fr->disbursed_at)->groupBy(fn($fr) => $fr->disbursed_at->format('Y-m'));
+
+            $cursor    = $period->period_start->copy()->startOfMonth();
+            $end       = $period->period_end->copy()->startOfMonth();
+            $kumulatif = 0.0;
+
+            while ($cursor->lte($end)) {
+                $key = $cursor->format('Y-m');
+                $reqGroup  = $byRequestMonth->get($key, collect());
+                $disGroup  = $byDisburseMonth->get($key, collect());
+                $realisasiBulan = $disGroup->sum('realized');
+                $kumulatif += $realisasiBulan;
+
+                $months->push((object) [
+                    'label'          => $cursor->translatedFormat('F Y'),
+                    'jumlah_ajuan'   => $reqGroup->count(),
+                    'diajukan'       => $reqGroup->sum('amount'),
+                    'jumlah_cair'    => $disGroup->count(),
+                    'realisasi'      => $realisasiBulan,
+                    'kumulatif'      => $kumulatif,
+                    'pct_kumulatif'  => $pagu > 0 ? round($kumulatif / $pagu * 100, 1) : null,
+                ]);
+
+                $cursor->addMonth();
+            }
+
+            $totals = (object) [
+                'diajukan'  => $rows->sum('amount'),
+                'realisasi' => $kumulatif,
+                'pagu'      => $pagu,
+                'sisa'      => $pagu - $kumulatif,
+                'pct'       => $pagu > 0 ? round($kumulatif / $pagu * 100, 1) : null,
+            ];
+        }
+
+        return view('reports.monthly-realization', compact(
+            'periods', 'period', 'departments', 'department', 'months', 'pagu', 'totals'
+        ));
+    }
+
+    // Laporan Detail Transaksi — rincian seluruh pengajuan dana lintas departemen dalam satu periode, dengan selisih diajukan vs dicairkan
+    public function detailTransactions(Request $request)
+    {
+        $orgIds = auth()->user()->organizationIds();
+        [$periods, $period] = $this->resolvePeriod($request, $orgIds);
+
+        $departments  = collect();
+        $transactions = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 20);
+        $totals       = null;
+
+        if ($period) {
+            $departments = BudgetAllocation::with('department:id,name')
+                ->where('budget_period_id', $period->id)
+                ->get()->pluck('department')->filter()->unique('id')->sortBy('name')->values();
+
+            $base = FundRequest::where('budget_period_id', $period->id)
+                ->where('status', '!=', 'draft')
+                ->when($request->filled('department_id'), fn($q) => $q->where('department_id', $request->department_id))
+                ->when($request->filled('status'), function ($q) use ($request) {
+                    match ($request->status) {
+                        'pending'   => $q->where('status', 'pending'),
+                        'approved'  => $q->where('status', 'approved')->whereNull('disbursed_at'),
+                        'disbursed' => $q->whereNotNull('disbursed_at'),
+                        'rejected'  => $q->where('status', 'rejected'),
+                        default     => null,
+                    };
+                });
+
+            $filteredIds  = (clone $base)->pluck('id');
+            $refundedByFr = $this->confirmedRefundsFor($filteredIds);
+
+            $summary = (clone $base)->selectRaw('COUNT(*) as total_count, COALESCE(SUM(amount), 0) as total_amount')->first();
+            $disbursedTotal = (clone $base)->whereNotNull('disbursed_at')->sum('amount');
+
+            $transactions = (clone $base)
+                ->with(['department', 'requester', 'budgetProgram'])
+                ->orderByDesc('submitted_at')
+                ->paginate(20)->withQueryString();
+
+            $transactions->getCollection()->transform(function ($fr) use ($refundedByFr) {
+                $fr->refunded = (float) ($refundedByFr[$fr->id] ?? 0);
+                $fr->realized = $fr->disbursed_at ? ((float) $fr->amount - $fr->refunded) : 0.0;
+                $fr->selisih  = (float) $fr->amount - $fr->realized;
+                return $fr;
+            });
+
+            $totalRealisasi = (float) $disbursedTotal - (float) $refundedByFr->sum();
+            $totals = (object) [
+                'count'     => $summary->total_count,
+                'diajukan'  => (float) $summary->total_amount,
+                'realisasi' => $totalRealisasi,
+                'selisih'   => (float) $summary->total_amount - $totalRealisasi,
+            ];
+        }
+
+        return view('reports.detail-transactions', compact(
+            'periods', 'period', 'departments', 'transactions', 'totals'
+        ));
+    }
+
     // Buku Besar — riwayat mutasi debit/kredit per akun dengan saldo berjalan (hanya jurnal posted)
     public function generalLedger(Request $request)
     {
@@ -708,5 +909,31 @@ class FinanceReportController extends Controller
     {
         return Organization::when($orgIds !== null, fn($q) => $q->whereIn('id', $orgIds))
             ->orderBy('name')->get(['id', 'name']);
+    }
+
+    // Resolusi periode anggaran terpilih: dari query string, atau periode aktif, atau yang terbaru
+    private function resolvePeriod(Request $request, ?array $orgIds): array
+    {
+        $periods = BudgetPeriod::with('organization:id,name')
+            ->when($orgIds !== null, fn($q) => $q->whereIn('organization_id', $orgIds))
+            ->orderByDesc('period_start')
+            ->get();
+
+        $period = $request->filled('budget_period_id')
+            ? $periods->firstWhere('id', $request->budget_period_id)
+            : null;
+        $period ??= $periods->firstWhere('is_active', true) ?? $periods->first();
+
+        return [$periods, $period];
+    }
+
+    // Total pengembalian dana terkonfirmasi per fund_request_id, untuk sekumpulan ID pengajuan
+    private function confirmedRefundsFor($fundRequestIds)
+    {
+        return FundRefund::where('status', 'confirmed')
+            ->whereIn('fund_request_id', $fundRequestIds)
+            ->selectRaw('fund_request_id, COALESCE(SUM(amount), 0) as total')
+            ->groupBy('fund_request_id')
+            ->pluck('total', 'fund_request_id');
     }
 }

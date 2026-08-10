@@ -466,6 +466,15 @@
                 <a href="{{ route('reports.budget-realization') }}"
                    class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
                           {{ request()->routeIs('reports.budget-realization') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Realisasi Anggaran</a>
+                <a href="{{ route('reports.department-transactions') }}"
+                   class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
+                          {{ request()->routeIs('reports.department-transactions') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Transaksi Departemen</a>
+                <a href="{{ route('reports.monthly-realization') }}"
+                   class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
+                          {{ request()->routeIs('reports.monthly-realization') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Realisasi Bulanan</a>
+                <a href="{{ route('reports.detail-transactions') }}"
+                   class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
+                          {{ request()->routeIs('reports.detail-transactions') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Detail Transaksi</a>
                 @endif
                 @if(auth()->user()->hasPermission('menu.laporan-akuntansi'))
                 <a href="{{ route('reports.general-ledger') }}"
