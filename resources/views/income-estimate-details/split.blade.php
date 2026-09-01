@@ -42,10 +42,24 @@
                 class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100" required>
             <input type="hidden" name="total_amount" id="total_amount" value="{{ old('total_amount', $defaultTotal) }}">
         </div>
+        @php
+            $startParts = explode('-', old('start_month', $startMonth) ?: $startMonth);
+            $startYearDefault = $startParts[0] ?? '';
+            $startMonthNumDefault = $startParts[1] ?? '01';
+        @endphp
         <div class="flex flex-col gap-1.5">
             <label class="text-xs font-semibold text-slate-600">Mulai Bulan <span class="text-red-500">*</span></label>
-            <input type="month" name="start_month" id="start_month" value="{{ old('start_month', $startMonth) }}"
-                class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100" required>
+            <div class="flex gap-2">
+                <select id="start_month_bulan" class="flex-1 px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100" required>
+                    @foreach(['01'=>'Januari','02'=>'Februari','03'=>'Maret','04'=>'April','05'=>'Mei','06'=>'Juni','07'=>'Juli','08'=>'Agustus','09'=>'September','10'=>'Oktober','11'=>'November','12'=>'Desember'] as $num => $label)
+                        <option value="{{ $num }}" {{ $startMonthNumDefault === $num ? 'selected' : '' }}>{{ $label }}</option>
+                    @endforeach
+                </select>
+                <input type="text" id="start_month_tahun" inputmode="numeric" maxlength="4" placeholder="Tahun"
+                    value="{{ $startYearDefault }}"
+                    class="w-24 px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100" required>
+            </div>
+            <input type="hidden" name="start_month" id="start_month" value="{{ old('start_month', $startMonth) }}">
         </div>
         <div class="flex flex-col gap-1.5">
             <label class="text-xs font-semibold text-slate-600">Jumlah Bulan <span class="text-red-500">*</span></label>
@@ -120,7 +134,14 @@ const customSumInfo = document.getElementById('customSumInfo');
 const totalDisplay = document.getElementById('total_amount_display');
 const totalHidden  = document.getElementById('total_amount');
 const startInput = document.getElementById('start_month');
+const startBulan = document.getElementById('start_month_bulan');
+const startTahun = document.getElementById('start_month_tahun');
 const countInput = document.getElementById('month_count');
+
+function syncStartMonth() {
+    startTahun.value = startTahun.value.replace(/\D/g, '').slice(0, 4);
+    startInput.value = startTahun.value.length === 4 ? (startTahun.value + '-' + startBulan.value) : '';
+}
 
 function formatRupiahPair(display, hidden) {
     const raw = display.value.replace(/\D/g, '');
@@ -176,7 +197,9 @@ function toggleMode() {
 modeEven.addEventListener('change', toggleMode);
 modeCustom.addEventListener('change', toggleMode);
 countInput.addEventListener('input', () => { if (modeCustom.checked) renderCustomRows(); });
-startInput.addEventListener('input', () => { if (modeCustom.checked) renderCustomRows(); });
+startBulan.addEventListener('change', () => { syncStartMonth(); if (modeCustom.checked) renderCustomRows(); });
+startTahun.addEventListener('input', () => { syncStartMonth(); if (modeCustom.checked) renderCustomRows(); });
+syncStartMonth();
 totalDisplay.addEventListener('input', () => {
     formatRupiahPair(totalDisplay, totalHidden);
     if (modeCustom.checked) updateCustomSum();
