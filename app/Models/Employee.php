@@ -36,9 +36,16 @@ class Employee extends Model
         return $this->hasMany(EmployeePosition::class);
     }
 
+    // Karyawan bisa punya lebih dari satu jabatan aktif sekaligus — dipakai untuk konteks tunggal
+    // (mis. pengajuan dana), ambil yang paling baru mulai berlakunya.
     public function activePosition()
     {
         return $this->hasOne(EmployeePosition::class)->where('is_active', true)->latest('start_date');
+    }
+
+    public function activePositions()
+    {
+        return $this->hasMany(EmployeePosition::class)->where('is_active', true)->orderBy('start_date');
     }
 
     // Data lama punya ID integer, bukan UUID — skip validasi format UUID

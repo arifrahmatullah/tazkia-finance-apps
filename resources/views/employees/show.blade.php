@@ -198,7 +198,7 @@
                             <input type="text" name="notes" id="edit_notes" class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-colors" placeholder="Opsional">
                         </div>
                     </div>
-                    <p class="text-[11px] text-blue-600 mt-2.5 mb-0">Jika "Jadikan jabatan aktif" dicentang, jabatan aktif lain milik karyawan ini otomatis dinonaktifkan.</p>
+                    <p class="text-[11px] text-blue-600 mt-2.5 mb-0">Karyawan bisa punya lebih dari satu jabatan aktif sekaligus. Lepas centang "Jadikan jabatan aktif" untuk menyelesaikan jabatan ini.</p>
                     <div class="flex gap-2 mt-3.5">
                         <button type="submit" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 cursor-pointer hover:-translate-y-px transition-all">Simpan Perubahan</button>
                         <button type="button" class="inline-flex items-center px-3.5 py-2 rounded-lg text-xs font-medium bg-white text-slate-600 border border-slate-200 cursor-pointer" onclick="toggleEditPanel()">Batal</button>

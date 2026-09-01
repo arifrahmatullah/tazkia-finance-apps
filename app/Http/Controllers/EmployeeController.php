@@ -15,7 +15,7 @@ class EmployeeController extends Controller
         $orgIds = auth()->user()->organizationIds();
         $search = $request->input('search');
 
-        $employees = Employee::with(['organization', 'activePosition.position.department'])
+        $employees = Employee::with(['organization', 'activePositions.position.department'])
             ->when($orgIds !== null, fn($q) => $q->whereIn('organization_id', $orgIds))
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($q2) use ($search) {
@@ -146,23 +146,18 @@ class EmployeeController extends Controller
             'notes'       => 'nullable|string|max:255',
         ]);
 
-        \DB::transaction(function () use ($employee, $validated) {
-            // Update satu per satu (bukan mass update) agar event model terpicu untuk audit log
-            $employee->positions()->where('is_active', true)->get()->each(function ($p) use ($validated) {
-                $p->update(['is_active' => false, 'end_date' => $validated['start_date']]);
-            });
-
-            $employee->positions()->create([
-                'position_id' => $validated['position_id'],
-                'start_date'  => $validated['start_date'],
-                'end_date'    => null,
-                'notes'       => $validated['notes'] ?? null,
-                'is_active'   => true,
-            ]);
-        });
+        // Karyawan boleh punya lebih dari satu jabatan aktif sekaligus — jabatan lama tidak otomatis diselesaikan.
+        // Untuk mengakhiri jabatan lama, edit baris jabatan itu dan lepas centang "Jadikan jabatan aktif".
+        $employee->positions()->create([
+            'position_id' => $validated['position_id'],
+            'start_date'  => $validated['start_date'],
+            'end_date'    => null,
+            'notes'       => $validated['notes'] ?? null,
+            'is_active'   => true,
+        ]);
 
         return redirect()->route('employees.show', $employee)
-            ->with('success', 'Jabatan karyawan berhasil diperbarui.');
+            ->with('success', 'Jabatan karyawan berhasil ditambahkan.');
     }
 
     public function updatePosition(Request $request, Employee $employee, EmployeePosition $position)
@@ -179,21 +174,15 @@ class EmployeeController extends Controller
 
         $isActive = $request->boolean('is_active');
 
-        \DB::transaction(function () use ($employee, $position, $validated, $isActive) {
-            if ($isActive) {
-                // Pastikan tetap cuma satu jabatan aktif — nonaktifkan jabatan aktif lain milik karyawan ini
-                $employee->positions()->where('is_active', true)->where('id', '!=', $position->id)
-                    ->get()->each(fn($p) => $p->update(['is_active' => false]));
-            }
-
-            $position->update([
-                'position_id' => $validated['position_id'],
-                'start_date'  => $validated['start_date'],
-                'end_date'    => $isActive ? null : ($validated['end_date'] ?? null),
-                'notes'       => $validated['notes'] ?? null,
-                'is_active'   => $isActive,
-            ]);
-        });
+        // Karyawan boleh punya lebih dari satu jabatan aktif sekaligus, jadi mengaktifkan baris ini
+        // tidak menonaktifkan jabatan aktif lainnya.
+        $position->update([
+            'position_id' => $validated['position_id'],
+            'start_date'  => $validated['start_date'],
+            'end_date'    => $isActive ? null : ($validated['end_date'] ?? null),
+            'notes'       => $validated['notes'] ?? null,
+            'is_active'   => $isActive,
+        ]);
 
         return redirect()->route('employees.show', $employee)
             ->with('success', 'Riwayat jabatan berhasil diperbarui.');
