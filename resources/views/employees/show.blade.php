@@ -161,6 +161,51 @@
                 </form>
             </div>
 
+            {{-- Panel edit jabatan --}}
+            <div id="editPanel" class="hidden mx-4 mt-4 px-5 py-4 bg-blue-50 border border-blue-200 rounded-xl">
+                <p class="text-sm font-bold text-blue-700 mb-3.5 flex items-center gap-1.5">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    Edit Riwayat Jabatan
+                </p>
+                <form id="editPositionForm" method="POST">
+                    @csrf
+                    @method('PUT')
+                    <div class="grid grid-cols-2 gap-3.5">
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-xs font-semibold text-slate-600">Jabatan <span class="text-red-500 ml-0.5">*</span></label>
+                            <select name="position_id" id="edit_position_id" class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-colors" required>
+                                @foreach($positions as $pos)
+                                    <option value="{{ $pos->id }}">{{ $pos->name }} ({{ $pos->department->name ?? '' }})</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-xs font-semibold text-slate-600">Mulai Berlaku <span class="text-red-500 ml-0.5">*</span></label>
+                            <input type="date" name="start_date" id="edit_start_date" class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-colors" required>
+                        </div>
+                        <div class="flex flex-col gap-1.5" id="edit_end_date_wrap">
+                            <label class="text-xs font-semibold text-slate-600">Selesai</label>
+                            <input type="date" name="end_date" id="edit_end_date" class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-colors">
+                        </div>
+                        <div class="flex flex-col gap-1.5 justify-end">
+                            <label class="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 select-none">
+                                <input type="checkbox" name="is_active" id="edit_is_active" value="1" onchange="toggleEditEndDate()">
+                                Jadikan jabatan aktif
+                            </label>
+                        </div>
+                        <div class="flex flex-col gap-1.5 col-span-2">
+                            <label class="text-xs font-semibold text-slate-600">Keterangan</label>
+                            <input type="text" name="notes" id="edit_notes" class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-colors" placeholder="Opsional">
+                        </div>
+                    </div>
+                    <p class="text-[11px] text-blue-600 mt-2.5 mb-0">Jika "Jadikan jabatan aktif" dicentang, jabatan aktif lain milik karyawan ini otomatis dinonaktifkan.</p>
+                    <div class="flex gap-2 mt-3.5">
+                        <button type="submit" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 cursor-pointer hover:-translate-y-px transition-all">Simpan Perubahan</button>
+                        <button type="button" class="inline-flex items-center px-3.5 py-2 rounded-lg text-xs font-medium bg-white text-slate-600 border border-slate-200 cursor-pointer" onclick="toggleEditPanel()">Batal</button>
+                    </div>
+                </form>
+            </div>
+
             @if($employee->positions->isEmpty())
                 <div class="py-12 px-5 text-center text-slate-400">
                     <svg width="36" height="36" fill="none" stroke="#cbd5e1" stroke-width="1.5" viewBox="0 0 24 24" class="mx-auto mb-2.5 block"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
@@ -180,6 +225,16 @@
                     </thead>
                     <tbody>
                         @foreach($employee->positions->sortByDesc('start_date') as $ep)
+                        @php
+                            $epRowData = [
+                                'action'      => route('employees.positions.update', [$employee, $ep]),
+                                'position_id' => $ep->position_id,
+                                'start_date'  => optional($ep->start_date)->format('Y-m-d'),
+                                'end_date'    => optional($ep->end_date)->format('Y-m-d'),
+                                'notes'       => $ep->notes,
+                                'is_active'   => $ep->is_active,
+                            ];
+                        @endphp
                         <tr class="border-b border-slate-50 hover:bg-slate-50 transition-colors last:border-b-0">
                             <td class="px-4 py-3 text-sm font-semibold text-slate-800 align-middle">{{ $ep->position->name ?? '-' }}</td>
                             <td class="px-4 py-3 text-xs text-slate-500 align-middle">{{ $ep->position->department->name ?? '-' }}</td>
@@ -192,11 +247,15 @@
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-500">Selesai</span>
                                 @endif
                             </td>
-                            <td class="px-4 py-3 align-middle">
+                            <td class="px-4 py-3 align-middle whitespace-nowrap">
                                 <form id="del-pos-{{ $ep->id }}" method="POST"
                                     action="{{ route('employees.positions.remove', [$employee, $ep]) }}">
                                     @csrf @method('DELETE')
                                 </form>
+                                <button type="button" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors border-0 cursor-pointer mr-1"
+                                    onclick='openEditPanel(@json($epRowData))'>
+                                    Edit
+                                </button>
                                 <button type="button" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors border-0 cursor-pointer"
                                     onclick="confirmDelete('del-pos-{{ $ep->id }}', 'riwayat jabatan ini')">
                                     Hapus
@@ -212,8 +271,33 @@
 
     <script>
         function toggleAssignPanel() {
+            document.getElementById('editPanel').classList.add('hidden');
             document.getElementById('assignPanel').classList.toggle('hidden');
         }
+
+        function toggleEditPanel() {
+            document.getElementById('editPanel').classList.toggle('hidden');
+        }
+
+        function toggleEditEndDate() {
+            const isActive = document.getElementById('edit_is_active').checked;
+            document.getElementById('edit_end_date_wrap').style.display = isActive ? 'none' : '';
+            if (isActive) document.getElementById('edit_end_date').value = '';
+        }
+
+        function openEditPanel(data) {
+            document.getElementById('assignPanel').classList.add('hidden');
+            document.getElementById('editPositionForm').action = data.action;
+            document.getElementById('edit_position_id').value = data.position_id;
+            document.getElementById('edit_start_date').value = data.start_date ?? '';
+            document.getElementById('edit_end_date').value = data.end_date ?? '';
+            document.getElementById('edit_notes').value = data.notes ?? '';
+            document.getElementById('edit_is_active').checked = !!data.is_active;
+            toggleEditEndDate();
+            document.getElementById('editPanel').classList.remove('hidden');
+            document.getElementById('editPanel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
         @if($errors->any()) document.getElementById('assignPanel').classList.remove('hidden'); @endif
     </script>
 </x-layouts.app>

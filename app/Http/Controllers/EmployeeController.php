@@ -165,6 +165,40 @@ class EmployeeController extends Controller
             ->with('success', 'Jabatan karyawan berhasil diperbarui.');
     }
 
+    public function updatePosition(Request $request, Employee $employee, EmployeePosition $position)
+    {
+        abort_unless(auth()->user()->canAccessOrganization($employee->organization_id), 403);
+        abort_unless($position->employee_id === $employee->id, 403);
+
+        $validated = $request->validate([
+            'position_id' => 'required|exists:positions,id',
+            'start_date'  => 'required|date',
+            'end_date'    => 'nullable|date|after_or_equal:start_date',
+            'notes'       => 'nullable|string|max:255',
+        ]);
+
+        $isActive = $request->boolean('is_active');
+
+        \DB::transaction(function () use ($employee, $position, $validated, $isActive) {
+            if ($isActive) {
+                // Pastikan tetap cuma satu jabatan aktif — nonaktifkan jabatan aktif lain milik karyawan ini
+                $employee->positions()->where('is_active', true)->where('id', '!=', $position->id)
+                    ->get()->each(fn($p) => $p->update(['is_active' => false]));
+            }
+
+            $position->update([
+                'position_id' => $validated['position_id'],
+                'start_date'  => $validated['start_date'],
+                'end_date'    => $isActive ? null : ($validated['end_date'] ?? null),
+                'notes'       => $validated['notes'] ?? null,
+                'is_active'   => $isActive,
+            ]);
+        });
+
+        return redirect()->route('employees.show', $employee)
+            ->with('success', 'Riwayat jabatan berhasil diperbarui.');
+    }
+
     public function removePosition(Employee $employee, EmployeePosition $position)
     {
         abort_unless(auth()->user()->canAccessOrganization($employee->organization_id), 403);
