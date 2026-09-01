@@ -25,11 +25,13 @@ class IncomeEstimateDetailController extends Controller
             'income_estimate_id' => 'required|exists:income_estimates,id',
             'estimate_date'      => 'required|date',
             'description'        => 'required|string|max:255',
-            'qty'                => 'required|numeric|min:0.01',
+            'total'              => 'required|numeric|min:0.01',
         ]);
 
-        $data['unit_price'] = $estimate->unit_price;
-        $data['total']      = round($data['qty'] * $estimate->unit_price, 2);
+        $unitPrice = (float) $estimate->unit_price;
+        $data['unit_price'] = $unitPrice;
+        $data['qty']        = $unitPrice > 0 ? round($data['total'] / $unitPrice, 2) : 1;
+        $data['total']      = round((float) $data['total'], 2);
 
         \DB::transaction(function () use ($data, $estimate) {
             IncomeEstimateDetail::create($data);
@@ -56,11 +58,13 @@ class IncomeEstimateDetailController extends Controller
         $data = $request->validate([
             'estimate_date' => 'required|date',
             'description'   => 'required|string|max:255',
-            'qty'           => 'required|numeric|min:0.01',
+            'total'         => 'required|numeric|min:0.01',
         ]);
 
-        $data['unit_price'] = $estimate->unit_price;
-        $data['total']      = round($data['qty'] * $estimate->unit_price, 2);
+        $unitPrice = (float) $estimate->unit_price;
+        $data['unit_price'] = $unitPrice;
+        $data['qty']        = $unitPrice > 0 ? round($data['total'] / $unitPrice, 2) : 1;
+        $data['total']      = round((float) $data['total'], 2);
 
         \DB::transaction(function () use ($incomeEstimateDetail, $data, $estimate) {
             $incomeEstimateDetail->update($data);

@@ -37,9 +37,10 @@
     <div class="grid grid-cols-2 gap-4 mb-4">
         <div class="flex flex-col gap-1.5">
             <label class="text-xs font-semibold text-slate-600">Total yang Dibagi (Rp) <span class="text-red-500">*</span></label>
-            <input type="number" step="0.01" min="0.01" name="total_amount" id="total_amount"
-                value="{{ old('total_amount', $defaultTotal) }}"
+            <input type="text" inputmode="numeric" id="total_amount_display"
+                value="{{ number_format((float) old('total_amount', $defaultTotal), 0, ',', '.') }}"
                 class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100" required>
+            <input type="hidden" name="total_amount" id="total_amount" value="{{ old('total_amount', $defaultTotal) }}">
         </div>
         <div class="flex flex-col gap-1.5">
             <label class="text-xs font-semibold text-slate-600">Mulai Bulan <span class="text-red-500">*</span></label>
@@ -116,12 +117,19 @@ const modeCustom = document.getElementById('mode_custom');
 const customArea = document.getElementById('customArea');
 const customRows = document.getElementById('customRows');
 const customSumInfo = document.getElementById('customSumInfo');
-const totalInput = document.getElementById('total_amount');
+const totalDisplay = document.getElementById('total_amount_display');
+const totalHidden  = document.getElementById('total_amount');
 const startInput = document.getElementById('start_month');
 const countInput = document.getElementById('month_count');
 
+function formatRupiahPair(display, hidden) {
+    const raw = display.value.replace(/\D/g, '');
+    hidden.value = raw;
+    display.value = raw ? parseInt(raw).toLocaleString('id-ID') : '';
+}
+
 function renderCustomRows() {
-    const total = parseFloat(totalInput.value) || 0;
+    const total = parseFloat(totalHidden.value) || 0;
     const start = startInput.value;
     const count = Math.max(1, Math.min(36, parseInt(countInput.value) || 1));
     if (!start) { customRows.innerHTML = '<p class="text-xs text-slate-400 italic">Isi "Mulai Bulan" dulu.</p>'; return; }
@@ -135,19 +143,25 @@ function renderCustomRows() {
         acc += amount;
         html += `<div class="flex items-center gap-3">
             <span class="text-xs text-slate-500 w-48 shrink-0">${monthLabel(y, m)}</span>
-            <input type="number" step="0.01" min="0" name="amounts[]" value="${amount}"
-                class="custom-amount flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100">
+            <input type="text" inputmode="numeric" value="${Math.round(amount).toLocaleString('id-ID')}"
+                class="custom-amount-display flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100">
+            <input type="hidden" name="amounts[]" class="custom-amount-hidden" value="${amount}">
         </div>`;
     }
     customRows.innerHTML = html;
-    customRows.querySelectorAll('.custom-amount').forEach(el => el.addEventListener('input', updateCustomSum));
+    customRows.querySelectorAll('.custom-amount-display').forEach(el => {
+        el.addEventListener('input', () => {
+            formatRupiahPair(el, el.nextElementSibling);
+            updateCustomSum();
+        });
+    });
     updateCustomSum();
 }
 
 function updateCustomSum() {
-    const total = parseFloat(totalInput.value) || 0;
+    const total = parseFloat(totalHidden.value) || 0;
     let sum = 0;
-    customRows.querySelectorAll('.custom-amount').forEach(el => sum += (parseFloat(el.value) || 0));
+    customRows.querySelectorAll('.custom-amount-hidden').forEach(el => sum += (parseFloat(el.value) || 0));
     const diff = Math.round((total - sum) * 100) / 100;
     customSumInfo.textContent = 'Total input: ' + fmtRupiah(sum) + (Math.abs(diff) > 0.01 ? ' · Sisa: ' + fmtRupiah(diff) : ' · Cocok ✓');
     customSumInfo.className = Math.abs(diff) > 0.01 ? 'text-xs text-red-500 font-medium' : 'text-xs text-emerald-600 font-medium';
@@ -163,7 +177,10 @@ modeEven.addEventListener('change', toggleMode);
 modeCustom.addEventListener('change', toggleMode);
 countInput.addEventListener('input', () => { if (modeCustom.checked) renderCustomRows(); });
 startInput.addEventListener('input', () => { if (modeCustom.checked) renderCustomRows(); });
-totalInput.addEventListener('input', () => { if (modeCustom.checked) updateCustomSum(); });
+totalDisplay.addEventListener('input', () => {
+    formatRupiahPair(totalDisplay, totalHidden);
+    if (modeCustom.checked) updateCustomSum();
+});
 
 toggleMode();
 </script>
