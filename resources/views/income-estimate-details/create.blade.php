@@ -40,16 +40,21 @@
         @error('description')<p class="text-xs text-red-500">{{ $message }}</p>@enderror
     </div>
 
-    <div class="flex flex-col gap-1.5 mb-2">
-        <label class="text-xs font-semibold text-slate-600">Jumlah (Qty) <span class="text-red-500">*</span></label>
-        <input type="number" name="qty" id="qty" value="{{ old('qty', 1) }}" min="0.01" step="0.01"
-            class="w-full px-3 py-2.5 border rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 {{ $errors->has('qty') ? 'border-red-400' : 'border-slate-200' }}" required>
-        @error('qty')<p class="text-xs text-red-500">{{ $message }}</p>@enderror
-    </div>
-
-    <div class="px-4 py-3 bg-slate-50 rounded-xl text-sm text-slate-600 mb-5">
-        Total: <strong id="preview-total" class="text-orange-600">Rp 0</strong>
-        <span class="text-slate-400 text-xs ml-1">({{ number_format($estimate->unit_price, 0, ',', '.') }} × qty)</span>
+    <div class="grid grid-cols-2 gap-4 mb-5">
+        <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-semibold text-slate-600">Jumlah (Qty) <span class="text-red-500">*</span></label>
+            <input type="number" name="qty" id="qty" value="{{ old('qty', 1) }}" min="0.01" step="0.01"
+                class="w-full px-3 py-2.5 border rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 {{ $errors->has('qty') ? 'border-red-400' : 'border-slate-200' }}" required>
+            @error('qty')<p class="text-xs text-red-500">{{ $message }}</p>@enderror
+        </div>
+        <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-semibold text-slate-600">Total (Rp)</label>
+            <input type="text" id="totalRupiah" inputmode="numeric"
+                placeholder="{{ (float) $estimate->unit_price <= 0 ? 'Harga per satuan belum diatur' : '0' }}"
+                class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors"
+                {{ (float) $estimate->unit_price <= 0 ? 'disabled' : '' }}>
+            <span class="text-[11px] text-slate-400" id="totalHint">Isi salah satu — Qty atau Total, otomatis mengisi yang lain.</span>
+        </div>
     </div>
 
     <div class="flex gap-3 justify-end pt-5 border-t border-slate-100">
@@ -60,16 +65,36 @@
 </div>
 
 <script>
-const unitPrice = {{ $estimate->unit_price }};
-const qtyInput  = document.getElementById('qty');
-const preview   = document.getElementById('preview-total');
+const unitPrice  = {{ $estimate->unit_price }};
+const qtyInput   = document.getElementById('qty');
+const totalInput = document.getElementById('totalRupiah');
 
-function updatePreview() {
+function syncTotalFromQty() {
     const qty   = parseFloat(qtyInput.value) || 0;
     const total = qty * unitPrice;
-    preview.textContent = 'Rp ' + total.toLocaleString('id-ID', { minimumFractionDigits: 0 });
+    totalInput.value = total ? Math.round(total).toLocaleString('id-ID') : '';
 }
-qtyInput.addEventListener('input', updatePreview);
-updatePreview();
+
+function syncQtyFromTotal() {
+    const raw = totalInput.value.replace(/\D/g, '');
+    totalInput.value = raw ? parseInt(raw).toLocaleString('id-ID') : '';
+    const hint = document.getElementById('totalHint');
+    if (unitPrice > 0) {
+        const qty = raw ? (parseInt(raw) / unitPrice) : 0;
+        const qtyRounded = qty ? qty.toFixed(2) : '';
+        qtyInput.value = qtyRounded;
+        if (raw && parseFloat(qtyRounded) < 0.01) {
+            hint.textContent = 'Nominal ini terlalu kecil dibanding Harga per Satuan — Qty minimal 0.01. Naikkan nominal atau isi Qty langsung.';
+            hint.className = 'text-[11px] text-red-500 font-medium';
+        } else {
+            hint.textContent = 'Isi salah satu — Qty atau Total, otomatis mengisi yang lain.';
+            hint.className = 'text-[11px] text-slate-400';
+        }
+    }
+}
+
+qtyInput.addEventListener('input', syncTotalFromQty);
+totalInput.addEventListener('input', syncQtyFromTotal);
+syncTotalFromQty();
 </script>
 </x-layouts.app>
