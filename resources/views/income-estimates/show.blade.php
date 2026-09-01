@@ -75,11 +75,18 @@
 {{-- Detail Table --}}
 <div class="flex items-center justify-between mb-3">
     <h2 class="text-sm font-bold text-slate-700 m-0">Jadwal Estimasi</h2>
-    <a href="{{ route('income-estimate-details.create', ['income_estimate_id' => $incomeEstimate->id]) }}"
-       class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-br from-orange-400 to-orange-500 text-white text-xs font-semibold shadow-sm hover:-translate-y-px transition-all no-underline">
-        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-        Tambah Jadwal
-    </a>
+    <div class="flex items-center gap-2">
+        <a href="{{ route('income-estimate-details.split.create', $incomeEstimate) }}"
+           class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-orange-200 bg-orange-50 text-orange-600 text-xs font-semibold hover:bg-orange-100 transition-colors no-underline">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            Bagi Jadwal Otomatis
+        </a>
+        <a href="{{ route('income-estimate-details.create', ['income_estimate_id' => $incomeEstimate->id]) }}"
+           class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-br from-orange-400 to-orange-500 text-white text-xs font-semibold shadow-sm hover:-translate-y-px transition-all no-underline">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+            Tambah Jadwal
+        </a>
+    </div>
 </div>
 
 <div class="bg-white rounded-xl shadow-sm overflow-hidden">

@@ -94,6 +94,8 @@ Route::middleware(['auth', 'role.selected'])->group(function () {
     Route::resource('income-estimates', IncomeEstimateController::class);
     Route::resource('income-estimate-details', IncomeEstimateDetailController::class)
         ->only(['create', 'store', 'edit', 'update', 'destroy']);
+    Route::get('income-estimates/{incomeEstimate}/split', [IncomeEstimateDetailController::class, 'createSplit'])->name('income-estimate-details.split.create');
+    Route::post('income-estimates/{incomeEstimate}/split', [IncomeEstimateDetailController::class, 'storeSplit'])->name('income-estimate-details.split.store');
 
     // Realisasi Penerimaan (penerimaan real)
     Route::resource('income-receipts', \App\Http\Controllers\IncomeReceiptController::class)
