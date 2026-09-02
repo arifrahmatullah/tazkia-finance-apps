@@ -599,15 +599,39 @@
 </div>
 @endif
 
+@if($canApprove && $currentApproval)
+{{-- Ruang kosong agar konten terbawah tidak tertutup bar approve --}}
+<div style="height: 84px"></div>
+
+{{-- Bar Setuju/Tolak melayang: muncul saat tombol di header ter-scroll keluar layar --}}
+<div id="sticky-approve" class="fixed bottom-0 right-0 z-40 px-4 py-3 bg-white/95 border-t border-slate-200 shadow-[0_-4px_16px_rgba(0,0,0,.08)]" style="display:none; backdrop-filter: blur(6px)">
+    <div class="max-w-5xl mx-auto flex items-center justify-between gap-3 flex-wrap">
+        <span class="text-xs text-slate-600">Menunggu persetujuan Anda — {{ $fundRequest->reference }}</span>
+        <div class="flex items-center gap-2">
+            <button type="button" onclick="document.getElementById('btn-approve').click()"
+                class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-gradient-to-br from-green-500 to-green-600 text-white border-0 cursor-pointer hover:opacity-90 transition-opacity shadow-sm">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+                Setujui
+            </button>
+            <button type="button" onclick="document.getElementById('btn-reject').click()"
+                class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-gradient-to-br from-red-500 to-red-600 text-white border-0 cursor-pointer hover:opacity-90 transition-opacity shadow-sm">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                Tolak
+            </button>
+        </div>
+    </div>
+</div>
+@endif
+
 <style>
 @keyframes submit-pulse {
     0%, 100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, .55); }
     50%      { box-shadow: 0 0 0 7px rgba(249, 115, 22, 0); }
 }
 /* Bar submit mulai dari kanan sidebar (260px); full di mobile saat sidebar tersembunyi */
-#sticky-submit { left: 260px; }
+#sticky-submit, #sticky-approve { left: 260px; }
 @media (max-width: 1024px) {
-    #sticky-submit { left: 0; }
+    #sticky-submit, #sticky-approve { left: 0; }
 }
 </style>
 
@@ -620,6 +644,15 @@
         new IntersectionObserver(function(entries) {
             stickyBar.style.display = entries[0].isIntersecting ? 'none' : '';
         }).observe(topSubmit);
+    }
+
+    // Bar Setuju/Tolak melayang: tampil hanya saat tombol header tidak terlihat
+    var stickyApprove = document.getElementById('sticky-approve');
+    var topApprove     = document.getElementById('btn-approve');
+    if (stickyApprove && topApprove && 'IntersectionObserver' in window) {
+        new IntersectionObserver(function(entries) {
+            stickyApprove.style.display = entries[0].isIntersecting ? 'none' : '';
+        }).observe(topApprove);
     }
 
     // Submit button
