@@ -93,8 +93,10 @@ class UserController extends Controller
             }
         }
 
-        $nonSuperadminRoles = $roles->reject(fn($r) => $r->slug === 'superadmin');
-        if ($nonSuperadminRoles->isNotEmpty() && empty($orgIds)) {
+        // Role selain superadmin wajib punya organisasi. Superadmin opsional:
+        // kosong = akses semua organisasi, dipilih = superadmin di-scope ke organisasi itu saja.
+        $rolesRequiringOrg = $roles->reject(fn($r) => $r->slug === 'superadmin');
+        if ($rolesRequiringOrg->isNotEmpty() && empty($orgIds)) {
             return back()->withInput()->withErrors([
                 'organization_ids' => 'Pilih minimal satu organisasi untuk role yang dipilih.',
             ]);
@@ -102,7 +104,7 @@ class UserController extends Controller
 
         $primaryRole = $roles->firstWhere('slug', 'superadmin') ?? $roles->first();
 
-        $user = \DB::transaction(function () use ($validated, $roles, $nonSuperadminRoles, $orgIds, $primaryRole) {
+        $user = \DB::transaction(function () use ($validated, $roles, $orgIds, $primaryRole) {
             $user = User::create([
                 'name'      => $validated['name'],
                 'email'     => $validated['email'],
@@ -111,7 +113,7 @@ class UserController extends Controller
                 'is_active' => true,
             ]);
 
-            foreach ($nonSuperadminRoles as $role) {
+            foreach ($roles as $role) {
                 foreach ($orgIds as $orgId) {
                     UserOrganizationRole::create([
                         'user_id'         => $user->id,
@@ -139,7 +141,10 @@ class UserController extends Controller
 
         // Akun lama kadang cuma punya role_id tanpa baris user_organization_roles.
         // Supaya checkbox organisasi tidak kosong (dan gampang lupa dicentang), fallback ke organisasi karyawannya.
-        if (empty($assignedOrgIds)) {
+        // Kecuali untuk superadmin murni: kosong itu memang berarti akses semua organisasi, jangan di-pre-check.
+        $isPureSuperadmin = $user->role?->slug === 'superadmin'
+            && $user->availableRoles()->pluck('slug')->every(fn($slug) => $slug === 'superadmin');
+        if (empty($assignedOrgIds) && !$isPureSuperadmin) {
             $user->loadMissing('employee');
             if ($user->employee?->organization_id) {
                 $assignedOrgIds = [$user->employee->organization_id];
@@ -179,8 +184,8 @@ class UserController extends Controller
             }
         }
 
-        $nonSuperadminRoles = $roles->reject(fn($r) => $r->slug === 'superadmin');
-        if ($nonSuperadminRoles->isNotEmpty() && empty($orgIds)) {
+        $rolesRequiringOrg = $roles->reject(fn($r) => $r->slug === 'superadmin');
+        if ($rolesRequiringOrg->isNotEmpty() && empty($orgIds)) {
             return back()->withInput()->withErrors([
                 'organization_ids' => 'Pilih minimal satu organisasi untuk role yang dipilih.',
             ]);
@@ -198,11 +203,11 @@ class UserController extends Controller
             $data['password'] = Hash::make($validated['password']);
         }
 
-        \DB::transaction(function () use ($user, $data, $nonSuperadminRoles, $orgIds) {
+        \DB::transaction(function () use ($user, $data, $roles, $orgIds) {
             $user->update($data);
 
             $user->organizationRoles()->delete();
-            foreach ($nonSuperadminRoles as $role) {
+            foreach ($roles as $role) {
                 foreach ($orgIds as $orgId) {
                     UserOrganizationRole::create([
                         'user_id'         => $user->id,

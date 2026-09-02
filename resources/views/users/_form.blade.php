@@ -63,6 +63,9 @@
 {{-- Organisasi --}}
 <div class="mb-6" id="org-section">
     <div class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3.5 pb-2 border-b border-slate-100">Akses Organisasi</div>
+    <p class="text-xs text-orange-500 -mt-2 mb-3" id="superadmin-hint" style="display:none">
+        Untuk Super Admin: kosongkan agar akses <strong>semua organisasi</strong>, atau centang satu/lebih untuk membatasi Super Admin ini hanya ke organisasi tersebut.
+    </p>
     @if($organizations->count() === 0)
         <p class="text-sm text-slate-400">Tidak ada organisasi tersedia.</p>
     @else
@@ -101,17 +104,9 @@
 const superadminRoleId = '{{ $roles->firstWhere('slug', 'superadmin')?->id }}';
 
 function handleRoleChange() {
-    const orgSection   = document.getElementById('org-section');
     const checkedRoles = Array.from(document.querySelectorAll('input[name="role_ids[]"]:checked')).map(el => el.value);
     const onlySuperadmin = checkedRoles.length > 0 && checkedRoles.every(id => id === superadminRoleId);
-
-    if (onlySuperadmin) {
-        orgSection.style.opacity = '0.4';
-        orgSection.style.pointerEvents = 'none';
-    } else {
-        orgSection.style.opacity = '1';
-        orgSection.style.pointerEvents = '';
-    }
+    document.getElementById('superadmin-hint').style.display = onlySuperadmin ? '' : 'none';
 }
 
 function toggleOrgLabel(cb) {

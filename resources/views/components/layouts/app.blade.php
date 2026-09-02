@@ -600,9 +600,13 @@
         {{-- Header Right --}}
         <div class="flex items-center gap-2.5">
             @php
-                $activeRole = auth()->user()->activeRole();
-                $orgRow     = auth()->user()->organizationRoles->firstWhere('role_id', $activeRole?->id);
-                $orgLabel   = auth()->user()->isSuperAdmin() ? 'Semua Organisasi' : ($orgRow?->organization?->name ?? auth()->user()->organizationRoles->first()?->organization?->name ?? '-');
+                $activeRole    = auth()->user()->activeRole();
+                $headerOrgIds  = auth()->user()->organizationIds();
+                if ($headerOrgIds === null) {
+                    $orgLabel = 'Semua Organisasi';
+                } else {
+                    $orgLabel = \App\Models\Organization::whereIn('id', $headerOrgIds)->pluck('name')->join(', ') ?: '-';
+                }
             @endphp
 
             {{-- Role badge --}}

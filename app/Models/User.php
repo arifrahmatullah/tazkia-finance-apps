@@ -160,20 +160,23 @@ class User extends Authenticatable
     public function organizationIds(): ?array
     {
         $active = $this->activeRole();
-
-        if ($active?->slug === 'superadmin') {
+        if (!$active) {
             return null;
         }
 
-        $query = $this->organizationRoles()->whereNotNull('organization_id');
-        if ($active) {
-            $query->where('role_id', $active->id);
-        }
-
-        $orgIds = $query->pluck('organization_id')->unique()->values()->toArray();
+        $orgIds = $this->organizationRoles()
+            ->where('role_id', $active->id)
+            ->whereNotNull('organization_id')
+            ->pluck('organization_id')->unique()->values()->toArray();
 
         if (!empty($orgIds)) {
             return $orgIds;
+        }
+
+        // Superadmin tanpa organisasi spesifik = akses semua organisasi.
+        // Kalau superadmin di-scope ke satu/lebih organisasi (lewat baris di atas), dia dibatasi ke situ saja.
+        if ($active->slug === 'superadmin') {
+            return null;
         }
 
         // Fallback: gunakan organisasi dari data karyawan yang terhubung
@@ -189,11 +192,7 @@ class User extends Authenticatable
      */
     public function canAccessOrganization(string $orgId): bool
     {
-        if ($this->isSuperAdmin()) {
-            return true;
-        }
-
         $ids = $this->organizationIds();
-        return $ids !== null && in_array($orgId, $ids);
+        return $ids === null || in_array($orgId, $ids);
     }
 }
