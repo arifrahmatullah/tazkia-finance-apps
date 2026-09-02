@@ -129,6 +129,7 @@ class BudgetProgramController extends Controller
         $sisaAlokasi = (float) $allocation->amount - $usedByPrograms;
 
         $accounts = Account::where('account_type', 'beban')
+            ->where('organization_id', $department->organization_id)
             ->where('is_active', true)
             ->where('is_header', false)
             ->orderBy('code')
@@ -221,6 +222,7 @@ class BudgetProgramController extends Controller
         $this->assertDepartmentAccess($budgetProgram->budgetAllocation->department_id);
 
         $accounts = Account::where('account_type', 'beban')
+            ->where('organization_id', $budgetProgram->budgetAllocation->department->organization_id)
             ->where('is_active', true)
             ->where('is_header', false)
             ->orderBy('code')
