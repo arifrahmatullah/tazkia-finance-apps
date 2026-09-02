@@ -20,6 +20,7 @@ class PermissionSeeder extends Seeder
             ['slug' => 'menu.jabatan',              'name' => 'Jabatan',                'group' => 'master'],
             ['slug' => 'menu.karyawan',             'name' => 'Karyawan',               'group' => 'master'],
             ['slug' => 'menu.approval-settings',    'name' => 'Setting Approval',       'group' => 'master'],
+            ['slug' => 'menu.master-bank',          'name' => 'Master Bank',            'group' => 'master'],
 
             // Keuangan
             ['slug' => 'menu.periode-anggaran',     'name' => 'Periode Anggaran',       'group' => 'keuangan'],
@@ -54,7 +55,7 @@ class PermissionSeeder extends Seeder
         // Default permissions per role
         $rolePermissions = [
             'keuangan' => [
-                'menu.dashboard', 'menu.approval-settings',
+                'menu.dashboard', 'menu.approval-settings', 'menu.master-bank',
                 'menu.periode-anggaran', 'menu.estimasi-pendapatan',
                 'menu.pagu-anggaran', 'menu.program-kerja',
                 'menu.pengajuan-dana', 'menu.inbox-approval',

@@ -89,7 +89,7 @@
         @endif
 
         {{-- MASTER DATA --}}
-        @php $showMaster = auth()->user()->hasPermission('menu.organisasi') || auth()->user()->hasPermission('menu.departemen') || auth()->user()->hasPermission('menu.jabatan') || auth()->user()->hasPermission('menu.karyawan') || auth()->user()->hasPermission('menu.approval-settings'); @endphp
+        @php $showMaster = auth()->user()->hasPermission('menu.organisasi') || auth()->user()->hasPermission('menu.departemen') || auth()->user()->hasPermission('menu.jabatan') || auth()->user()->hasPermission('menu.karyawan') || auth()->user()->hasPermission('menu.approval-settings') || auth()->user()->hasPermission('menu.master-bank'); @endphp
         @if($showMaster)
         <div class="px-5 pt-4 pb-1.5 text-[0.65rem] font-semibold text-slate-400/70 tracking-[0.1em] uppercase">Master Data</div>
 
@@ -126,6 +126,18 @@
                 @endif
             </div>
         </div>
+        @endif
+
+        @if(auth()->user()->hasPermission('menu.master-bank'))
+        <a href="{{ route('banks.index') }}"
+           class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg no-underline text-[0.835rem] transition-all relative
+                  {{ request()->routeIs('banks.*') ? 'active bg-orange-500/[0.15] text-white font-[550]' : 'text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white' }}">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                class="{{ request()->routeIs('banks.*') ? 'text-orange-300' : 'opacity-80' }}">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h16a1 1 0 001-1V6a1 1 0 00-1-1H4a1 1 0 00-1 1v12a1 1 0 001 1z"/>
+            </svg>
+            Bank
+        </a>
         @endif
 
         @if(auth()->user()->hasPermission('menu.karyawan'))

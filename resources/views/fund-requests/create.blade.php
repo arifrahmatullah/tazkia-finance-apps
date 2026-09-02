@@ -166,9 +166,20 @@
         <div class="grid grid-cols-3 gap-4">
             <div class="flex flex-col gap-1.5">
                 <label class="text-xs font-semibold text-slate-600">Nama Bank</label>
-                <input type="text" name="bank_name" value="{{ old('bank_name') }}" maxlength="100"
-                    class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors {{ $errors->has('bank_name') ? 'border-red-400' : '' }}"
-                    placeholder="Contoh: BRI, BNI, Mandiri...">
+                @php $oldBank = old('bank_name'); $bankNames = $banks->pluck('name'); @endphp
+                <select id="bankSelect" onchange="toggleBankOther(this)"
+                    class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors {{ $errors->has('bank_name') ? 'border-red-400' : '' }}">
+                    <option value="">— Pilih Bank —</option>
+                    @foreach($banks as $bank)
+                    <option value="{{ $bank->name }}" {{ $oldBank === $bank->name ? 'selected' : '' }}>{{ $bank->name }}</option>
+                    @endforeach
+                    <option value="__other__" {{ $oldBank && !$bankNames->contains($oldBank) ? 'selected' : '' }}>Lainnya...</option>
+                </select>
+                <input type="text" id="bankOther" maxlength="100" placeholder="Tulis nama bank"
+                    value="{{ $oldBank && !$bankNames->contains($oldBank) ? $oldBank : '' }}"
+                    class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors mt-1.5"
+                    style="display:none">
+                <input type="hidden" name="bank_name" id="bankNameHidden" value="{{ $oldBank }}">
                 @error('bank_name')<div class="text-xs text-red-500 mt-0.5">{{ $message }}</div>@enderror
             </div>
 
@@ -300,6 +311,22 @@ document.getElementById('fund-form').addEventListener('change', function (e) {
         ?.querySelectorAll('.js-error').forEach(el => el.remove());
 });
 
+function toggleBankOther(select) {
+    const other  = document.getElementById('bankOther');
+    const hidden = document.getElementById('bankNameHidden');
+    if (select.value === '__other__') {
+        other.style.display = '';
+        hidden.value = other.value;
+    } else {
+        other.style.display = 'none';
+        hidden.value = select.value;
+    }
+}
+document.getElementById('bankOther').addEventListener('input', function () {
+    document.getElementById('bankNameHidden').value = this.value;
+});
+toggleBankOther(document.getElementById('bankSelect'));
+
 function onProgramChange(programId, keepValues = false) {
     hide('program-detail');
     hide('form-fields');
@@ -312,8 +339,10 @@ function onProgramChange(programId, keepValues = false) {
         document.getElementById('title-input').value    = '';
         document.getElementById('amount-display').value = '';
         document.getElementById('amount-input').value   = '';
-        ['textarea[name="purpose"]', 'input[name="bank_name"]', 'input[name="bank_account_number"]', 'input[name="bank_account_name"]']
+        ['textarea[name="purpose"]', 'input[name="bank_account_number"]', 'input[name="bank_account_name"]']
             .forEach(sel => { const el = document.querySelector(sel); if (el) el.value = ''; });
+        document.getElementById('bankSelect').value = '';
+        toggleBankOther(document.getElementById('bankSelect'));
     }
 
     if (!programId || !programsCache[programId]) return;

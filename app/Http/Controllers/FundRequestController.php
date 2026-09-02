@@ -10,6 +10,7 @@ use App\Models\Department;
 use App\Models\FundRequest;
 use App\Models\FundRequestApproval;
 use App\Models\FundRequestFile;
+use App\Models\Bank;
 use App\Models\Organization;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -83,7 +84,9 @@ class FundRequestController extends Controller
             ]);
         }
 
-        return view('fund-requests.create', compact('employee', 'activePosition'));
+        $banks = Bank::where('is_active', true)->orderBy('name')->get();
+
+        return view('fund-requests.create', compact('employee', 'activePosition', 'banks'));
     }
 
     public function store(Request $request)
@@ -203,8 +206,9 @@ class FundRequestController extends Controller
 
         $departments   = Department::where('organization_id', $fundRequest->organization_id)->where('is_active', true)->orderBy('name')->get();
         $budgetPeriods = BudgetPeriod::where('organization_id', $fundRequest->organization_id)->where('is_active', true)->orderByDesc('year')->get();
+        $banks         = Bank::where('is_active', true)->orderBy('name')->get();
 
-        return view('fund-requests.edit', compact('fundRequest', 'departments', 'budgetPeriods'));
+        return view('fund-requests.edit', compact('fundRequest', 'departments', 'budgetPeriods', 'banks'));
     }
 
     public function update(Request $request, FundRequest $fundRequest)

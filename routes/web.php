@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuditLogController;
+use App\Http\Controllers\BankController;
 use App\Http\Controllers\BudgetProgramScheduleController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\FundRefundController;
@@ -50,6 +51,7 @@ Route::middleware(['auth', 'role.selected'])->group(function () {
     Route::resource('organizations', OrganizationController::class)->except(['show']);
     Route::resource('departments', DepartmentController::class)->except(['show']);
     Route::resource('positions', PositionController::class)->except(['show']);
+    Route::resource('banks', BankController::class)->except(['show'])->middleware('permission:menu.master-bank');
     Route::get('budget-periods/active-period', [BudgetPeriodController::class, 'activePeriod'])->name('budget-periods.active');
     Route::resource('budget-periods', BudgetPeriodController::class)->except(['show'])->middleware('permission:menu.periode-anggaran');
     Route::resource('budget-allocations', BudgetAllocationController::class)->except(['show'])->middleware('permission:menu.pagu-anggaran');
