@@ -68,12 +68,21 @@
     </div>
     @endif
 
+    {{-- Urutan tanggal --}}
+    <div class="min-w-[160px]">
+        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">Urutan Tanggal</label>
+        <select name="sort" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 bg-white outline-none focus:border-orange-400 transition-colors">
+            <option value="desc" {{ $sort === 'desc' ? 'selected' : '' }}>Terbaru</option>
+            <option value="asc" {{ $sort === 'asc' ? 'selected' : '' }}>Terlama</option>
+        </select>
+    </div>
+
     <div class="flex gap-2">
         <button type="submit" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-orange-500 text-white border-0 cursor-pointer hover:bg-orange-600 transition-colors">
             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
             Cari
         </button>
-        @if(request('search') || request('organization_id'))
+        @if(request('search') || request('organization_id') || (request('sort') && request('sort') !== 'desc'))
         <a href="{{ route('fund-approvals.inbox', ['status' => $filterStatus]) }}" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-slate-100 text-slate-600 no-underline hover:bg-slate-200 transition-colors">
             Reset
         </a>
@@ -91,7 +100,7 @@
         ];
     @endphp
     @foreach($tabs as $key => $tab)
-    <a href="{{ route('fund-approvals.inbox', array_filter(['status' => $key, 'search' => request('search'), 'organization_id' => request('organization_id')])) }}"
+    <a href="{{ route('fund-approvals.inbox', array_filter(['status' => $key, 'search' => request('search'), 'organization_id' => request('organization_id'), 'sort' => $sort])) }}"
        class="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all no-underline {{ $filterStatus === $key ? $tab['active'] : $tab['inactive'] }}">
         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="{{ $tab['icon'] }}"/></svg>
         {{ $tab['label'] }}

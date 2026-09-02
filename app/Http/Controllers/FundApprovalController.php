@@ -26,6 +26,7 @@ class FundApprovalController extends Controller
                 'positionName' => null,
                 'organizations'=> collect(),
                 'filterStatus' => 'waiting',
+                'sort'         => 'desc',
             ]);
         }
 
@@ -33,6 +34,11 @@ class FundApprovalController extends Controller
         $filterStatus = $request->get('status', 'waiting');
         if (!in_array($filterStatus, ['waiting', 'approved', 'rejected'])) {
             $filterStatus = 'waiting';
+        }
+
+        $sort = $request->get('sort', 'desc');
+        if (!in_array($sort, ['asc', 'desc'])) {
+            $sort = 'desc';
         }
 
         $query = FundRequestApproval::with([
@@ -63,12 +69,12 @@ class FundApprovalController extends Controller
             $query->where('status', $filterStatus);
         }
 
-        $approvals = $query->orderByDesc('created_at')->paginate(15)->withQueryString();
+        $approvals = $query->orderBy('created_at', $sort)->paginate(15)->withQueryString();
 
         $organizations = Organization::when($orgIds !== null, fn($q) => $q->whereIn('id', $orgIds))
             ->orderBy('name')->get();
 
-        return view('fund-approvals.inbox', compact('approvals', 'organizations', 'filterStatus'))
+        return view('fund-approvals.inbox', compact('approvals', 'organizations', 'filterStatus', 'sort'))
             ->with('positionName', $activePosition->name);
     }
 
