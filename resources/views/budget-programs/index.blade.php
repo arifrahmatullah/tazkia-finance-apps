@@ -98,7 +98,7 @@
     </select>
 
     <select name="department_id" class="no-select2 px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-700 bg-white outline-none focus:border-orange-400 min-w-[170px] cursor-pointer" onchange="this.form.submit()">
-        <option value="">Semua Departemen</option>
+        <option value="">Semua {{ $filterLabel }}</option>
         @foreach($departments as $dept)
             <option value="{{ $dept->id }}" {{ request('department_id') == $dept->id ? 'selected' : '' }}>{{ $dept->name }}</option>
         @endforeach

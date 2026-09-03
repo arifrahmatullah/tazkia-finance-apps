@@ -16,13 +16,15 @@ class BudgetProgramController extends Controller
         $user   = auth()->user();
         $orgIds = $user->organizationIds();
 
-        // Staf hanya melihat program departemennya sendiri;
+        // Staf hanya melihat program dari departemen jabatan-jabatan aktifnya sendiri
+        // (bisa lebih dari satu jabatan/departemen sekaligus);
         // superadmin & keuangan (pencairan dana) melihat semua departemen di organisasinya
-        $restrictDeptId = null;
-        if (!$user->isSuperAdmin() && !$user->hasPermission('menu.pencairan-dana')) {
-            $restrictDeptId = $user->employee()
-                ->with('activePosition.position')->first()
-                ?->activePosition?->position?->department_id;
+        $isRestricted    = !$user->isSuperAdmin() && !$user->hasPermission('menu.pencairan-dana');
+        $restrictDeptIds = [];
+        $activeEmployee  = null;
+        if ($isRestricted) {
+            $activeEmployee  = $user->employee()->with('activePositions.position')->first();
+            $restrictDeptIds = $activeEmployee?->activeDepartmentIds() ?? [];
         }
 
         $query = BudgetProgram::with([
@@ -38,9 +40,9 @@ class BudgetProgramController extends Controller
             $q->where('is_active', true);
         });
 
-        if (!$user->isSuperAdmin() && !$user->hasPermission('menu.pencairan-dana')) {
-            if ($restrictDeptId) {
-                $query->whereHas('budgetAllocation', fn($a) => $a->where('department_id', $restrictDeptId));
+        if ($isRestricted) {
+            if (!empty($restrictDeptIds)) {
+                $query->whereHas('budgetAllocation', fn($a) => $a->whereIn('department_id', $restrictDeptIds));
             } else {
                 // Tidak punya jabatan aktif → tidak ada program yang bisa dilihat
                 $query->whereRaw('1 = 0');
@@ -64,9 +66,21 @@ class BudgetProgramController extends Controller
         $budgetPeriods = BudgetPeriod::when($orgIds !== null, fn($q) => $q->whereIn('organization_id', $orgIds))
             ->where('is_active', true)->orderBy('name')->get();
 
-        $departments = Department::when($orgIds !== null, fn($q) => $q->whereIn('organization_id', $orgIds))
-            ->when($restrictDeptId, fn($q) => $q->where('id', $restrictDeptId))
-            ->where('is_active', true)->where('has_budget', true)->orderBy('name')->get();
+        if ($isRestricted) {
+            // Staf: filter berupa jabatan aktif yang dipegang, bukan daftar semua departemen
+            $filterLabel = 'Jabatan';
+            $departments = ($activeEmployee?->activePositions ?? collect())
+                ->filter(fn($ep) => $ep->position && $ep->position->department_id)
+                ->map(fn($ep) => (object) [
+                    'id'   => $ep->position->department_id,
+                    'name' => $ep->position->name,
+                ])
+                ->values();
+        } else {
+            $filterLabel = 'Departemen';
+            $departments = Department::when($orgIds !== null, fn($q) => $q->whereIn('organization_id', $orgIds))
+                ->where('is_active', true)->where('has_budget', true)->orderBy('name')->get();
+        }
 
         // Ringkasan per alokasi dari program yang tampil (untuk kartu di luar tabel)
         $allocationIds = $programs->pluck('budget_allocation_id')->unique();
@@ -97,7 +111,7 @@ class BudgetProgramController extends Controller
                 ->exists();
         }
 
-        return view('budget-programs.index', compact('programs', 'budgetPeriods', 'departments', 'allocationSummaries', 'canCreate', 'hasAllocation'));
+        return view('budget-programs.index', compact('programs', 'budgetPeriods', 'departments', 'filterLabel', 'allocationSummaries', 'canCreate', 'hasAllocation'));
     }
 
     public function create()
@@ -314,10 +328,10 @@ class BudgetProgramController extends Controller
             return;
         }
 
-        $userDeptId = $user->employee()
-            ->with('activePosition.position')->first()
-            ?->activePosition?->position?->department_id;
+        $userDeptIds = $user->employee()
+            ->with('activePositions.position')->first()
+            ?->activeDepartmentIds() ?? [];
 
-        abort_unless($userDeptId && $departmentId === $userDeptId, 403, $errorMessage);
+        abort_unless(in_array($departmentId, $userDeptIds), 403, $errorMessage);
     }
 }

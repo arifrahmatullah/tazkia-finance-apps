@@ -48,6 +48,20 @@ class Employee extends Model
         return $this->hasMany(EmployeePosition::class)->where('is_active', true)->orderBy('start_date');
     }
 
+    // Kumpulan department_id dari semua jabatan aktif — dipakai untuk scoping akses
+    // staf yang memegang lebih dari satu jabatan sekaligus (mis. di dept berbeda).
+    public function activeDepartmentIds(): array
+    {
+        return $this->activePositions()
+            ->with('position')
+            ->get()
+            ->pluck('position.department_id')
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
     // Data lama punya ID integer, bukan UUID — skip validasi format UUID
     public function resolveRouteBinding($value, $field = null)
     {
