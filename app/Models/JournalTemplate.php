@@ -11,11 +11,12 @@ class JournalTemplate extends Model
     use HasUuids, Auditable;
 
     protected $fillable = [
-        'organization_id', 'code', 'name', 'category', 'is_active',
+        'organization_id', 'code', 'name', 'category', 'tags', 'is_active',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'tags'      => 'array',
     ];
 
     public function organization()

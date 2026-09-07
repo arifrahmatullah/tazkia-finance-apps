@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 class JournalTemplateApiController extends Controller
 {
     // GET /api/journal-templates
-    // Filter opsional: organization_id, organization_code, category, search, include_inactive=1
+    // Filter opsional: organization_id, organization_code, category, tag, search, include_inactive=1
     public function index(Request $request)
     {
         $templates = JournalTemplate::with(['organization:id,code,name', 'details.account:id,code,name,account_type,normal_balance'])
@@ -19,6 +19,7 @@ class JournalTemplateApiController extends Controller
                 $q->whereHas('organization', fn($sq) => $sq->where('code', $request->organization_code));
             })
             ->when($request->filled('category'), fn($q) => $q->where('category', $request->category))
+            ->when($request->filled('tag'), fn($q) => $q->whereJsonContains('tags', $request->tag))
             ->when($request->filled('search'), function ($q) use ($request) {
                 $s = '%' . $request->search . '%';
                 $q->where(fn($sq) => $sq->where('code', 'like', $s)->orWhere('name', 'like', $s));
@@ -52,6 +53,7 @@ class JournalTemplateApiController extends Controller
             'code'         => $t->code,
             'name'         => $t->name,
             'category'     => $t->category,
+            'tags'         => $t->tags ?? [],
             'is_active'    => $t->is_active,
             'organization' => $t->organization ? [
                 'id'   => $t->organization->id,

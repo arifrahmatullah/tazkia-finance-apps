@@ -32,11 +32,14 @@ class JournalTemplateController extends Controller
                     ->orWhere('name', 'like', $s)
                     ->orWhere('category', 'like', $s));
             })
+            ->when($request->filled('tag'), fn($q) => $q->whereJsonContains('tags', $request->tag))
             ->orderBy('code')
             ->paginate(10)
             ->withQueryString();
 
-        return view('journal-templates.index', compact('templates', 'organizations'));
+        $tags = $this->existingTags($orgIds);
+
+        return view('journal-templates.index', compact('templates', 'organizations', 'tags'));
     }
 
     public function create(Request $request)
@@ -55,8 +58,9 @@ class JournalTemplateController extends Controller
         }
 
         $categories = $this->existingCategories($orgIds);
+        $tags       = $this->existingTags($orgIds);
 
-        return view('journal-templates.create', compact('organizations', 'accounts', 'selectedOrgId', 'categories'));
+        return view('journal-templates.create', compact('organizations', 'accounts', 'selectedOrgId', 'categories', 'tags'));
     }
 
     public function store(Request $request)
@@ -74,6 +78,7 @@ class JournalTemplateController extends Controller
                 'code'            => $validated['code'],
                 'name'            => $validated['name'],
                 'category'        => $validated['category'] ?? null,
+                'tags'            => $this->parseTags($validated['tags'] ?? null),
                 'is_active'       => true,
             ]);
 
@@ -92,8 +97,9 @@ class JournalTemplateController extends Controller
         $journalTemplate->load('details.account');
         $accounts   = $this->accountsFor($journalTemplate->organization_id);
         $categories = $this->existingCategories($user->organizationIds());
+        $tags       = $this->existingTags($user->organizationIds());
 
-        return view('journal-templates.edit', compact('journalTemplate', 'accounts', 'categories'));
+        return view('journal-templates.edit', compact('journalTemplate', 'accounts', 'categories', 'tags'));
     }
 
     public function update(Request $request, JournalTemplate $journalTemplate)
@@ -109,6 +115,7 @@ class JournalTemplateController extends Controller
                 'code'      => $validated['code'],
                 'name'      => $validated['name'],
                 'category'  => $validated['category'] ?? null,
+                'tags'      => $this->parseTags($validated['tags'] ?? null),
                 'is_active' => $request->boolean('is_active'),
             ]);
 
@@ -174,6 +181,7 @@ class JournalTemplateController extends Controller
             ],
             'name'     => 'required|string|max:255',
             'category' => 'nullable|string|max:100',
+            'tags'     => 'nullable|string|max:255',
             'details'  => 'required|array|min:2',
             'details.*.account_id'   => 'required|exists:accounts,id',
             'details.*.balance_type' => 'required|in:debit,credit',
@@ -235,5 +243,34 @@ class JournalTemplateController extends Controller
             ->distinct()
             ->orderBy('category')
             ->pluck('category');
+    }
+
+    // Tag dipakai untuk menandai template ini sumbernya/dipakai oleh aplikasi eksternal apa
+    // (mis. "SPMB", "SIAKAD") — satu template boleh punya lebih dari satu tag, dipisah koma di form.
+    private function parseTags(?string $raw): ?array
+    {
+        if (!$raw) {
+            return null;
+        }
+
+        $tags = collect(explode(',', $raw))
+            ->map(fn($t) => trim($t))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        return $tags ?: null;
+    }
+
+    private function existingTags($orgIds)
+    {
+        return JournalTemplate::when($orgIds !== null, fn($q) => $q->whereIn('organization_id', $orgIds))
+            ->whereNotNull('tags')
+            ->pluck('tags')
+            ->flatten()
+            ->unique()
+            ->sort()
+            ->values();
     }
 }

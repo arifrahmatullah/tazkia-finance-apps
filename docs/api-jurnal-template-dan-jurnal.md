@@ -129,6 +129,7 @@ Daftar semua template jurnal beserta baris-barisnya.
 | `organization_id` | uuid | Filter berdasarkan ID organisasi |
 | `organization_code` | string | Filter berdasarkan kode organisasi (alternatif `organization_id`, lebih praktis untuk aplikasi eksternal karena tidak perlu tahu UUID internal) |
 | `category` | string | Filter kategori template (free-text, sesuai yang diisi saat template dibuat) |
+| `tag` | string | Filter berdasarkan satu tag aplikasi sumber (mis. `tag=SPMB`). Satu template bisa punya lebih dari satu tag — cocok jika salah satu tag-nya sama persis dengan nilai ini |
 | `search` | string | Cari di kolom `code` atau `name` (partial match) |
 | `include_inactive` | boolean (`1`/`0`) | `1` untuk ikut menampilkan template non-aktif. Default: hanya yang aktif |
 
@@ -151,6 +152,7 @@ curl -s "https://finance.tazkia.ac.id/api/journal-templates?organization_code=TZ
       "code": "JT-SPP-001",
       "name": "Penerimaan SPP Mahasiswa",
       "category": "SPP",
+      "tags": ["SPMB"],
       "is_active": true,
       "organization": {
         "id": "019f26b5-4f3b-718c-9b61-f95d18297b58",
@@ -194,6 +196,12 @@ curl -s "https://finance.tazkia.ac.id/api/journal-templates?organization_code=TZ
 > `account.normal_balance` (properti akun COA, bukan baris template) berbahasa Indonesia: `"debit"` /
 > `"kredit"`. Dua field yang mirip tapi beda bahasa ini memang berasal dari kolom database yang berbeda —
 > jangan disamakan saat parsing di sisi aplikasi lain.
+
+> **`tags`** — daftar nama aplikasi eksternal yang memakai template ini (mis. `["SPMB"]`, atau
+> `["SPMB", "SIAKAD"]` jika dipakai lebih dari satu aplikasi), diisi manual oleh staf akunting saat
+> membuat/edit template lewat menu Template Jurnal. Dipakai supaya aplikasi eksternal bisa memfilter
+> hanya template yang relevan untuknya lewat parameter `tag` (§3.1), dan supaya staf akunting bisa
+> tahu template mana yang sedang dipakai integrasi mana. Bisa kosong (`[]`) jika belum ditandai.
 
 ### 3.2 `GET /api/journal-templates/{id}`
 
@@ -383,3 +391,4 @@ Yang **masih belum dikerjakan**, dicatat sebagai perbaikan lanjutan (bukan pengh
 |---|---|
 | 2026-07-22 | Draf awal — dokumentasi API Template Jurnal (live) + rancangan API POST Jurnal (belum dibangun) |
 | 2026-07-23 | `POST /api/journal-entries` dibangun dan diuji (lihat §5) — dokumen diperbarui dari "rancangan" jadi "live" |
+| 2026-09-07 | Tambah field `tags` pada template jurnal (dan filter `tag` di `GET /api/journal-templates`) untuk menandai aplikasi eksternal sumber/pemakai template |

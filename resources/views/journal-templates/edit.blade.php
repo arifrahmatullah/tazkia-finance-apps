@@ -46,6 +46,16 @@
         </div>
 
         <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-semibold text-slate-600">Tag Aplikasi Sumber</label>
+            <input type="text" name="tags" value="{{ old('tags', implode(', ', $journalTemplate->tags ?? [])) }}" maxlength="255" list="tag-list" placeholder="Contoh: SPMB, SIAKAD (pisahkan koma, opsional)"
+                class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors">
+            <datalist id="tag-list">
+                @foreach($tags as $tag)<option value="{{ $tag }}"></option>@endforeach
+            </datalist>
+            <div class="text-[11px] text-slate-400">Tandai aplikasi eksternal mana yang memakai template ini lewat API (mis. SPMB, SIAKAD).</div>
+        </div>
+
+        <div class="flex flex-col gap-1.5">
             <label class="text-xs font-semibold text-slate-600">Status</label>
             <label class="flex items-center gap-2.5 px-3 py-2.5 border border-slate-200 rounded-xl cursor-pointer">
                 <input type="checkbox" name="is_active" value="1" {{ old('is_active', $journalTemplate->is_active) ? 'checked' : '' }}

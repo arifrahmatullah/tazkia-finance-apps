@@ -34,8 +34,17 @@
         <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari kode, nama, atau kategori..."
             class="pl-9 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 bg-white outline-none focus:border-orange-400 transition-colors">
     </div>
+    @if($tags->isNotEmpty())
+    <select name="tag" onchange="this.form.submit()"
+        class="px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 bg-white outline-none focus:border-orange-400 transition-colors">
+        <option value="">Semua Tag</option>
+        @foreach($tags as $tag)
+            <option value="{{ $tag }}" {{ request('tag') == $tag ? 'selected' : '' }}>{{ $tag }}</option>
+        @endforeach
+    </select>
+    @endif
     <button type="submit" class="px-4 py-2 rounded-lg border-0 cursor-pointer text-sm font-semibold bg-gradient-to-br from-orange-400 to-orange-500 text-white">Cari</button>
-    @if(request()->hasAny(['search','organization_id']))
+    @if(request()->hasAny(['search','organization_id','tag']))
         <a href="{{ route('journal-templates.index') }}" class="px-3.5 py-2 rounded-lg border border-slate-200 text-sm text-slate-500 no-underline bg-white hover:bg-slate-50 transition-colors">Reset</a>
     @endif
 </form>
@@ -68,6 +77,9 @@
                         @if(!$template->is_active)
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-500">Nonaktif</span>
                         @endif
+                        @foreach($template->tags ?? [] as $tag)
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-600" title="Dipakai aplikasi {{ $tag }}">{{ $tag }}</span>
+                        @endforeach
                         <span class="text-[11px] text-slate-400">{{ $template->organization?->name }}</span>
                     </div>
                     <div class="text-[15px] font-bold text-slate-900">{{ $template->name }}</div>
