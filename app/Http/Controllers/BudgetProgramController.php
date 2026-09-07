@@ -100,13 +100,18 @@ class BudgetProgramController extends Controller
                 ];
             });
 
-        $activePosition = $user->employee()->with('activePosition.position.department')->first()?->activePosition?->position;
-        $canCreate      = $user->isSuperAdmin() || ($activePosition?->can_create_program ?? false);
+        // Bisa bikin program jika salah satu jabatan aktifnya (bisa lebih dari satu) berhak membuat program
+        $creatablePositions = ($activeEmployee ?? $user->employee()->with('activePositions.position')->first())
+            ?->activePositions
+            ->filter(fn($ep) => $ep->position?->can_create_program)
+            ?? collect();
+        $canCreate = $user->isSuperAdmin() || $creatablePositions->isNotEmpty();
 
         $hasAllocation = true;
         if ($canCreate && !$user->isSuperAdmin()) {
-            $hasAllocation = BudgetAllocation::whereHas('budgetPeriod', fn($q) => $q->where('is_active', true))
-                ->where('department_id', $activePosition?->department?->id)
+            $creatableDeptIds = $creatablePositions->pluck('position.department_id')->filter()->unique()->values();
+            $hasAllocation    = BudgetAllocation::whereHas('budgetPeriod', fn($q) => $q->where('is_active', true))
+                ->whereIn('department_id', $creatableDeptIds)
                 ->where('is_active', true)
                 ->exists();
         }
@@ -114,17 +119,39 @@ class BudgetProgramController extends Controller
         return view('budget-programs.index', compact('programs', 'budgetPeriods', 'departments', 'filterLabel', 'allocationSummaries', 'canCreate', 'hasAllocation'));
     }
 
-    public function create()
+    public function create(Request $request)
     {
-        $user     = auth()->user();
-        $employee = $user->employee()->with('activePosition.position.department')->first();
+        $user = auth()->user();
 
-        $activePosition = $employee?->activePosition?->position;
-        $department     = $activePosition?->department;
+        if ($user->isSuperAdmin()) {
+            $activePosition = $user->employee()->with('activePosition.position.department')->first()?->activePosition?->position;
+            $department     = $activePosition?->department;
+        } else {
+            $employee  = $user->employee()->with('activePositions.position.department')->first();
+            $creatable = ($employee?->activePositions ?? collect())
+                ->filter(fn($ep) => $ep->position && $ep->position->can_create_program)
+                ->unique('position.department_id')
+                ->values();
 
-        if (!$user->isSuperAdmin()) {
-            abort_if(!$activePosition, 403, 'Jabatan aktifmu belum diatur. Hubungi admin.');
-            abort_if(!$activePosition->can_create_program, 403, 'Jabatan kamu (' . $activePosition->name . ') tidak memiliki akses untuk membuat program kerja. Hubungi admin.');
+            abort_if($creatable->isEmpty(), 403, 'Jabatan aktifmu belum diatur atau tidak memiliki akses untuk membuat program kerja. Hubungi admin.');
+
+            // Staf dengan lebih dari satu jabatan yang berhak: minta pilih jabatan/departemen dulu
+            if ($creatable->count() > 1) {
+                $selectedDeptId = $request->query('department_id');
+                $selected       = $selectedDeptId
+                    ? $creatable->first(fn($ep) => $ep->position->department_id === $selectedDeptId)
+                    : null;
+
+                if (!$selected) {
+                    return view('budget-programs.create-select', ['positions' => $creatable]);
+                }
+
+                $activePosition = $selected->position;
+            } else {
+                $activePosition = $creatable->first()->position;
+            }
+
+            $department = $activePosition->department;
         }
 
         $allocation = BudgetAllocation::with(['department', 'budgetPeriod'])
