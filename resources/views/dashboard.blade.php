@@ -77,6 +77,49 @@
     </div>
     @endif
 
+    {{-- Ringkasan Laba Rugi tahun berjalan --}}
+    @if($labaRugi)
+    <div class="mb-6">
+        <div class="flex items-center gap-2.5 mb-3.5">
+            <h3 class="text-[0.9rem] font-bold text-slate-900 m-0">Ringkasan Laba Rugi {{ $labaRugi['tahun'] }}</h3>
+            <span class="text-[0.72rem] text-slate-400">Jan &ndash; {{ now()->translatedFormat('M Y') }}</span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+            <a href="{{ route('reports.income-statement') }}" class="bg-white rounded-xl p-5 border border-slate-100 shadow-sm no-underline hover:shadow-md transition-shadow">
+                <div class="flex items-center justify-between mb-3.5">
+                    <span class="text-[0.78rem] font-medium text-slate-500">Pendapatan</span>
+                    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:#d1fae5">
+                        <svg width="17" height="17" fill="none" stroke="#16a34a" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 19V5m0 0l-7 7m7-7l7 7"/></svg>
+                    </div>
+                </div>
+                <div class="text-[1.5rem] font-bold text-slate-900 leading-none">Rp {{ number_format($labaRugi['pendapatan'], 0, ',', '.') }}</div>
+            </a>
+
+            <a href="{{ route('reports.income-statement') }}" class="bg-white rounded-xl p-5 border border-slate-100 shadow-sm no-underline hover:shadow-md transition-shadow">
+                <div class="flex items-center justify-between mb-3.5">
+                    <span class="text-[0.78rem] font-medium text-slate-500">Beban / Pengeluaran</span>
+                    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:#fee2e2">
+                        <svg width="17" height="17" fill="none" stroke="#dc2626" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14m0 0l-7-7m7 7l7-7"/></svg>
+                    </div>
+                </div>
+                <div class="text-[1.5rem] font-bold text-slate-900 leading-none">Rp {{ number_format($labaRugi['beban'], 0, ',', '.') }}</div>
+            </a>
+
+            <a href="{{ route('reports.income-statement') }}" class="rounded-xl p-5 border shadow-sm no-underline hover:shadow-md transition-shadow {{ $labaRugi['laba'] >= 0 ? 'bg-blue-50 border-blue-200' : 'bg-red-50 border-red-200' }}">
+                <div class="flex items-center justify-between mb-3.5">
+                    <span class="text-[0.78rem] font-medium {{ $labaRugi['laba'] >= 0 ? 'text-blue-700' : 'text-red-700' }}">Laba (Rugi) Bersih</span>
+                    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:{{ $labaRugi['laba'] >= 0 ? '#dbeafe' : '#fecaca' }}">
+                        <svg width="17" height="17" fill="none" stroke="{{ $labaRugi['laba'] >= 0 ? '#1d4ed8' : '#991b1b' }}" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 012-2h2a2 2 0 012 2v6m-9 0h10a2 2 0 002-2V9.5M3 19h18"/></svg>
+                    </div>
+                </div>
+                <div class="text-[1.5rem] font-bold leading-none {{ $labaRugi['laba'] >= 0 ? 'text-blue-700' : 'text-red-700' }}">Rp {{ number_format($labaRugi['laba'], 0, ',', '.') }}</div>
+            </a>
+
+        </div>
+    </div>
+    @endif
+
     {{-- Content Row --}}
     <div class="grid grid-cols-[1fr_340px] gap-4">
 

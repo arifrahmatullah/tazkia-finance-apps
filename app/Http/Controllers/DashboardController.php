@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\FundRefund;
 use App\Models\FundRequest;
+use App\Models\JournalEntryLine;
 use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
@@ -52,6 +53,33 @@ class DashboardController extends Controller
             ];
         }
 
-        return view('dashboard', compact('stafStats'));
+        // Ringkasan Laba Rugi tahun berjalan
+        $labaRugi = null;
+        if ($user->hasPermission('menu.laporan-akuntansi')) {
+            $orgIds  = $user->organizationIds();
+            $from    = now()->startOfYear()->toDateString();
+            $to      = now()->toDateString();
+
+            $lines = fn ($type, $column) => JournalEntryLine::whereHas('account', fn ($q) => $q->where('account_type', $type))
+                ->whereHas('journalEntry', function ($q) use ($orgIds, $from, $to) {
+                    $q->where('status', 'posted')
+                        ->whereDate('entry_date', '>=', $from)
+                        ->whereDate('entry_date', '<=', $to)
+                        ->when($orgIds !== null, fn ($qq) => $qq->whereIn('organization_id', $orgIds));
+                })
+                ->sum($column);
+
+            $pendapatan = (float) $lines('pendapatan', 'credit');
+            $beban      = (float) $lines('beban', 'debit');
+
+            $labaRugi = [
+                'pendapatan' => $pendapatan,
+                'beban'      => $beban,
+                'laba'       => $pendapatan - $beban,
+                'tahun'      => now()->year,
+            ];
+        }
+
+        return view('dashboard', compact('stafStats', 'labaRugi'));
     }
 }
