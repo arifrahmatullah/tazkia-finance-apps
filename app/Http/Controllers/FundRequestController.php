@@ -74,14 +74,35 @@ class FundRequestController extends Controller
         $employee = $user->employee;
         abort_unless($employee, 403, 'Akun belum terhubung dengan data karyawan.');
 
-        $employee->load('organization', 'activePosition.position.department');
-        $activePosition = $employee->activePosition?->position;
-
         if ($employee->organization?->fund_request_blocked) {
             return redirect()->route('fund-requests.index')->withErrors([
                 'blocked' => 'Pengajuan dana baru untuk "' . $employee->organization->name . '" sedang ditutup sementara.'
                     . ($employee->organization->fund_request_block_reason ? ' Alasan: ' . $employee->organization->fund_request_block_reason : ''),
             ]);
+        }
+
+        $employee->load('organization', 'activePositions.position.department');
+        $creatablePositions = $employee->activePositions
+            ->filter(fn($ep) => $ep->position && $ep->position->department_id)
+            ->unique('position.department_id')
+            ->values();
+
+        abort_if($creatablePositions->isEmpty(), 422, 'Anda tidak memiliki jabatan aktif. Hubungi HRD.');
+
+        // Staf dengan lebih dari satu jabatan: minta pilih jabatan/departemen dulu
+        if ($creatablePositions->count() > 1) {
+            $selectedDeptId = $request->query('department_id');
+            $selected       = $selectedDeptId
+                ? $creatablePositions->first(fn($ep) => $ep->position->department_id === $selectedDeptId)
+                : null;
+
+            if (!$selected) {
+                return view('fund-requests.create-select', ['positions' => $creatablePositions]);
+            }
+
+            $activePosition = $selected->position;
+        } else {
+            $activePosition = $creatablePositions->first()->position;
         }
 
         $banks = Bank::where('is_active', true)->orderBy('name')->get();
@@ -116,15 +137,19 @@ class FundRequestController extends Controller
             'lines.required'            => 'Rincian kegiatan program kerja tidak ditemukan.',
         ]);
 
-        $employee->load('organization', 'activePosition.position.department');
-        $activePosition = $employee->activePosition?->position;
-        abort_unless($activePosition, 422, 'Anda tidak memiliki jabatan aktif. Hubungi HRD.');
-
-        $department = $activePosition->department;
-        abort_unless($department, 422, 'Jabatan tidak terhubung dengan departemen.');
+        $employee->load('organization', 'activePositions.position.department');
 
         $program = BudgetProgram::with(['budgetAllocation', 'details'])->findOrFail($request->budget_program_id);
-        abort_unless($program->budgetAllocation->department_id === $department->id, 403, 'Program tidak sesuai departemen Anda.');
+        $departmentId = $program->budgetAllocation->department_id;
+
+        // Departemen ditentukan dari program yang dipilih, dicocokkan ke SEMUA jabatan aktifnya
+        // (bisa lebih dari satu) -- bukan cuma jabatan dengan start_date paling baru.
+        $matchingPosition = $employee->activePositions
+            ->first(fn($ep) => $ep->position && $ep->position->department_id === $departmentId);
+        abort_unless($matchingPosition, 403, 'Program tidak sesuai departemen jabatan Anda.');
+
+        $activePosition = $matchingPosition->position;
+        $department     = $activePosition->department;
 
         [$amount, $preparedLines, $lineError] = $this->prepareRequestLines($program, $request->input('lines', []));
         if ($lineError) {
@@ -555,9 +580,9 @@ class FundRequestController extends Controller
         $employee = $user->employee;
         if (!$employee) return false;
 
-        $activePosition = $employee->activePosition?->position;
-        if (!$activePosition) return false;
-
-        return $activePosition->id === $currentApproval->approver_position_id;
+        // Cek ke semua jabatan aktifnya (bisa lebih dari satu), bukan cuma yang paling baru mulai
+        return $employee->activePositions()
+            ->where('position_id', $currentApproval->approver_position_id)
+            ->exists();
     }
 }
