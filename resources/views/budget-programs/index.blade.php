@@ -5,7 +5,7 @@
         <h2 class="text-lg font-bold text-slate-900 m-0 mb-0.5">Program Kerja</h2>
         <p class="text-xs text-slate-400 m-0">Daftar program kerja per departemen dan periode anggaran</p>
     </div>
-    @if($canCreate)
+    @if($canCreate && !($filterLabel === 'Jabatan' && $jabatanRows->count() > 1))
     <a href="{{ route('budget-programs.create') }}"
         class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-br from-orange-400 to-orange-500 text-white text-sm font-semibold shadow-sm hover:-translate-y-px transition-all no-underline">
         <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
@@ -143,9 +143,8 @@
     </div>
 
     <select name="budget_period_id" class="no-select2 px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-700 bg-white outline-none focus:border-orange-400 min-w-[170px] cursor-pointer" onchange="this.form.submit()">
-        <option value="">Semua Periode</option>
         @foreach($budgetPeriods as $bp)
-            <option value="{{ $bp->id }}" {{ request('budget_period_id') == $bp->id ? 'selected' : '' }}>{{ $bp->name }}</option>
+            <option value="{{ $bp->id }}" {{ $selectedPeriodId === $bp->id ? 'selected' : '' }}>{{ $bp->name }}</option>
         @endforeach
     </select>
 

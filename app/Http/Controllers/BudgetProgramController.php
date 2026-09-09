@@ -37,6 +37,11 @@ class BudgetProgramController extends Controller
             default => $rawDeptId,
         };
 
+        // Periode anggaran wajib satu — tidak ada pilihan "Semua Periode", default ke periode aktif
+        $budgetPeriods    = BudgetPeriod::when($orgIds !== null, fn($q) => $q->whereIn('organization_id', $orgIds))
+            ->where('is_active', true)->orderBy('name')->get();
+        $selectedPeriodId = $request->query('budget_period_id') ?: $budgetPeriods->first()?->id;
+
         $query = BudgetProgram::with([
             'budgetAllocation.department',
             'budgetAllocation.budgetPeriod',
@@ -59,8 +64,8 @@ class BudgetProgramController extends Controller
             }
         }
 
-        if ($request->filled('budget_period_id')) {
-            $query->whereHas('budgetAllocation', fn($a) => $a->where('budget_period_id', $request->budget_period_id));
+        if ($selectedPeriodId) {
+            $query->whereHas('budgetAllocation', fn($a) => $a->where('budget_period_id', $selectedPeriodId));
         }
 
         if ($selectedDeptId) {
@@ -73,9 +78,6 @@ class BudgetProgramController extends Controller
 
         $programs = $query->orderBy('name')->paginate(15)->withQueryString();
 
-        $budgetPeriods = BudgetPeriod::when($orgIds !== null, fn($q) => $q->whereIn('organization_id', $orgIds))
-            ->where('is_active', true)->orderBy('name')->get();
-
         $jabatanRows = collect();
         if ($isRestricted) {
             // Staf: bukan dropdown departemen, tapi tabel jabatan aktifnya sendiri —
@@ -83,7 +85,7 @@ class BudgetProgramController extends Controller
             $filterLabel = 'Jabatan';
             $departments = collect();
 
-            $deptIdsWithAllocation = BudgetAllocation::whereHas('budgetPeriod', fn($q) => $q->where('is_active', true))
+            $deptIdsWithAllocation = BudgetAllocation::where('budget_period_id', $selectedPeriodId)
                 ->whereIn('department_id', $restrictDeptIds)
                 ->where('is_active', true)
                 ->pluck('department_id');
@@ -125,8 +127,8 @@ class BudgetProgramController extends Controller
             }
         }
 
-        if ($request->filled('budget_period_id')) {
-            $allocationQuery->where('budget_period_id', $request->budget_period_id);
+        if ($selectedPeriodId) {
+            $allocationQuery->where('budget_period_id', $selectedPeriodId);
         }
 
         if ($selectedDeptId) {
@@ -159,7 +161,7 @@ class BudgetProgramController extends Controller
         $hasAllocation = true;
         $selectedDeptName = null;
         if ($selectedDeptId) {
-            $hasAllocation    = BudgetAllocation::whereHas('budgetPeriod', fn($q) => $q->where('is_active', true))
+            $hasAllocation    = BudgetAllocation::where('budget_period_id', $selectedPeriodId)
                 ->where('department_id', $selectedDeptId)
                 ->where('is_active', true)
                 ->exists();
@@ -168,7 +170,7 @@ class BudgetProgramController extends Controller
             }
         }
 
-        return view('budget-programs.index', compact('programs', 'budgetPeriods', 'departments', 'filterLabel', 'allocationSummaries', 'canCreate', 'hasAllocation', 'selectedDeptId', 'selectedDeptName', 'jabatanRows'));
+        return view('budget-programs.index', compact('programs', 'budgetPeriods', 'departments', 'filterLabel', 'allocationSummaries', 'canCreate', 'hasAllocation', 'selectedDeptId', 'selectedDeptName', 'jabatanRows', 'selectedPeriodId'));
     }
 
     public function create(Request $request)
