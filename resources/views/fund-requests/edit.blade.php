@@ -45,13 +45,11 @@
         </div>
 
         <div class="flex flex-col gap-1.5">
-            <label class="text-xs font-semibold text-slate-600">Jumlah Dana (Rp) <span class="text-red-500 ml-0.5">*</span></label>
-            <div class="flex items-center">
-                <span class="px-3 py-2.5 bg-slate-100 border border-slate-200 border-r-0 rounded-l-xl text-sm text-slate-500 font-medium whitespace-nowrap">Rp</span>
-                <input type="number" name="amount" value="{{ old('amount', $fundRequest->amount) }}" min="1000" step="1000"
-                    class="w-full px-3 py-2.5 border border-slate-200 rounded-r-xl rounded-l-none text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors {{ $errors->has('amount') ? 'border-red-400' : '' }}">
+            <label class="text-xs font-semibold text-slate-600">Jumlah Dana (Rp)</label>
+            <div class="flex items-center px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-600 font-mono font-semibold w-full">
+                Rp {{ number_format($fundRequest->amount, 0, ',', '.') }}
             </div>
-            @error('amount')<div class="text-xs text-red-500 mt-0.5">{{ $message }}</div>@enderror
+            <div class="text-[11px] text-slate-400">Mengikuti total Rincian Kegiatan program kerja, tidak bisa diubah di sini.</div>
         </div>
 
         <div class="flex flex-col gap-1.5 col-span-2">

@@ -79,6 +79,11 @@ class FundRequest extends Model
         return $this->belongsTo(Account::class, 'disburse_account_id');
     }
 
+    public function details()
+    {
+        return $this->hasMany(FundRequestDetail::class);
+    }
+
     public function files()
     {
         return $this->hasMany(FundRequestFile::class)->latest();

@@ -217,7 +217,48 @@
         <span class="text-xs text-slate-400">Pagu: <span class="font-semibold text-slate-700">Rp {{ number_format($prog->total_amount, 0, ',', '.') }}</span></span>
     </div>
 
-    @if($prog->details->isNotEmpty())
+    @if($fundRequest->details->isNotEmpty())
+    {{-- Rincian yang benar-benar diajukan (Harga Satuan bisa lebih rendah dari pagu program) --}}
+    <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-2">Rincian Kegiatan Diajukan</div>
+    <div class="overflow-x-auto mb-3">
+        <table class="w-full text-xs border-collapse">
+            <thead>
+                <tr class="bg-slate-50">
+                    <th class="px-3 py-2 text-left font-semibold text-slate-500 border border-slate-200">Jenis Pengeluaran</th>
+                    <th class="px-3 py-2 text-left font-semibold text-slate-500 border border-slate-200">Deskripsi</th>
+                    <th class="px-3 py-2 text-right font-semibold text-slate-500 border border-slate-200 w-[70px]">Qty</th>
+                    <th class="px-3 py-2 text-left font-semibold text-slate-500 border border-slate-200 w-[60px]">Sat.</th>
+                    <th class="px-3 py-2 text-right font-semibold text-slate-500 border border-slate-200 w-[150px]">Harga Satuan Diajukan</th>
+                    <th class="px-3 py-2 text-right font-semibold text-slate-500 border border-slate-200 w-[130px]">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($fundRequest->details as $det)
+                @php $reduced = (float) $det->unit_price < (float) $det->ceiling_unit_price; @endphp
+                <tr>
+                    <td class="px-3 py-2 border border-slate-200 text-slate-700">{{ $det->account?->name ?? '-' }}</td>
+                    <td class="px-3 py-2 border border-slate-200 text-slate-700">{{ $det->description }}</td>
+                    <td class="px-3 py-2 border border-slate-200 text-right text-slate-700">{{ rtrim(rtrim(number_format($det->quantity,2,',','.'),0),',') }}</td>
+                    <td class="px-3 py-2 border border-slate-200 text-slate-500">{{ $det->unit ?? '-' }}</td>
+                    <td class="px-3 py-2 border border-slate-200 text-right font-mono text-slate-700">
+                        Rp {{ number_format($det->unit_price, 0, ',', '.') }}
+                        @if($reduced)
+                            <div class="text-[10px] text-slate-400 font-normal">pagu: Rp {{ number_format($det->ceiling_unit_price, 0, ',', '.') }}</div>
+                        @endif
+                    </td>
+                    <td class="px-3 py-2 border border-slate-200 text-right font-mono font-semibold text-slate-800">Rp {{ number_format($det->total_amount, 0, ',', '.') }}</td>
+                </tr>
+                @endforeach
+                <tr class="bg-slate-50">
+                    <td colspan="5" class="px-3 py-2 border border-slate-200 text-right text-xs font-semibold text-slate-500">Total Diajukan</td>
+                    <td class="px-3 py-2 border border-slate-200 text-right font-mono font-bold text-orange-600">Rp {{ number_format($fundRequest->amount, 0, ',', '.') }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    @elseif($prog->details->isNotEmpty())
+    {{-- Pengajuan lama sebelum rincian per baris disimpan -- tampilkan pagu program sebagai referensi --}}
+    <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-2">Rincian Kegiatan Program (referensi)</div>
     <div class="overflow-x-auto mb-3">
         <table class="w-full text-xs border-collapse">
             <thead>

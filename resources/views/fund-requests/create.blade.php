@@ -136,20 +136,12 @@
             </div>
 
             <div class="flex flex-col gap-1.5">
-                <label class="text-xs font-semibold text-slate-600">Jumlah Dana (Rp) <span class="text-red-500 ml-0.5">*</span></label>
-                <div class="flex items-center">
-                    <span class="px-3 py-2.5 bg-slate-100 border border-slate-200 border-r-0 rounded-l-xl text-sm text-slate-500 font-medium whitespace-nowrap">Rp</span>
-                    <input type="text" id="amount-display" inputmode="numeric"
-                        class="w-full px-3 py-2.5 border border-slate-200 rounded-r-xl rounded-l-none text-sm text-slate-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors {{ $errors->has('amount') ? 'border-red-400' : '' }}"
-                        placeholder="0"
-                        value="{{ old('amount') ? number_format(old('amount'), 0, ',', '.') : '' }}"
-                        oninput="formatAmount(this)">
-                    <input type="hidden" name="amount" id="amount-input" value="{{ old('amount') }}">
+                <label class="text-xs font-semibold text-slate-600">Jumlah Dana (Rp)</label>
+                <div class="flex items-center px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 font-mono font-semibold">
+                    Rp <span id="amount-total-label" class="ml-1">0</span>
                 </div>
-                <div id="amount-hint" class="text-[11px] text-slate-400" style="display:none">
-                    Maks. pagu program: <span id="amount-max-label" class="font-semibold text-slate-600"></span>
-                </div>
-                @error('amount')<div class="text-xs text-red-500 mt-0.5">{{ $message }}</div>@enderror
+                <div class="text-[11px] text-slate-400">Otomatis dari total Rincian Kegiatan di bawah — sesuaikan Harga Satuan di sana kalau perlu.</div>
+                @error('lines')<div class="text-xs text-red-500 mt-0.5">{{ $message }}</div>@enderror
             </div>
 
             <div class="flex flex-col gap-1.5">
@@ -234,6 +226,7 @@ const programsUrl = '{{ route('fund-requests.programs') }}';
 const orgId       = '{{ $employee->organization_id }}';
 const deptId      = '{{ $activePosition->department_id }}';
 let programsCache = {};
+const oldLines    = @json(collect(old('lines', []))->keyBy('budget_program_detail_id'));
 
 function fmt(n) {
     return 'Rp ' + Number(n).toLocaleString('id-ID');
@@ -244,18 +237,7 @@ function escHtml(str) {
 function show(id) { document.getElementById(id).style.display = ''; }
 function hide(id) { document.getElementById(id).style.display = 'none'; }
 
-function formatAmount(el) {
-    const raw = el.value.replace(/\./g, '').replace(/[^0-9]/g, '');
-    el.value = raw ? Number(raw).toLocaleString('id-ID') : '';
-    document.getElementById('amount-input').value = raw;
-}
-
 document.getElementById('fund-form').addEventListener('submit', function (e) {
-    // pastikan hidden field sudah terisi dari display
-    const disp = document.getElementById('amount-display').value;
-    const raw  = disp.replace(/\./g, '').replace(/[^0-9]/g, '');
-    document.getElementById('amount-input').value = raw;
-
     // ---- Validasi JS: tandai kolom kosong sebelum kirim ----
     document.querySelectorAll('.js-error').forEach(el => el.remove());
     let firstBad = null;
@@ -275,10 +257,8 @@ document.getElementById('fund-form').addEventListener('submit', function (e) {
     const title = document.getElementById('title-input');
     if (!title.value.trim()) bad(title, 'Judul pengajuan wajib diisi.');
 
-    const amountEl = document.getElementById('amount-display');
-    const maxPagu  = parseFloat(document.getElementById('amount-input').max || 0);
-    if (!raw || parseInt(raw) <= 0) bad(amountEl, 'Jumlah dana wajib diisi.');
-    else if (maxPagu > 0 && parseInt(raw) > maxPagu) bad(amountEl, 'Jumlah dana melebihi pagu program.');
+    const total = recalcTotal();
+    if (!total || total <= 0) bad(document.getElementById('amount-total-label'), 'Isi Harga Satuan minimal salah satu rincian kegiatan.');
 
     const purpose = document.querySelector('textarea[name="purpose"]');
     if (!purpose.value.trim()) bad(purpose, 'Tujuan / keterangan wajib diisi.');
@@ -330,15 +310,12 @@ toggleBankOther(document.getElementById('bankSelect'));
 function onProgramChange(programId, keepValues = false) {
     hide('program-detail');
     hide('form-fields');
-    hide('amount-hint');
     document.getElementById('submit-btn').disabled = true;
 
     // Kosongkan isian sebelumnya supaya tidak terbawa saat ganti program
     // (kecuali saat restore old() setelah validation error)
     if (!keepValues) {
         document.getElementById('title-input').value    = '';
-        document.getElementById('amount-display').value = '';
-        document.getElementById('amount-input').value   = '';
         ['textarea[name="purpose"]', 'input[name="bank_account_number"]', 'input[name="bank_account_name"]']
             .forEach(sel => { const el = document.querySelector(sel); if (el) el.value = ''; });
         document.getElementById('bankSelect').value = '';
@@ -349,22 +326,33 @@ function onProgramChange(programId, keepValues = false) {
 
     const p = programsCache[programId];
 
-    // Rincian
+    // Rincian -- Harga Satuan bisa diturunkan dari yang ditetapkan di program, tapi
+    // tidak boleh melebihinya (dibatasi di sini, dan divalidasi ulang di server saat submit).
     let rows = '';
     if (p.details && p.details.length > 0) {
-        p.details.forEach(d => {
+        p.details.forEach((d, idx) => {
+            const oldLine   = oldLines[d.id];
+            const startPrice = oldLine ? Number(oldLine.unit_price) : d.unit_price;
             rows += `<tr>
                 <td class="px-3 py-2 border border-slate-200 text-slate-700">${escHtml(d.account)}</td>
                 <td class="px-3 py-2 border border-slate-200 text-slate-700">${escHtml(d.description)}</td>
                 <td class="px-3 py-2 border border-slate-200 text-right text-slate-700">${d.quantity}</td>
                 <td class="px-3 py-2 border border-slate-200 text-slate-500">${escHtml(d.unit)}</td>
-                <td class="px-3 py-2 border border-slate-200 text-right font-mono text-slate-700">${fmt(d.unit_price)}</td>
-                <td class="px-3 py-2 border border-slate-200 text-right font-mono font-semibold text-slate-800">${fmt(d.total_amount)}</td>
+                <td class="px-3 py-2 border border-slate-200 text-right">
+                    <input type="text" inputmode="numeric" class="line-price w-full px-2 py-1 border border-slate-200 rounded-lg text-right font-mono text-slate-800 outline-none focus:border-orange-400"
+                        data-detail-id="${d.id}" data-qty="${d.quantity}" data-ceiling="${d.unit_price}"
+                        value="${Number(startPrice).toLocaleString('id-ID')}"
+                        oninput="onLinePriceInput(this)">
+                    <div class="text-[10px] text-slate-400 mt-0.5">Maks ${fmt(d.unit_price)}</div>
+                    <input type="hidden" name="lines[${idx}][budget_program_detail_id]" value="${d.id}">
+                    <input type="hidden" name="lines[${idx}][unit_price]" id="line-unit-price-${d.id}" value="${startPrice}">
+                </td>
+                <td class="px-3 py-2 border border-slate-200 text-right font-mono font-semibold text-slate-800" id="line-total-${d.id}">${fmt(d.quantity * startPrice)}</td>
             </tr>`;
         });
         rows += `<tr class="bg-slate-50">
-            <td colspan="5" class="px-3 py-2 border border-slate-200 text-right text-xs font-semibold text-slate-500">Total Program</td>
-            <td class="px-3 py-2 border border-slate-200 text-right font-mono font-bold text-orange-600">${fmt(p.total_amount)}</td>
+            <td colspan="5" class="px-3 py-2 border border-slate-200 text-right text-xs font-semibold text-slate-500">Total Diajukan</td>
+            <td class="px-3 py-2 border border-slate-200 text-right font-mono font-bold text-orange-600" id="rincian-grand-total">Rp 0</td>
         </tr>`;
     } else {
         rows = '<tr><td colspan="6" class="px-3 py-4 text-center text-slate-400 border border-slate-200">Belum ada rincian kegiatan.</td></tr>';
@@ -405,25 +393,43 @@ function onProgramChange(programId, keepValues = false) {
 
     document.getElementById('detail-freq').textContent       = p.frequency + '×';
     document.getElementById('detail-per-termin').textContent = fmt(Math.round(p.nominal_per_termin));
-    document.getElementById('detail-pagu').textContent     = fmt(p.total_amount);
-    document.getElementById('amount-max-label').textContent = fmt(p.total_amount);
-    document.getElementById('amount-input').max = p.total_amount;
-
-    const amountDisplay = document.getElementById('amount-display');
-    const amountInput   = document.getElementById('amount-input');
-    if (!amountInput.value) {
-        const nominal = Math.round(p.nominal_per_termin);
-        amountDisplay.value = nominal.toLocaleString('id-ID');
-        amountInput.value   = nominal;
-    }
+    document.getElementById('detail-pagu').textContent       = fmt(p.total_amount);
+    recalcTotal();
 
     const titleInput = document.getElementById('title-input');
     if (!titleInput.value) titleInput.value = p.name;
 
     show('program-detail');
     show('form-fields');
-    show('amount-hint');
-    document.getElementById('submit-btn').disabled = false;
+    document.getElementById('submit-btn').disabled = !(p.details && p.details.length > 0);
+}
+
+function onLinePriceInput(el) {
+    const raw     = el.value.replace(/\./g, '').replace(/[^0-9]/g, '');
+    const ceiling = parseFloat(el.dataset.ceiling) || 0;
+    let value = raw ? parseInt(raw, 10) : 0;
+    if (ceiling > 0 && value > ceiling) value = ceiling;
+
+    el.value = value ? value.toLocaleString('id-ID') : '';
+
+    const detailId = el.dataset.detailId;
+    const qty      = parseFloat(el.dataset.qty) || 0;
+    document.getElementById(`line-unit-price-${detailId}`).value = value;
+    document.getElementById(`line-total-${detailId}`).textContent = fmt(qty * value);
+    recalcTotal();
+}
+
+function recalcTotal() {
+    let total = 0;
+    document.querySelectorAll('.line-price').forEach(input => {
+        const qty = parseFloat(input.dataset.qty) || 0;
+        const raw = input.value.replace(/\./g, '').replace(/[^0-9]/g, '');
+        total += qty * (raw ? parseInt(raw, 10) : 0);
+    });
+    document.getElementById('amount-total-label').textContent = Number(total).toLocaleString('id-ID');
+    const grand = document.getElementById('rincian-grand-total');
+    if (grand) grand.textContent = fmt(total);
+    return total;
 }
 
 document.addEventListener('DOMContentLoaded', function () {

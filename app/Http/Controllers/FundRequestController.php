@@ -102,7 +102,9 @@ class FundRequestController extends Controller
             'budget_program_id'  => 'required|exists:budget_programs,id',
             'title'              => 'required|string|max:200',
             'purpose'            => 'required|string|max:1000',
-            'amount'             => 'required|numeric|min:1000',
+            'lines'              => 'required|array|min:1',
+            'lines.*.budget_program_detail_id' => 'required|exists:budget_program_details,id',
+            'lines.*.unit_price' => 'required|numeric|min:0.01',
             'bank_name'          => 'nullable|string|max:100',
             'bank_account_number'=> ['required', 'regex:/^[0-9]{1,50}$/'],
             'bank_account_name'  => 'required|string|max:150',
@@ -111,6 +113,7 @@ class FundRequestController extends Controller
         ], [
             'bank_account_number.regex' => 'Nomor rekening hanya boleh berisi angka.',
             'purpose.required'          => 'Tujuan / keterangan wajib diisi.',
+            'lines.required'            => 'Rincian kegiatan program kerja tidak ditemukan.',
         ]);
 
         $employee->load('organization', 'activePosition.position.department');
@@ -120,21 +123,26 @@ class FundRequestController extends Controller
         $department = $activePosition->department;
         abort_unless($department, 422, 'Jabatan tidak terhubung dengan departemen.');
 
-        $program = BudgetProgram::with('budgetAllocation')->findOrFail($request->budget_program_id);
+        $program = BudgetProgram::with(['budgetAllocation', 'details'])->findOrFail($request->budget_program_id);
         abort_unless($program->budgetAllocation->department_id === $department->id, 403, 'Program tidak sesuai departemen Anda.');
 
-        if ($error = $this->programBudgetError($program, (float) $request->amount)) {
-            return back()->withInput()->withErrors(['amount' => $error]);
+        [$amount, $preparedLines, $lineError] = $this->prepareRequestLines($program, $request->input('lines', []));
+        if ($lineError) {
+            return back()->withInput()->withErrors(['lines' => $lineError]);
+        }
+
+        if ($error = $this->programBudgetError($program, $amount)) {
+            return back()->withInput()->withErrors(['lines' => $error]);
         }
 
         $orgId          = $employee->organization_id;
         $deptId         = $department->id;
         $budgetPeriodId = $program->budgetAllocation->budget_period_id;
 
-        $fundRequest = DB::transaction(function () use ($request, $employee, $activePosition, $orgId, $deptId, $budgetPeriodId) {
+        $fundRequest = DB::transaction(function () use ($request, $employee, $activePosition, $orgId, $deptId, $budgetPeriodId, $amount, $preparedLines) {
             $reference = FundRequest::generateReference($orgId, now()->toDateString());
 
-            return FundRequest::create([
+            $fundRequest = FundRequest::create([
                 'organization_id'       => $orgId,
                 'department_id'         => $deptId,
                 'budget_period_id'      => $budgetPeriodId,
@@ -144,7 +152,7 @@ class FundRequestController extends Controller
                 'reference'             => $reference,
                 'title'                 => $request->title,
                 'purpose'               => $request->purpose,
-                'amount'                => $request->amount,
+                'amount'                => $amount,
                 'bank_name'             => $request->bank_name,
                 'bank_account_number'   => $request->bank_account_number,
                 'bank_account_name'     => $request->bank_account_name,
@@ -152,6 +160,12 @@ class FundRequestController extends Controller
                 'current_step'          => 0,
                 'total_steps'           => 0,
             ]);
+
+            foreach ($preparedLines as $line) {
+                $fundRequest->details()->create($line);
+            }
+
+            return $fundRequest;
         });
 
         if ($request->hasFile('attachments')) {
@@ -183,6 +197,7 @@ class FundRequestController extends Controller
         $fundRequest->load([
             'organization', 'department', 'budgetPeriod',
             'budgetProgram.details.account', 'budgetProgram.schedules',
+            'details.account',
             'requester', 'requesterPosition',
             'approvals.approverPosition', 'approvals.approverUser',
             'attachments.uploader', 'disbursementProofs.uploader', 'disburseAccount',
@@ -222,7 +237,6 @@ class FundRequestController extends Controller
             'budget_period_id'   => 'nullable|exists:budget_periods,id',
             'title'              => 'required|string|max:200',
             'purpose'            => 'required|string|max:1000',
-            'amount'             => 'required|numeric|min:1000',
             'bank_name'          => 'nullable|string|max:100',
             'bank_account_number'=> ['required', 'regex:/^[0-9]{1,50}$/'],
             'bank_account_name'  => 'required|string|max:150',
@@ -231,20 +245,13 @@ class FundRequestController extends Controller
             'purpose.required'          => 'Tujuan / keterangan wajib diisi.',
         ]);
 
-        $fundRequest->loadMissing('budgetProgram');
-        if ($fundRequest->budgetProgram) {
-            $error = $this->programBudgetError($fundRequest->budgetProgram, (float) $request->amount, $fundRequest->id);
-            if ($error) {
-                return back()->withInput()->withErrors(['amount' => $error]);
-            }
-        }
-
+        // Jumlah dana tidak diedit di sini -- tetap mengikuti rincian kegiatan yang
+        // sudah tersimpan saat pengajuan dibuat (lihat BudgetProgramController::store).
         $fundRequest->update([
             'department_id'      => $request->department_id,
             'budget_period_id'   => $request->budget_period_id ?: null,
             'title'              => $request->title,
             'purpose'            => $request->purpose,
-            'amount'             => $request->amount,
             'bank_name'          => $request->bank_name,
             'bank_account_number'=> $request->bank_account_number,
             'bank_account_name'  => $request->bank_account_name,
@@ -365,6 +372,7 @@ class FundRequestController extends Controller
                     'frequency'         => $p->frequency,
                     'nominal_per_termin'=> (float) $p->nominal_per_termin,
                     'details'           => $p->details->map(fn($d) => [
+                        'id'           => $d->id,
                         'account'      => $d->account?->name ?? '-',
                         'description'  => $d->description,
                         'quantity'     => (float) $d->quantity,
@@ -471,6 +479,46 @@ class FundRequestController extends Controller
      * Menghitung sisa pagu program (total_amount dikurangi pengajuan lain yang masih berlaku)
      * dan mengembalikan pesan error jika nominal baru melebihi sisa tersebut, atau null jika aman.
      */
+    // Cocokkan lines yang dikirim user dengan rincian program kerja: harus mencakup semua baris,
+    // dan harga satuan tiap baris tidak boleh melebihi harga satuan yang sudah ditetapkan di program
+    // (qty & baris lain diambil dari program, bukan dari input user, supaya tidak bisa dimanipulasi).
+    private function prepareRequestLines(BudgetProgram $program, array $lines): array
+    {
+        $submitted = collect($lines)->keyBy('budget_program_detail_id');
+
+        if ($submitted->count() !== $program->details->count() || $program->details->isEmpty()) {
+            return [0, [], 'Rincian pengajuan tidak lengkap. Muat ulang halaman dan coba lagi.'];
+        }
+
+        $amount   = 0;
+        $prepared = [];
+
+        foreach ($program->details as $detail) {
+            $line = $submitted->get($detail->id);
+            if (!$line) {
+                return [0, [], 'Rincian pengajuan tidak lengkap. Muat ulang halaman dan coba lagi.'];
+            }
+
+            $unitPrice = (float) $line['unit_price'];
+            if ($unitPrice > (float) $detail->unit_price) {
+                return [0, [], "Harga satuan \"{$detail->description}\" tidak boleh melebihi Rp " . number_format($detail->unit_price, 0, ',', '.') . '.'];
+            }
+
+            $amount    += round((float) $detail->quantity * $unitPrice, 2);
+            $prepared[] = [
+                'budget_program_detail_id' => $detail->id,
+                'account_id'               => $detail->account_id,
+                'description'              => $detail->description,
+                'quantity'                 => $detail->quantity,
+                'unit'                     => $detail->unit,
+                'ceiling_unit_price'       => $detail->unit_price,
+                'unit_price'               => $unitPrice,
+            ];
+        }
+
+        return [$amount, $prepared, null];
+    }
+
     private function programBudgetError(BudgetProgram $program, float $newAmount, ?string $excludeFundRequestId = null): ?string
     {
         $programTotal = (float) $program->total_amount;
