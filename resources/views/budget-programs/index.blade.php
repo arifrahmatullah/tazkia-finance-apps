@@ -21,14 +21,14 @@
 </div>
 @endif
 
-@if($canCreate && !$hasAllocation)
+@if(!$hasAllocation)
 <div class="flex items-start gap-3 px-4 py-3.5 bg-amber-50 border border-amber-200 rounded-xl mb-4">
     <svg width="18" height="18" fill="none" stroke="#d97706" stroke-width="2" viewBox="0 0 24 24" class="shrink-0 mt-0.5">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
     </svg>
     <div>
         <div class="text-sm font-semibold text-amber-800">Pagu anggaran belum tersedia</div>
-        <div class="text-xs text-amber-700 mt-0.5">Departemen kamu belum memiliki pagu anggaran aktif untuk periode ini. Hubungi bagian Keuangan untuk mengatur pagu sebelum membuat program kerja.</div>
+        <div class="text-xs text-amber-700 mt-0.5">Departemen {{ $selectedDeptName ?? 'ini' }} belum memiliki pagu anggaran aktif untuk periode ini. Hubungi bagian Keuangan untuk mengatur pagu sebelum membuat program kerja.</div>
     </div>
 </div>
 @endif
@@ -98,9 +98,9 @@
     </select>
 
     <select name="department_id" class="no-select2 px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-700 bg-white outline-none focus:border-orange-400 min-w-[170px] cursor-pointer" onchange="this.form.submit()">
-        <option value="">Semua {{ $filterLabel }}</option>
+        <option value="{{ $filterLabel === 'Jabatan' ? 'all' : '' }}" {{ $selectedDeptId === null ? 'selected' : '' }}>Semua {{ $filterLabel }}</option>
         @foreach($departments as $dept)
-            <option value="{{ $dept->id }}" {{ request('department_id') == $dept->id ? 'selected' : '' }}>{{ $dept->name }}</option>
+            <option value="{{ $dept->id }}" {{ $selectedDeptId === $dept->id ? 'selected' : '' }}>{{ $dept->name }}</option>
         @endforeach
     </select>
 

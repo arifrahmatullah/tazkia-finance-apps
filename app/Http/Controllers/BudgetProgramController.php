@@ -27,6 +27,16 @@ class BudgetProgramController extends Controller
             $restrictDeptIds = $activeEmployee?->activeDepartmentIds() ?? [];
         }
 
+        // Departemen/jabatan yang sedang ditampilkan: kunjungan pertama (belum pernah pilih filter)
+        // staf otomatis diarahkan ke jabatan pertamanya saja (bukan gabungan semua jabatan sekaligus);
+        // pilih "Semua Jabatan"/"Semua Departemen" (department_id=all atau kosong) untuk lihat gabungan.
+        $rawDeptId = $request->query('department_id');
+        $selectedDeptId = match (true) {
+            $rawDeptId === null && $isRestricted => $restrictDeptIds[0] ?? null,
+            $rawDeptId === null, $rawDeptId === '', $rawDeptId === 'all' => null,
+            default => $rawDeptId,
+        };
+
         $query = BudgetProgram::with([
             'budgetAllocation.department',
             'budgetAllocation.budgetPeriod',
@@ -53,8 +63,8 @@ class BudgetProgramController extends Controller
             $query->whereHas('budgetAllocation', fn($a) => $a->where('budget_period_id', $request->budget_period_id));
         }
 
-        if ($request->filled('department_id')) {
-            $query->whereHas('budgetAllocation', fn($a) => $a->where('department_id', $request->department_id));
+        if ($selectedDeptId) {
+            $query->whereHas('budgetAllocation', fn($a) => $a->where('department_id', $selectedDeptId));
         }
 
         if ($request->filled('search')) {
@@ -107,16 +117,21 @@ class BudgetProgramController extends Controller
             ?? collect();
         $canCreate = $user->isSuperAdmin() || $creatablePositions->isNotEmpty();
 
+        // Peringatan pagu belum tersedia — khusus untuk departemen/jabatan yang sedang ditampilkan
+        // (bukan gabungan semua jabatan), supaya staf tahu harus hubungi Keuangan untuk departemen itu.
         $hasAllocation = true;
-        if ($canCreate && !$user->isSuperAdmin()) {
-            $creatableDeptIds = $creatablePositions->pluck('position.department_id')->filter()->unique()->values();
+        $selectedDeptName = null;
+        if ($selectedDeptId) {
             $hasAllocation    = BudgetAllocation::whereHas('budgetPeriod', fn($q) => $q->where('is_active', true))
-                ->whereIn('department_id', $creatableDeptIds)
+                ->where('department_id', $selectedDeptId)
                 ->where('is_active', true)
                 ->exists();
+            if (!$hasAllocation) {
+                $selectedDeptName = Department::find($selectedDeptId)?->name;
+            }
         }
 
-        return view('budget-programs.index', compact('programs', 'budgetPeriods', 'departments', 'filterLabel', 'allocationSummaries', 'canCreate', 'hasAllocation'));
+        return view('budget-programs.index', compact('programs', 'budgetPeriods', 'departments', 'filterLabel', 'allocationSummaries', 'canCreate', 'hasAllocation', 'selectedDeptId', 'selectedDeptName'));
     }
 
     public function create(Request $request)
