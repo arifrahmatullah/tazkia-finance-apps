@@ -23,7 +23,7 @@ class BudgetProgramController extends Controller
         $restrictDeptIds = [];
         $activeEmployee  = null;
         if ($isRestricted) {
-            $activeEmployee  = $user->employee()->with('activePositions.position')->first();
+            $activeEmployee  = $user->employee()->with('activePositions.position.department')->first();
             $restrictDeptIds = $activeEmployee?->activeDepartmentIds() ?? [];
         }
 
@@ -76,14 +76,28 @@ class BudgetProgramController extends Controller
         $budgetPeriods = BudgetPeriod::when($orgIds !== null, fn($q) => $q->whereIn('organization_id', $orgIds))
             ->where('is_active', true)->orderBy('name')->get();
 
+        $jabatanRows = collect();
         if ($isRestricted) {
-            // Staf: filter berupa jabatan aktif yang dipegang, bukan daftar semua departemen
+            // Staf: bukan dropdown departemen, tapi tabel jabatan aktifnya sendiri —
+            // tiap baris bisa langsung difilter ("Lihat") atau dipakai bikin program ("+ Buat Program")
             $filterLabel = 'Jabatan';
-            $departments = ($activeEmployee?->activePositions ?? collect())
+            $departments = collect();
+
+            $deptIdsWithAllocation = BudgetAllocation::whereHas('budgetPeriod', fn($q) => $q->where('is_active', true))
+                ->whereIn('department_id', $restrictDeptIds)
+                ->where('is_active', true)
+                ->pluck('department_id');
+
+            $jabatanRows = ($activeEmployee?->activePositions ?? collect())
                 ->filter(fn($ep) => $ep->position && $ep->position->department_id)
+                ->unique('position.department_id')
                 ->map(fn($ep) => (object) [
-                    'id'   => $ep->position->department_id,
-                    'name' => $ep->position->name,
+                    'id'             => $ep->position->department_id,
+                    'jabatan'        => $ep->position->name,
+                    'departemen'     => $ep->position->department->name ?? '-',
+                    'can_create'     => (bool) $ep->position->can_create_program,
+                    'has_allocation' => $deptIdsWithAllocation->contains($ep->position->department_id),
+                    'is_selected'    => $selectedDeptId === $ep->position->department_id,
                 ])
                 ->values();
         } else {
@@ -131,7 +145,7 @@ class BudgetProgramController extends Controller
             }
         }
 
-        return view('budget-programs.index', compact('programs', 'budgetPeriods', 'departments', 'filterLabel', 'allocationSummaries', 'canCreate', 'hasAllocation', 'selectedDeptId', 'selectedDeptName'));
+        return view('budget-programs.index', compact('programs', 'budgetPeriods', 'departments', 'filterLabel', 'allocationSummaries', 'canCreate', 'hasAllocation', 'selectedDeptId', 'selectedDeptName', 'jabatanRows'));
     }
 
     public function create(Request $request)

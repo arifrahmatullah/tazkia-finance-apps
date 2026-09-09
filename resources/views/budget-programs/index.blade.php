@@ -79,6 +79,58 @@
 </div>
 @endif
 
+{{-- Tabel jabatan (staf dengan lebih dari satu jabatan aktif) --}}
+@if($filterLabel === 'Jabatan' && $jabatanRows->count() > 1)
+<div class="bg-white rounded-xl shadow-sm overflow-hidden mb-5">
+    <div class="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between flex-wrap gap-2">
+        <div class="text-sm font-bold text-slate-700">Jabatan Kamu</div>
+        <a href="{{ route('budget-programs.index', array_merge(request()->except('department_id'), ['department_id' => 'all'])) }}"
+            class="text-xs font-semibold no-underline {{ $selectedDeptId === null ? 'text-orange-500' : 'text-slate-400 hover:text-orange-500' }}">
+            Lihat gabungan semua jabatan
+        </a>
+    </div>
+    <table class="w-full border-collapse">
+        <thead>
+            <tr class="bg-slate-50 border-b border-slate-100">
+                <th class="px-5 py-2.5 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Jabatan</th>
+                <th class="px-5 py-2.5 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Departemen</th>
+                <th class="px-5 py-2.5 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Pagu</th>
+                <th class="px-5 py-2.5 w-[220px]"></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($jabatanRows as $row)
+            <tr class="border-b border-slate-50 last:border-0 {{ $row->is_selected ? 'bg-orange-50/40' : '' }}">
+                <td class="px-5 py-3 text-sm font-semibold text-slate-800">{{ $row->jabatan }}</td>
+                <td class="px-5 py-3 text-sm text-slate-600">{{ $row->departemen }}</td>
+                <td class="px-5 py-3">
+                    @if($row->has_allocation)
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-green-100 text-green-700">Tersedia</span>
+                    @else
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-red-100 text-red-600">Belum tersedia</span>
+                    @endif
+                </td>
+                <td class="px-5 py-3 text-right">
+                    <div class="flex items-center justify-end gap-2">
+                        <a href="{{ route('budget-programs.index', array_merge(request()->except('department_id'), ['department_id' => $row->id])) }}"
+                            class="px-3 py-1.5 rounded-lg text-xs font-semibold no-underline transition-colors {{ $row->is_selected ? 'bg-slate-700 text-white' : 'border border-slate-200 text-slate-600 hover:border-orange-300 hover:text-orange-500' }}">
+                            Lihat
+                        </a>
+                        @if($row->can_create)
+                        <a href="{{ route('budget-programs.create', ['department_id' => $row->id]) }}"
+                            class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-orange-50 text-orange-600 hover:bg-orange-100 no-underline transition-colors">
+                            + Buat Program
+                        </a>
+                        @endif
+                    </div>
+                </td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
+</div>
+@endif
+
 {{-- Filter --}}
 <form method="GET" action="{{ route('budget-programs.index') }}" class="flex gap-2.5 flex-wrap items-center mb-5">
     <div class="relative flex-1 min-w-[200px]">
@@ -97,12 +149,17 @@
         @endforeach
     </select>
 
+    @if($filterLabel === 'Departemen')
     <select name="department_id" class="no-select2 px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-700 bg-white outline-none focus:border-orange-400 min-w-[170px] cursor-pointer" onchange="this.form.submit()">
-        <option value="{{ $filterLabel === 'Jabatan' ? 'all' : '' }}" {{ $selectedDeptId === null ? 'selected' : '' }}>Semua {{ $filterLabel }}</option>
+        <option value="">Semua {{ $filterLabel }}</option>
         @foreach($departments as $dept)
             <option value="{{ $dept->id }}" {{ $selectedDeptId === $dept->id ? 'selected' : '' }}>{{ $dept->name }}</option>
         @endforeach
     </select>
+    @else
+        {{-- Jabatan dipilih lewat tabel di bawah, bukan dropdown — pertahankan pilihannya saat submit cari/periode --}}
+        <input type="hidden" name="department_id" value="{{ $selectedDeptId ?? 'all' }}">
+    @endif
 
     @if(request()->hasAny(['search', 'budget_period_id', 'department_id']))
     <a href="{{ route('budget-programs.index') }}" class="px-3 py-2 rounded-xl border border-slate-200 text-sm text-slate-500 hover:text-orange-500 hover:border-orange-300 transition-colors no-underline">Reset</a>
