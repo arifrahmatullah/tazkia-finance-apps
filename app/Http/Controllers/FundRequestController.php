@@ -504,12 +504,15 @@ class FundRequestController extends Controller
                 return [0, [], "Harga satuan \"{$detail->description}\" tidak boleh melebihi Rp " . number_format($detail->unit_price, 0, ',', '.') . '.'];
             }
 
-            $amount    += round((float) $detail->quantity * $unitPrice, 2);
+            // unit_price di program adalah nominal per termin -- pengajuan dana selalu untuk
+            // 1 termin pencairan, jadi total baris = harga satuan itu sendiri (quantity = 1),
+            // bukan dikalikan frekuensi/quantity program (yang merepresentasikan total seluruh periode).
+            $amount    += round($unitPrice, 2);
             $prepared[] = [
                 'budget_program_detail_id' => $detail->id,
                 'account_id'               => $detail->account_id,
                 'description'              => $detail->description,
-                'quantity'                 => $detail->quantity,
+                'quantity'                 => 1,
                 'unit'                     => $detail->unit,
                 'ceiling_unit_price'       => $detail->unit_price,
                 'unit_price'               => $unitPrice,

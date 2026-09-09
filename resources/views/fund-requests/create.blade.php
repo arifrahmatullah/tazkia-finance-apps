@@ -98,16 +98,15 @@
             </div>
 
             <div class="px-4 py-3">
-                <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-2">Rincian Kegiatan</div>
+                <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-2">Rincian Kegiatan <span class="font-normal normal-case text-slate-400">(untuk 1 termin pencairan)</span></div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-xs border-collapse">
                         <thead>
                             <tr class="bg-slate-50">
                                 <th class="px-3 py-2 text-left font-semibold text-slate-500 border border-slate-200">Jenis Pengeluaran</th>
                                 <th class="px-3 py-2 text-left font-semibold text-slate-500 border border-slate-200">Deskripsi</th>
-                                <th class="px-3 py-2 text-right font-semibold text-slate-500 border border-slate-200 w-16">Qty</th>
                                 <th class="px-3 py-2 text-left font-semibold text-slate-500 border border-slate-200 w-14">Sat.</th>
-                                <th class="px-3 py-2 text-right font-semibold text-slate-500 border border-slate-200 w-32">Harga Satuan</th>
+                                <th class="px-3 py-2 text-right font-semibold text-slate-500 border border-slate-200 w-32">Harga Satuan/Termin</th>
                                 <th class="px-3 py-2 text-right font-semibold text-slate-500 border border-slate-200 w-32">Total</th>
                             </tr>
                         </thead>
@@ -336,42 +335,55 @@ function onProgramChange(programId, keepValues = false) {
             rows += `<tr>
                 <td class="px-3 py-2 border border-slate-200 text-slate-700">${escHtml(d.account)}</td>
                 <td class="px-3 py-2 border border-slate-200 text-slate-700">${escHtml(d.description)}</td>
-                <td class="px-3 py-2 border border-slate-200 text-right text-slate-700">${d.quantity}</td>
                 <td class="px-3 py-2 border border-slate-200 text-slate-500">${escHtml(d.unit)}</td>
                 <td class="px-3 py-2 border border-slate-200 text-right">
                     <input type="text" inputmode="numeric" class="line-price w-full px-2 py-1 border border-slate-200 rounded-lg text-right font-mono text-slate-800 outline-none focus:border-orange-400"
-                        data-detail-id="${d.id}" data-qty="${d.quantity}" data-ceiling="${d.unit_price}"
+                        data-detail-id="${d.id}" data-ceiling="${d.unit_price}"
                         value="${Number(startPrice).toLocaleString('id-ID')}"
                         oninput="onLinePriceInput(this)">
-                    <div class="text-[10px] text-slate-400 mt-0.5">Maks ${fmt(d.unit_price)}</div>
+                    <div class="text-[10px] text-slate-400 mt-0.5">Maks ${fmt(d.unit_price)}/termin</div>
                     <input type="hidden" name="lines[${idx}][budget_program_detail_id]" value="${d.id}">
                     <input type="hidden" name="lines[${idx}][unit_price]" id="line-unit-price-${d.id}" value="${startPrice}">
                 </td>
-                <td class="px-3 py-2 border border-slate-200 text-right font-mono font-semibold text-slate-800" id="line-total-${d.id}">${fmt(d.quantity * startPrice)}</td>
+                <td class="px-3 py-2 border border-slate-200 text-right font-mono font-semibold text-slate-800" id="line-total-${d.id}">${fmt(startPrice)}</td>
             </tr>`;
         });
         rows += `<tr class="bg-slate-50">
-            <td colspan="5" class="px-3 py-2 border border-slate-200 text-right text-xs font-semibold text-slate-500">Total Diajukan</td>
+            <td colspan="4" class="px-3 py-2 border border-slate-200 text-right text-xs font-semibold text-slate-500">Total Diajukan (1 termin)</td>
             <td class="px-3 py-2 border border-slate-200 text-right font-mono font-bold text-orange-600" id="rincian-grand-total">Rp 0</td>
         </tr>`;
     } else {
-        rows = '<tr><td colspan="6" class="px-3 py-4 text-center text-slate-400 border border-slate-200">Belum ada rincian kegiatan.</td></tr>';
+        rows = '<tr><td colspan="5" class="px-3 py-4 text-center text-slate-400 border border-slate-200">Belum ada rincian kegiatan.</td></tr>';
     }
     document.getElementById('detail-tbody').innerHTML = rows;
 
-    // Jadwal & estimasi
+    // Jadwal & estimasi -- tampilkan satu termin dulu (yang berikutnya belum dijadwalkan),
+    // sisanya disembunyikan di balik tombol supaya tidak langsung penuh sekaligus.
+    // Nominalnya mengikuti Total Diajukan di rincian (live, lihat recalcTotal()), bukan
+    // rata-rata pagu seluruh program.
     let schedHtml = '';
     if (p.schedules && p.schedules.length > 0) {
-        p.schedules.forEach(s => {
+        const renderTermin = (s) => {
             const tgl = s.estimated_date && s.estimated_date !== '-'
                 ? `<span class="text-slate-500 font-normal">${escHtml(s.estimated_date)}</span>`
                 : '<span class="text-slate-300 font-normal">belum dijadwalkan</span>';
-            schedHtml += `<div class="inline-flex flex-col gap-0.5 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs">
+            return `<div class="inline-flex flex-col gap-0.5 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs">
                 <span class="font-bold text-slate-600">Termin ${s.termin} · ${tgl}</span>
-                <span class="font-mono font-semibold text-orange-600">${fmt(Math.round(p.nominal_per_termin))}</span>
+                <span class="font-mono font-semibold text-orange-600 termin-amount">Rp 0</span>
                 ${s.notes ? `<span class="text-slate-400 font-normal">${escHtml(s.notes)}</span>` : ''}
             </div>`;
-        });
+        };
+
+        const nextIdx = p.schedules.findIndex(s => !s.estimated_date || s.estimated_date === '-');
+        const firstIdx = nextIdx === -1 ? 0 : nextIdx;
+        schedHtml += renderTermin(p.schedules[firstIdx]);
+
+        const rest = p.schedules.filter((_, i) => i !== firstIdx);
+        if (rest.length > 0) {
+            schedHtml += `<button type="button" onclick="document.getElementById('sched-rest').style.display='contents'; this.style.display='none';"
+                class="text-xs text-orange-500 underline bg-transparent border-0 cursor-pointer px-1">+${rest.length} termin lainnya</button>`;
+            schedHtml += `<span id="sched-rest" style="display:none">${rest.map(renderTermin).join('')}</span>`;
+        }
     } else {
         schedHtml = '<span class="text-xs text-slate-400">Belum ada jadwal pencairan.</span>';
     }
@@ -413,22 +425,21 @@ function onLinePriceInput(el) {
     el.value = value ? value.toLocaleString('id-ID') : '';
 
     const detailId = el.dataset.detailId;
-    const qty      = parseFloat(el.dataset.qty) || 0;
     document.getElementById(`line-unit-price-${detailId}`).value = value;
-    document.getElementById(`line-total-${detailId}`).textContent = fmt(qty * value);
+    document.getElementById(`line-total-${detailId}`).textContent = fmt(value);
     recalcTotal();
 }
 
 function recalcTotal() {
     let total = 0;
     document.querySelectorAll('.line-price').forEach(input => {
-        const qty = parseFloat(input.dataset.qty) || 0;
         const raw = input.value.replace(/\./g, '').replace(/[^0-9]/g, '');
-        total += qty * (raw ? parseInt(raw, 10) : 0);
+        total += raw ? parseInt(raw, 10) : 0;
     });
     document.getElementById('amount-total-label').textContent = Number(total).toLocaleString('id-ID');
     const grand = document.getElementById('rincian-grand-total');
     if (grand) grand.textContent = fmt(total);
+    document.querySelectorAll('.termin-amount').forEach(el => el.textContent = fmt(total));
     return total;
 }
 
