@@ -260,6 +260,18 @@ class BudgetProgramController extends Controller
         $lines = collect($validated['lines'] ?? [])
             ->filter(fn($l) => !empty($l['description']));
 
+        if ($lines->isEmpty()) {
+            return back()->withInput()->withErrors([
+                'lines' => 'Isi minimal satu baris rincian dengan deskripsi dan nominal.',
+            ]);
+        }
+
+        if ($lines->contains(fn($l) => (float) ($l['nominal'] ?? 0) <= 0)) {
+            return back()->withInput()->withErrors([
+                'lines' => 'Nominal setiap baris rincian harus lebih dari 0.',
+            ]);
+        }
+
         // grandTotal = sum(nominal_per_termin × frekuensi)
         $grandTotal   = $lines->sum(fn($l) => (float) ($l['nominal'] ?? 0)) * $frequency;
         $pagu         = (float) $allocation->amount;

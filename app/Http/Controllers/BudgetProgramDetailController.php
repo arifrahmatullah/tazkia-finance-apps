@@ -21,7 +21,9 @@ class BudgetProgramDetailController extends Controller
             'budget_program_id' => 'required|exists:budget_programs,id',
             'account_id'        => 'nullable|exists:accounts,id',
             'description'       => 'required|string|max:255',
-            'unit_price'        => 'required|numeric|min:0',
+            'unit_price'        => 'required|numeric|min:0.01',
+        ], [
+            'unit_price.min' => 'Nominal harus lebih dari 0.',
         ]);
 
         $newItemTotal = (float) $validated['unit_price'];
@@ -77,7 +79,9 @@ class BudgetProgramDetailController extends Controller
         $validated = $request->validate([
             'account_id'  => 'nullable|exists:accounts,id',
             'description' => 'required|string|max:255',
-            'unit_price'  => 'required|numeric|min:0',
+            'unit_price'  => 'required|numeric|min:0.01',
+        ], [
+            'unit_price.min' => 'Nominal harus lebih dari 0.',
         ]);
 
         $program      = $budgetProgramDetail->budgetProgram;
