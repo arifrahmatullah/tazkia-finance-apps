@@ -106,15 +106,38 @@ class BudgetProgramController extends Controller
                 ->where('is_active', true)->where('has_budget', true)->orderBy('name')->get();
         }
 
-        // Ringkasan per alokasi dari program yang tampil (untuk kartu di luar tabel)
-        $allocationIds = $programs->pluck('budget_allocation_id')->unique();
-        $allocationSummaries = \App\Models\BudgetAllocation::with(['department', 'budgetPeriod'])
-            ->whereIn('id', $allocationIds)
-            ->get()
+        // Ringkasan pagu untuk departemen yang sedang dilihat — tampil meski belum ada program
+        // sama sekali (bukan cuma berdasarkan program yang kebetulan sudah dibuat).
+        $allocationQuery = BudgetAllocation::with(['department', 'budgetPeriod'])
+            ->whereHas('department', function ($q) use ($orgIds) {
+                if ($orgIds !== null) {
+                    $q->whereIn('organization_id', $orgIds);
+                }
+                $q->where('is_active', true);
+            })
+            ->where('is_active', true);
+
+        if ($isRestricted) {
+            if (!empty($restrictDeptIds)) {
+                $allocationQuery->whereIn('department_id', $restrictDeptIds);
+            } else {
+                $allocationQuery->whereRaw('1 = 0');
+            }
+        }
+
+        if ($request->filled('budget_period_id')) {
+            $allocationQuery->where('budget_period_id', $request->budget_period_id);
+        }
+
+        if ($selectedDeptId) {
+            $allocationQuery->where('department_id', $selectedDeptId);
+        }
+
+        $allocationSummaries = $allocationQuery->get()
             ->map(function ($alloc) {
-                $programs = \App\Models\BudgetProgram::with('details')
-                    ->where('budget_allocation_id', $alloc->id)->get();
-                $terpakai = $programs->sum(fn($p) => (float) $p->total_amount);
+                $terpakai = BudgetProgram::with('details')
+                    ->where('budget_allocation_id', $alloc->id)->get()
+                    ->sum(fn($p) => (float) $p->total_amount);
                 return [
                     'dept'     => $alloc->department->name,
                     'periode'  => $alloc->budgetPeriod->name,
