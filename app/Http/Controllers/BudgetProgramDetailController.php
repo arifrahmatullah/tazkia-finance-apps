@@ -26,7 +26,8 @@ class BudgetProgramDetailController extends Controller
             'unit_price.min' => 'Nominal harus lebih dari 0.',
         ]);
 
-        $newItemTotal = (float) $validated['unit_price'];
+        // unit_price adalah nominal per termin -- total baris ini = unit_price × frekuensi program
+        $newItemTotal = (float) $validated['unit_price'] * $program->frequency;
         $currentTotal = $program->details()->sum('total_amount');
         $paguAmount   = $program->budgetAllocation->amount;
 
@@ -37,7 +38,7 @@ class BudgetProgramDetailController extends Controller
             ]);
         }
 
-        BudgetProgramDetail::create(array_merge($validated, ['quantity' => 1]));
+        BudgetProgramDetail::create(array_merge($validated, ['quantity' => $program->frequency]));
 
         return redirect()
             ->route('budget-programs.show', $program)
@@ -85,7 +86,8 @@ class BudgetProgramDetailController extends Controller
         ]);
 
         $program      = $budgetProgramDetail->budgetProgram;
-        $newItemTotal = (float) $validated['unit_price'];
+        // unit_price adalah nominal per termin -- total baris ini = unit_price × frekuensi program
+        $newItemTotal = (float) $validated['unit_price'] * $program->frequency;
         $currentTotal = $program->details()->where('id', '!=', $budgetProgramDetail->id)->sum('total_amount');
         $paguAmount   = $program->budgetAllocation->amount;
 
@@ -96,7 +98,7 @@ class BudgetProgramDetailController extends Controller
             ]);
         }
 
-        $budgetProgramDetail->update(array_merge($validated, ['quantity' => 1]));
+        $budgetProgramDetail->update(array_merge($validated, ['quantity' => $program->frequency]));
 
         return redirect()
             ->route('budget-programs.show', $program)
