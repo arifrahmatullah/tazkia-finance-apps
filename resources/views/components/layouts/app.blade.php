@@ -252,7 +252,7 @@
                     ->count();
             }
         @endphp
-        @php $pengajuanActive = request()->routeIs('fund-requests.*') || request()->routeIs('fund-approvals.*') || request()->routeIs('fund-reports.*') || request()->routeIs('fund-refunds.*'); @endphp
+        @php $pengajuanActive = request()->routeIs('fund-requests.*') || request()->routeIs('fund-reports.*') || request()->routeIs('fund-refunds.*'); @endphp
         <div>
             <div class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg cursor-pointer text-[0.835rem] transition-all relative
                         {{ $pengajuanActive ? 'active bg-orange-500/[0.15] text-white font-[550]' : 'text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white' }}"
