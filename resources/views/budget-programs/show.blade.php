@@ -1,11 +1,14 @@
 <x-layouts.app title="Rincian Program Kerja">
 
 @php
+    // $sisa/$terpakaiAlokasi di sini dihitung dari SEMUA program di alokasi (departemen) yang
+    // sama -- dikirim controller -- supaya konsisten dengan ringkasan di daftar Program Kerja.
+    // $totalUsed tetap total program INI saja (buat kolom "Total Program").
     $pagu       = (float) $budgetProgram->budgetAllocation->amount;
     $totalUsed  = (float) $budgetProgram->total_amount;
-    $sisa       = $pagu - $totalUsed;
-    $paguPct    = $pagu > 0 ? min(100, round($totalUsed / $pagu * 100)) : 0;
-    $overBudget = $pagu > 0 && $totalUsed > $pagu;
+    $sisa       = $sisaAlokasi;
+    $paguPct    = $pagu > 0 ? min(100, round($terpakaiAlokasi / $pagu * 100)) : 0;
+    $overBudget = $pagu > 0 && $terpakaiAlokasi > $pagu;
     $freq       = max(1, (int) $budgetProgram->frequency);
     $schedules  = $budgetProgram->schedules;
     $filledCount = $schedules->whereNotNull('estimated_date')->count();
@@ -75,8 +78,9 @@
         </div>
         <div class="w-px h-8 bg-slate-100"></div>
         <div>
-            <div class="text-[11px] text-slate-400 uppercase tracking-wide font-semibold">Sisa</div>
+            <div class="text-[11px] text-slate-400 uppercase tracking-wide font-semibold">Sisa Alokasi</div>
             <div class="text-base font-bold {{ $sisa < 0 ? 'text-red-600' : 'text-green-600' }} font-mono">Rp {{ number_format($sisa, 0, ',', '.') }}</div>
+            <div class="text-[10px] text-slate-400">dipakai bersama program lain</div>
         </div>
         <div class="w-px h-8 bg-slate-100"></div>
         <div>
@@ -390,15 +394,17 @@
 <script>
 const sisaPagu = {{ $sisa }};
 const hasPagu  = {{ $pagu > 0 ? 'true' : 'false' }};
+const freqCountAdd = {{ $freq }};
 
 function fmtNominal(input) {
     const raw = input.value.replace(/[^\d]/g, '');
     document.getElementById('nominalHidden').value = raw || '0';
     input.value = raw ? parseInt(raw).toLocaleString('id-ID') : '';
     if (hasPagu) {
-        const val  = parseInt(raw) || 0;
+        // Nominal yang diisi per termin -- total barisnya (sesuai server) = nominal × frekuensi.
+        const totalBaris = (parseInt(raw) || 0) * freqCountAdd;
         const warn = document.getElementById('budgetWarning');
-        if (warn) warn.classList.toggle('hidden', val <= sisaPagu);
+        if (warn) warn.classList.toggle('hidden', totalBaris <= sisaPagu);
     }
 }
 

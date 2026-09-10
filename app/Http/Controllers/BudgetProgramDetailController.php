@@ -29,13 +29,13 @@ class BudgetProgramDetailController extends Controller
 
         // unit_price adalah nominal per termin -- total baris ini = unit_price × frekuensi program
         $newItemTotal = (float) $validated['unit_price'] * $program->frequency;
-        $currentTotal = $program->details()->sum('total_amount');
+        $currentTotal = $this->allocationUsedTotal($program);
         $paguAmount   = $program->budgetAllocation->amount;
 
         if ($paguAmount > 0 && ($currentTotal + $newItemTotal) > $paguAmount) {
             $sisa = number_format($paguAmount - $currentTotal, 0, ',', '.');
             return back()->withInput()->withErrors([
-                'unit_price' => "Nominal melebihi sisa pagu. Sisa: Rp {$sisa}",
+                'unit_price' => "Nominal melebihi sisa pagu alokasi (dipakai bersama program lain di departemen ini). Sisa: Rp {$sisa}",
             ]);
         }
 
@@ -106,13 +106,13 @@ class BudgetProgramDetailController extends Controller
         $program      = $budgetProgramDetail->budgetProgram;
         // unit_price adalah nominal per termin -- total baris ini = unit_price × frekuensi program
         $newItemTotal = (float) $validated['unit_price'] * $program->frequency;
-        $currentTotal = $program->details()->where('id', '!=', $budgetProgramDetail->id)->sum('total_amount');
+        $currentTotal = $this->allocationUsedTotal($program, $budgetProgramDetail->id);
         $paguAmount   = $program->budgetAllocation->amount;
 
         if ($paguAmount > 0 && ($currentTotal + $newItemTotal) > $paguAmount) {
             $sisa = number_format($paguAmount - $currentTotal, 0, ',', '.');
             return back()->withInput()->withErrors([
-                'unit_price' => "Nominal melebihi sisa pagu. Sisa: Rp {$sisa}",
+                'unit_price' => "Nominal melebihi sisa pagu alokasi (dipakai bersama program lain di departemen ini). Sisa: Rp {$sisa}",
             ]);
         }
 
@@ -163,5 +163,21 @@ class BudgetProgramDetailController extends Controller
         return redirect()
             ->route('budget-programs.show', $program)
             ->with('success', 'Rincian berhasil dihapus.');
+    }
+
+    // Satu pagu alokasi dipakai bersama oleh semua program di departemen yang sama,
+    // jadi cek "sisa pagu" harus menjumlahkan total SEMUA program di alokasi itu --
+    // bukan cuma program yang sedang diedit -- supaya tidak bisa melebihi pagu
+    // gabungan meski masing-masing program terlihat "masih ada sisa" sendiri-sendiri.
+    private function allocationUsedTotal(BudgetProgram $program, ?string $excludeDetailId = null): float
+    {
+        return BudgetProgram::where('budget_allocation_id', $program->budget_allocation_id)
+            ->with('details')
+            ->get()
+            ->sum(function ($p) use ($excludeDetailId) {
+                return $excludeDetailId
+                    ? (float) $p->details->where('id', '!=', $excludeDetailId)->sum('total_amount')
+                    : (float) $p->total_amount;
+            });
     }
 }

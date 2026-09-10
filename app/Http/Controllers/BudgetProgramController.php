@@ -338,7 +338,16 @@ class BudgetProgramController extends Controller
 
         $pendingChangeRequests = $budgetProgram->changeRequests()->where('status', 'pending')->orderByDesc('created_at')->get();
 
-        return view('budget-programs.show', compact('budgetProgram', 'accounts', 'pendingChangeRequests'));
+        // Sisa pagu ALOKASI (departemen), bukan sisa program ini saja -- satu alokasi
+        // dipakai bersama oleh banyak program, jadi harus dikurangi total SEMUA program
+        // di alokasi yang sama supaya konsisten dengan ringkasan di daftar Program Kerja.
+        $terpakaiAlokasi = BudgetProgram::with('details')
+            ->where('budget_allocation_id', $budgetProgram->budget_allocation_id)
+            ->get()
+            ->sum(fn($p) => (float) $p->total_amount);
+        $sisaAlokasi = (float) $budgetProgram->budgetAllocation->amount - $terpakaiAlokasi;
+
+        return view('budget-programs.show', compact('budgetProgram', 'accounts', 'pendingChangeRequests', 'terpakaiAlokasi', 'sisaAlokasi'));
     }
 
     public function edit(BudgetProgram $budgetProgram)
