@@ -304,7 +304,6 @@
         <span class="text-xs text-slate-400">Pengajuan ini dibuat sebelum sistem menautkan termin — tidak ada termin spesifik.</span>
         @endif
     </div>
-    @endif
 </div>
 @endif
 
