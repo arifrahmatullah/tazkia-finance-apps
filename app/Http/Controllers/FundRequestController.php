@@ -231,10 +231,7 @@ class FundRequestController extends Controller
     public function show(FundRequest $fundRequest)
     {
         $user = auth()->user();
-        abort_unless(
-            $fundRequest->requester->user_id === $user->id || $user->canAccessOrganization($fundRequest->organization_id),
-            403
-        );
+        abort_unless($this->canViewFundRequest($fundRequest, $user), 403);
 
         $fundRequest->load([
             'organization', 'department', 'budgetPeriod',
@@ -585,6 +582,24 @@ class FundRequestController extends Controller
         }
 
         return null;
+    }
+
+    // Siapa saja yang boleh membuka detail pengajuan: pengaju sendiri, tim Keuangan,
+    // superadmin, atau siapapun yang ada di alur approval-nya (langkah manapun -- bukan
+    // cuma langkah yang lagi berjalan, supaya approver langkah sebelumnya tetap bisa lihat
+    // riwayatnya). Sebelumnya cek ini hanya "satu organisasi" (canAccessOrganization), yang
+    // berarti SEMUA staf di organisasi yang sama bisa buka pengajuan siapapun -- kebocoran privasi.
+    private function canViewFundRequest(FundRequest $fundRequest, $user): bool
+    {
+        if ($user->isSuperAdmin()) return true;
+        if ($fundRequest->requester->user_id === $user->id) return true;
+        if ($user->hasPermission('menu.pencairan-dana')) return true;
+
+        $employee = $user->employee;
+        if (!$employee) return false;
+
+        $positionIds = $employee->activePositions()->pluck('position_id');
+        return $fundRequest->approvals()->whereIn('approver_position_id', $positionIds)->exists();
     }
 
     private function currentUserCanApprove(FundRequest $fundRequest, $user): bool
