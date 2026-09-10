@@ -7,6 +7,7 @@ use App\Models\BudgetAllocation;
 use App\Models\BudgetPeriod;
 use App\Models\BudgetProgram;
 use App\Models\Department;
+use App\Services\BudgetProgramChangeService;
 use Illuminate\Http\Request;
 
 class BudgetProgramController extends Controller
@@ -335,7 +336,9 @@ class BudgetProgramController extends Controller
             ->orderBy('code')
             ->get();
 
-        return view('budget-programs.show', compact('budgetProgram', 'accounts'));
+        $pendingChangeRequests = $budgetProgram->changeRequests()->where('status', 'pending')->orderByDesc('created_at')->get();
+
+        return view('budget-programs.show', compact('budgetProgram', 'accounts', 'pendingChangeRequests'));
     }
 
     public function edit(BudgetProgram $budgetProgram)
@@ -353,7 +356,7 @@ class BudgetProgramController extends Controller
 
     public function update(Request $request, BudgetProgram $budgetProgram)
     {
-        $budgetProgram->load('budgetAllocation.department');
+        $budgetProgram->load('budgetAllocation.department', 'budgetAllocation.budgetPeriod');
 
         abort_unless(
             auth()->user()->canAccessOrganization($budgetProgram->budgetAllocation->department->organization_id),
@@ -369,20 +372,30 @@ class BudgetProgramController extends Controller
             'is_active' => 'boolean',
         ]);
 
-        $frequency = (int) $validated['frequency'];
+        $payload = [
+            'name'      => $validated['name'],
+            'type'      => $validated['type'],
+            'notes'     => $validated['notes'] ?? null,
+            'frequency' => (int) $validated['frequency'],
+            'is_active' => $request->boolean('is_active', true),
+        ];
 
-        \DB::transaction(function () use ($budgetProgram, $validated, $frequency, $request) {
-            $budgetProgram->update([
-                'name'      => $validated['name'],
-                'type'      => $validated['type'],
-                'notes'     => $validated['notes'] ?? null,
-                'frequency' => $frequency,
-                'is_active' => $request->boolean('is_active', true),
-            ]);
+        if (!$budgetProgram->isWithinPlanningWindow()) {
+            app(BudgetProgramChangeService::class)->requestChange(
+                $budgetProgram, $request->user(), 'update_info', null, $payload,
+                'Ubah info program: ' . $budgetProgram->name
+            );
+
+            return redirect()->route('budget-programs.index')
+                ->with('success', 'Periode perencanaan sudah lewat. Perubahan disimpan sebagai permintaan dan menunggu approval Keuangan.');
+        }
+
+        \DB::transaction(function () use ($budgetProgram, $payload) {
+            $budgetProgram->update($payload);
 
             $budgetProgram->load('details');
             foreach ($budgetProgram->details as $detail) {
-                $detail->update(['quantity' => $frequency]);
+                $detail->update(['quantity' => $payload['frequency']]);
             }
 
             $budgetProgram->regenerateSchedules();

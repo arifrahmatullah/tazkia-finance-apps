@@ -46,6 +46,11 @@ class BudgetProgram extends Model
         return $this->hasMany(BudgetProgramSchedule::class)->orderBy('termin');
     }
 
+    public function changeRequests()
+    {
+        return $this->hasMany(BudgetProgramChangeRequest::class);
+    }
+
     public function getTypeLabelAttribute(): string
     {
         return self::TYPES[$this->type] ?? '-';
@@ -70,11 +75,25 @@ class BudgetProgram extends Model
         // Hapus termin yang melebihi frekuensi baru
         $this->schedules()->where('termin', '>', $freq)->delete();
 
-        // Tambah termin yang belum ada
+        // Tambah termin yang belum ada, nominal default dibagi rata
         for ($i = 1; $i <= $freq; $i++) {
             if (!$existing->has($i)) {
-                $this->schedules()->create(['termin' => $i, 'estimated_date' => null]);
+                $this->schedules()->create(['termin' => $i, 'estimated_date' => null, 'amount' => $this->nominal_per_termin]);
             }
         }
+    }
+
+    // Edit Program Kerja (info, rincian, nominal per termin) hanya bebas dilakukan selama
+    // periode perencanaan (planning_start s.d. planning_end) milik periode anggarannya.
+    // Di luar itu, perubahan harus lewat alur approval (lihat BudgetProgramChangeRequest).
+    public function isWithinPlanningWindow(): bool
+    {
+        $period = $this->budgetAllocation?->budgetPeriod;
+        if (!$period || !$period->planning_start || !$period->planning_end) {
+            return true;
+        }
+
+        $today = now()->toDateString();
+        return $today >= $period->planning_start->toDateString() && $today <= $period->planning_end->toDateString();
     }
 }

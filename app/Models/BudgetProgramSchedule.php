@@ -11,11 +11,12 @@ class BudgetProgramSchedule extends Model
     use HasUuids, Auditable;
 
     protected $fillable = [
-        'budget_program_id', 'termin', 'estimated_date', 'notes',
+        'budget_program_id', 'termin', 'estimated_date', 'notes', 'amount',
     ];
 
     protected $casts = [
         'estimated_date' => 'date',
+        'amount'         => 'decimal:2',
     ];
 
     public function budgetProgram()

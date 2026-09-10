@@ -4,13 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\BudgetProgram;
 use App\Models\BudgetProgramDetail;
+use App\Services\BudgetProgramChangeService;
 use Illuminate\Http\Request;
 
 class BudgetProgramDetailController extends Controller
 {
     public function store(Request $request)
     {
-        $program = BudgetProgram::with('budgetAllocation.department')->findOrFail($request->budget_program_id);
+        $program = BudgetProgram::with('budgetAllocation.department', 'budgetAllocation.budgetPeriod')->findOrFail($request->budget_program_id);
 
         abort_unless(
             auth()->user()->canAccessOrganization($program->budgetAllocation->department->organization_id),
@@ -38,7 +39,24 @@ class BudgetProgramDetailController extends Controller
             ]);
         }
 
-        BudgetProgramDetail::create(array_merge($validated, ['quantity' => $program->frequency]));
+        $payload = [
+            'budget_program_id' => $validated['budget_program_id'],
+            'account_id'        => $validated['account_id'] ?? null,
+            'description'       => $validated['description'],
+            'unit_price'        => $validated['unit_price'],
+        ];
+
+        if (!$program->isWithinPlanningWindow()) {
+            app(BudgetProgramChangeService::class)->requestChange(
+                $program, $request->user(), 'add_detail', null, $payload,
+                'Tambah rincian: ' . $validated['description']
+            );
+
+            return redirect()->route('budget-programs.show', $program)
+                ->with('success', 'Periode perencanaan sudah lewat. Rincian baru menunggu approval Keuangan.');
+        }
+
+        BudgetProgramDetail::create(array_merge($payload, ['quantity' => $program->frequency]));
 
         return redirect()
             ->route('budget-programs.show', $program)
@@ -70,7 +88,7 @@ class BudgetProgramDetailController extends Controller
 
     public function update(Request $request, BudgetProgramDetail $budgetProgramDetail)
     {
-        $budgetProgramDetail->load('budgetProgram.budgetAllocation.department');
+        $budgetProgramDetail->load('budgetProgram.budgetAllocation.department', 'budgetProgram.budgetAllocation.budgetPeriod');
 
         abort_unless(
             auth()->user()->canAccessOrganization($budgetProgramDetail->budgetProgram->budgetAllocation->department->organization_id),
@@ -98,21 +116,47 @@ class BudgetProgramDetailController extends Controller
             ]);
         }
 
-        $budgetProgramDetail->update(array_merge($validated, ['quantity' => $program->frequency]));
+        $payload = [
+            'account_id'  => $validated['account_id'] ?? null,
+            'description' => $validated['description'],
+            'unit_price'  => $validated['unit_price'],
+        ];
+
+        if (!$program->isWithinPlanningWindow()) {
+            app(BudgetProgramChangeService::class)->requestChange(
+                $program, $request->user(), 'update_detail', $budgetProgramDetail->id, $payload,
+                'Ubah rincian: ' . $budgetProgramDetail->description . ' → ' . $validated['description']
+            );
+
+            return redirect()->route('budget-programs.show', $program)
+                ->with('success', 'Periode perencanaan sudah lewat. Perubahan menunggu approval Keuangan.');
+        }
+
+        $budgetProgramDetail->update(array_merge($payload, ['quantity' => $program->frequency]));
 
         return redirect()
             ->route('budget-programs.show', $program)
             ->with('success', 'Rincian berhasil diperbarui.');
     }
 
-    public function destroy(BudgetProgramDetail $budgetProgramDetail)
+    public function destroy(Request $request, BudgetProgramDetail $budgetProgramDetail)
     {
-        $program = $budgetProgramDetail->budgetProgram()->with('budgetAllocation.department')->first();
+        $program = $budgetProgramDetail->budgetProgram()->with('budgetAllocation.department', 'budgetAllocation.budgetPeriod')->first();
 
         abort_unless(
             auth()->user()->canAccessOrganization($program->budgetAllocation->department->organization_id),
             403
         );
+
+        if (!$program->isWithinPlanningWindow()) {
+            app(BudgetProgramChangeService::class)->requestChange(
+                $program, $request->user(), 'delete_detail', $budgetProgramDetail->id, [],
+                'Hapus rincian: ' . $budgetProgramDetail->description
+            );
+
+            return redirect()->route('budget-programs.show', $program)
+                ->with('success', 'Periode perencanaan sudah lewat. Penghapusan menunggu approval Keuangan.');
+        }
 
         $budgetProgramDetail->delete();
 

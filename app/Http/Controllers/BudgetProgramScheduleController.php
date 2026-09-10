@@ -4,13 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\BudgetProgram;
 use App\Models\BudgetProgramSchedule;
+use App\Services\BudgetProgramChangeService;
 use Illuminate\Http\Request;
 
 class BudgetProgramScheduleController extends Controller
 {
     public function update(Request $request, BudgetProgramSchedule $schedule)
     {
-        $schedule->load('budgetProgram.budgetAllocation.department');
+        $schedule->load('budgetProgram.budgetAllocation.department', 'budgetProgram.budgetAllocation.budgetPeriod');
 
         abort_unless(
             auth()->user()->canAccessOrganization($schedule->budgetProgram->budgetAllocation->department->organization_id),
@@ -20,7 +21,32 @@ class BudgetProgramScheduleController extends Controller
         $validated = $request->validate([
             'estimated_date' => 'nullable|date',
             'notes'          => 'nullable|string|max:255',
+            'amount'         => 'nullable|numeric|min:0',
         ]);
+
+        $program        = $schedule->budgetProgram;
+        $amountProvided = $request->has('amount');
+        $amountChanged  = $amountProvided && round((float) $validated['amount'], 2) !== round((float) $schedule->amount, 2);
+
+        if ($amountChanged) {
+            $otherTotal = $program->schedules()->where('id', '!=', $schedule->id)->sum('amount');
+            if (($otherTotal + (float) $validated['amount']) > $program->total_amount) {
+                $sisa = number_format(max($program->total_amount - $otherTotal, 0), 0, ',', '.');
+                return response()->json([
+                    'success' => false,
+                    'message' => "Total nominal per termin tidak boleh melebihi total pagu program. Sisa: Rp {$sisa}",
+                ], 422);
+            }
+        }
+
+        if ($amountChanged && !$program->isWithinPlanningWindow()) {
+            app(BudgetProgramChangeService::class)->requestChange(
+                $program, $request->user(), 'update_schedule', $schedule->id, $validated,
+                "Ubah estimasi termin {$schedule->termin}: " . $program->name
+            );
+
+            return response()->json(['success' => true, 'pending' => true]);
+        }
 
         $schedule->update($validated);
 

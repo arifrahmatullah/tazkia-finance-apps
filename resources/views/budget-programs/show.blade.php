@@ -47,6 +47,20 @@
 </div>
 @endif
 
+@if($pendingChangeRequests->isNotEmpty())
+<div class="flex items-start gap-2.5 px-4 py-3 bg-amber-50 border border-amber-300 rounded-xl mb-4 text-sm text-amber-800">
+    <svg width="16" height="16" fill="none" stroke="#d97706" stroke-width="2" viewBox="0 0 24 24" class="shrink-0 mt-0.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>
+    <div>
+        <div class="font-semibold">{{ $pendingChangeRequests->count() }} perubahan menunggu approval</div>
+        <ul class="mt-1 mb-0 pl-4 text-xs text-amber-700">
+            @foreach($pendingChangeRequests as $cr)
+            <li>{{ $cr->summary }} — langkah {{ $cr->current_step }}/{{ $cr->total_steps }}</li>
+            @endforeach
+        </ul>
+    </div>
+</div>
+@endif
+
 {{-- Pagu summary --}}
 <div class="bg-white rounded-xl border border-slate-100 shadow-sm px-5 py-4 mb-4">
     <div class="flex items-center gap-5 flex-wrap">
@@ -159,6 +173,9 @@
             <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full {{ $filledCount === $freq ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-600' }}">
                 {{ $filledCount }}/{{ $freq }} terisi
             </span>
+            @unless($budgetProgram->isWithinPlanningWindow())
+            <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700" title="Periode perencanaan sudah lewat">Butuh approval</span>
+            @endunless
         </div>
         <button type="button" onclick="openAutoFill()"
             class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-orange-200 bg-orange-50 text-orange-600 text-xs font-semibold hover:bg-orange-100 transition-colors cursor-pointer">
@@ -181,12 +198,13 @@
             <tbody>
                 @php $nominalPerTermin = $freq > 0 ? $totalUsed / $freq : 0; @endphp
                 @forelse($schedules as $sch)
+                @php $schAmount = $sch->amount ?? $nominalPerTermin; @endphp
                 <tr class="border-b border-slate-50 hover:bg-slate-50/60 transition-colors" id="row-{{ $sch->id }}">
                     <td class="px-4 py-3 text-center align-middle">
                         <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 text-slate-600 text-xs font-bold">{{ $sch->termin }}</span>
                     </td>
                     <td class="px-4 py-3 align-middle">
-                        <button type="button" onclick="openEdit('{{ $sch->id }}', '{{ $sch->estimated_date?->format('Y-m-d') ?? '' }}', '{{ addslashes($sch->notes ?? '') }}', {{ $sch->termin }})"
+                        <button type="button" onclick="openEdit('{{ $sch->id }}', '{{ $sch->estimated_date?->format('Y-m-d') ?? '' }}', '{{ addslashes($sch->notes ?? '') }}', {{ $sch->termin }}, {{ $schAmount }})"
                             class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border-0 cursor-pointer transition-colors {{ $sch->estimated_date ? 'bg-blue-50 text-blue-600 hover:bg-blue-100' : 'bg-orange-50 text-orange-500 hover:bg-orange-100' }}">
                             <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                             {{ $sch->estimated_date ? 'Edit tanggal' : 'Isi tanggal' }}
@@ -200,7 +218,11 @@
                         @endif
                     </td>
                     <td class="px-4 py-3 text-right font-mono text-sm text-slate-700 align-middle">
-                        Rp {{ number_format($nominalPerTermin, 0, ',', '.') }}
+                        <button type="button" onclick="openEdit('{{ $sch->id }}', '{{ $sch->estimated_date?->format('Y-m-d') ?? '' }}', '{{ addslashes($sch->notes ?? '') }}', {{ $sch->termin }}, {{ $schAmount }})"
+                            class="inline-flex items-center gap-1 border-0 bg-transparent cursor-pointer text-slate-700 hover:text-orange-500 transition-colors" id="amount-label-{{ $sch->id }}">
+                            Rp {{ number_format($schAmount, 0, ',', '.') }}
+                            <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                        </button>
                     </td>
                     <td class="px-4 py-3 align-middle text-sm text-slate-500">{{ $sch->notes ?? '—' }}</td>
                 </tr>
@@ -295,6 +317,13 @@
                 <label class="block text-xs font-semibold text-slate-600 mb-1.5">Catatan (opsional)</label>
                 <input type="text" id="edit-notes" placeholder="Pembayaran 1" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:border-orange-400 transition-colors">
             </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1.5">Nominal Termin Ini (Rp)</label>
+                <input type="text" id="edit-amount-display" inputmode="numeric" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:border-orange-400 transition-colors font-mono" oninput="fmtEditAmount(this)">
+                <input type="hidden" id="edit-amount">
+                <div class="text-[11px] text-slate-400 mt-1">Total semua termin tidak boleh melebihi total pagu program (Rp {{ number_format($totalUsed, 0, ',', '.') }}).</div>
+                <div id="edit-amount-error" class="text-[11px] text-red-500 mt-1" style="display:none"></div>
+            </div>
         </div>
         <div class="flex gap-2.5 mt-5">
             <button type="button" onclick="saveEdit()"
@@ -376,11 +405,21 @@ function fmtNominal(input) {
 // ----- Edit modal -----
 let editingId = null;
 
-function openEdit(id, date, notes, termin) {
+function fmtEditAmount(input) {
+    const raw = input.value.replace(/[^\d]/g, '');
+    document.getElementById('edit-amount').value = raw || '0';
+    input.value = raw ? parseInt(raw).toLocaleString('id-ID') : '';
+}
+
+function openEdit(id, date, notes, termin, amount) {
     editingId = id;
     document.getElementById('edit-date').value  = date || '';
     document.getElementById('edit-notes').value = notes || '';
     document.getElementById('edit-notes').placeholder = 'Pembayaran ' + termin;
+    const amountInt = Math.round(amount || 0);
+    document.getElementById('edit-amount-display').value = amountInt.toLocaleString('id-ID');
+    document.getElementById('edit-amount').value = amountInt;
+    document.getElementById('edit-amount-error').style.display = 'none';
     document.getElementById('modal-edit').classList.remove('hidden');
 }
 
@@ -391,8 +430,9 @@ function closeEdit() {
 
 function saveEdit() {
     if (!editingId) return;
-    const date  = document.getElementById('edit-date').value;
-    const notes = document.getElementById('edit-notes').value;
+    const date   = document.getElementById('edit-date').value;
+    const notes  = document.getElementById('edit-notes').value;
+    const amount = document.getElementById('edit-amount').value;
 
     fetch(`/budget-program-schedules/${editingId}`, {
         method: 'PATCH',
@@ -401,13 +441,20 @@ function saveEdit() {
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
                          || '{{ csrf_token() }}',
         },
-        body: JSON.stringify({ estimated_date: date || null, notes: notes || null }),
+        body: JSON.stringify({ estimated_date: date || null, notes: notes || null, amount: amount }),
     })
-    .then(r => r.json())
-    .then(data => {
+    .then(async r => ({ ok: r.ok, data: await r.json() }))
+    .then(({ ok, data }) => {
         if (data.success) {
             closeEdit();
+            if (data.pending) {
+                alert('Periode perencanaan sudah lewat. Perubahan nominal disimpan sebagai permintaan dan menunggu approval Keuangan.');
+            }
             window.location.reload();
+        } else if (!ok) {
+            const err = document.getElementById('edit-amount-error');
+            err.textContent = data.message || 'Gagal menyimpan.';
+            err.style.display = 'block';
         }
     })
     .catch(() => alert('Gagal menyimpan. Coba lagi.'));

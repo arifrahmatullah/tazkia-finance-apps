@@ -21,6 +21,7 @@ use App\Http\Controllers\FundRequestController;
 use App\Http\Controllers\JournalEntryController;
 use App\Http\Controllers\BudgetAllocationController;
 use App\Http\Controllers\BudgetPeriodController;
+use App\Http\Controllers\BudgetProgramChangeRequestController;
 use App\Http\Controllers\BudgetProgramController;
 use App\Http\Controllers\BudgetProgramDetailController;
 use App\Http\Controllers\DepartmentController;
@@ -65,6 +66,12 @@ Route::middleware(['auth', 'role.selected'])->group(function () {
     Route::get('budget-program-details/{budgetProgramDetail}/edit', [BudgetProgramDetailController::class, 'edit'])->name('budget-program-details.edit')->middleware('permission:menu.program-kerja');
     Route::put('budget-program-details/{budgetProgramDetail}', [BudgetProgramDetailController::class, 'update'])->name('budget-program-details.update')->middleware('permission:menu.program-kerja');
     Route::delete('budget-program-details/{budgetProgramDetail}', [BudgetProgramDetailController::class, 'destroy'])->name('budget-program-details.destroy')->middleware('permission:menu.program-kerja');
+
+    // Approval perubahan Program Kerja di luar periode perencanaan
+    Route::get('budget-program-change-requests', [BudgetProgramChangeRequestController::class, 'index'])->name('budget-program-change-requests.index')->middleware('permission:menu.program-kerja');
+    Route::post('budget-program-change-requests/{approval}/approve', [BudgetProgramChangeRequestController::class, 'approve'])->name('budget-program-change-requests.approve')->middleware('permission:menu.program-kerja');
+    Route::post('budget-program-change-requests/{approval}/reject', [BudgetProgramChangeRequestController::class, 'reject'])->name('budget-program-change-requests.reject')->middleware('permission:menu.program-kerja');
+
     Route::resource('employees', EmployeeController::class);
     Route::resource('users', UserController::class)->except(['show']);
     Route::get('role-permissions', [RolePermissionController::class, 'index'])->name('role-permissions.index')->middleware('permission:menu.role-permissions');
