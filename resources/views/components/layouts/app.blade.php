@@ -229,11 +229,15 @@
         </a>
         @endif
 
-        @if(auth()->user()->hasPermission('menu.pengajuan-dana') || auth()->user()->hasPermission('menu.inbox-approval') || auth()->user()->employee?->activePosition)
         @php
-            // Jumlah pengajuan yang menunggu approval user ini (untuk badge sidebar)
+            // Jumlah pengajuan yang menunggu approval user ini (untuk badge sidebar) --
+            // didefinisikan di luar blok @if di bawah supaya tetap ada nilainya (dipakai lagi
+            // nanti di grup "Approval") walau user tidak lolos kondisi menu Pengajuan Dana.
             $inboxWaitingCount = 0;
             $inboxPosition = auth()->user()->employee?->activePosition?->position;
+        @endphp
+        @if(auth()->user()->hasPermission('menu.pengajuan-dana') || auth()->user()->hasPermission('menu.inbox-approval') || $inboxPosition)
+        @php
             if ($inboxPosition) {
                 $inboxOrgIds = auth()->user()->organizationIds();
                 $inboxWaitingCount = \App\Models\FundRequestApproval::where('approver_position_id', $inboxPosition->id)
@@ -310,6 +314,46 @@
                     @endif
                 </a>
                 @endif
+            </div>
+        </div>
+        @endif
+
+        @php
+            $canSeeInboxApproval = auth()->user()->hasPermission('menu.pengajuan-dana')
+                || auth()->user()->hasPermission('menu.inbox-approval')
+                || $inboxPosition;
+            $canSeeBudgetChangeApprovals = auth()->user()->hasPermission('menu.pencairan-dana')
+                || auth()->user()->isSuperAdmin()
+                || \App\Models\BudgetProgramApprovalPosition::whereIn(
+                    'step2_position_id',
+                    auth()->user()->employee?->activePositions()->pluck('position_id') ?? []
+                )->exists();
+            $budgetChangeApprovalCount = $canSeeBudgetChangeApprovals
+                ? app(\App\Services\BudgetProgramChangeService::class)->pendingFor(auth()->user())->count()
+                : 0;
+            $approvalActive = request()->routeIs('fund-approvals.*') || request()->routeIs('budget-program-change-requests.*');
+        @endphp
+        @if($canSeeInboxApproval || $canSeeBudgetChangeApprovals)
+        <div>
+            <div class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg cursor-pointer text-[0.835rem] transition-all relative
+                        {{ $approvalActive ? 'active bg-orange-500/[0.15] text-white font-[550]' : 'text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white' }}"
+                 onclick="toggleSubmenu('sub-approval')">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                    class="{{ $approvalActive ? 'text-orange-300' : 'opacity-80' }}">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                </svg>
+                Approval
+                @php $totalApprovalCount = $inboxWaitingCount + $budgetChangeApprovalCount; @endphp
+                @if($totalApprovalCount > 0)
+                <span class="ml-auto mr-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full bg-red-500 text-white text-[10px] font-bold leading-none">{{ $totalApprovalCount }}</span>
+                @endif
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                    class="transition-transform duration-200 {{ $totalApprovalCount > 0 ? '' : 'ml-auto' }}" id="arrow-approval">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                </svg>
+            </div>
+            <div class="nav-submenu {{ $approvalActive ? 'open' : '' }} hidden" id="sub-approval">
+                @if($canSeeInboxApproval)
                 <a href="{{ route('fund-approvals.inbox') }}"
                    class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
                           {{ request()->routeIs('fund-approvals.*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">
@@ -318,6 +362,17 @@
                     <span class="ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full bg-red-500 text-white text-[10px] font-bold leading-none">{{ $inboxWaitingCount }}</span>
                     @endif
                 </a>
+                @endif
+                @if($canSeeBudgetChangeApprovals)
+                <a href="{{ route('budget-program-change-requests.index') }}"
+                   class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
+                          {{ request()->routeIs('budget-program-change-requests.*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">
+                    Approval Program Kerja
+                    @if($budgetChangeApprovalCount > 0)
+                    <span class="ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full bg-red-500 text-white text-[10px] font-bold leading-none">{{ $budgetChangeApprovalCount }}</span>
+                    @endif
+                </a>
+                @endif
             </div>
         </div>
         @endif
