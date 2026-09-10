@@ -321,7 +321,7 @@ class BudgetProgramController extends Controller
 
     public function show(BudgetProgram $budgetProgram)
     {
-        $budgetProgram->load(['budgetAllocation.department.organization', 'budgetAllocation.budgetPeriod', 'account', 'details.account', 'schedules']);
+        $budgetProgram->load(['budgetAllocation.department.organization', 'budgetAllocation.budgetPeriod', 'account', 'details.account', 'schedules.fundRequests']);
 
         abort_unless(
             auth()->user()->canAccessOrganization($budgetProgram->budgetAllocation->department->organization_id),

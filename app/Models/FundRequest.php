@@ -13,6 +13,7 @@ class FundRequest extends Model
 
     protected $fillable = [
         'organization_id', 'department_id', 'budget_period_id', 'budget_program_id',
+        'budget_program_schedule_id',
         'requester_id', 'requester_position_id', 'reference',
         'title', 'purpose', 'amount',
         'bank_name', 'bank_account_number', 'bank_account_name',
@@ -50,6 +51,11 @@ class FundRequest extends Model
     public function budgetProgram()
     {
         return $this->belongsTo(BudgetProgram::class);
+    }
+
+    public function schedule()
+    {
+        return $this->belongsTo(BudgetProgramSchedule::class, 'budget_program_schedule_id');
     }
 
     public function requester()

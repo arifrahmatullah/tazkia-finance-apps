@@ -291,16 +291,18 @@
     </div>
     @endif
 
-    @if($prog->schedules->isNotEmpty())
     <div>
         <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-2">Pencairan</div>
-        <div class="flex flex-wrap gap-2">
-            @foreach($prog->schedules as $sch)
-            <div class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-600">
-                Termin {{ $sch->termin }}
-            </div>
-            @endforeach
+        @if($fundRequest->schedule)
+        <div class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 border border-orange-200 rounded-lg text-xs font-semibold text-orange-700">
+            Termin {{ $fundRequest->schedule->termin }} dari {{ $prog->frequency }}
+            @if($fundRequest->schedule->estimated_date)
+            <span class="font-normal text-orange-500">· {{ $fundRequest->schedule->estimated_date->format('d/m/Y') }}</span>
+            @endif
         </div>
+        @else
+        <span class="text-xs text-slate-400">Pengajuan ini dibuat sebelum sistem menautkan termin — tidak ada termin spesifik.</span>
+        @endif
     </div>
     @endif
 </div>

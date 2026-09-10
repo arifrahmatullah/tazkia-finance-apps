@@ -197,6 +197,7 @@
                     <th class="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Tanggal Estimasi</th>
                     <th class="px-4 py-3 text-right text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Nominal</th>
                     <th class="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Catatan</th>
+                    <th class="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Status Pengajuan</th>
                 </tr>
             </thead>
             <tbody>
@@ -229,10 +230,29 @@
                         </button>
                     </td>
                     <td class="px-4 py-3 align-middle text-sm text-slate-500">{{ $sch->notes ?? '—' }}</td>
+                    <td class="px-4 py-3 align-middle">
+                        @php $activeFr = $sch->fundRequests->first(fn($fr) => $fr->status !== 'rejected'); @endphp
+                        @if($activeFr)
+                            @php
+                                $frStatusMap = [
+                                    'draft'    => ['bg-slate-100 text-slate-500', 'Draft'],
+                                    'pending'  => ['bg-yellow-100 text-yellow-700', 'Menunggu Approval'],
+                                    'approved' => $activeFr->disbursed_at ? ['bg-blue-100 text-blue-700', 'Sudah Dicairkan'] : ['bg-green-100 text-green-700', 'Disetujui'],
+                                ];
+                                [$frCls, $frLabel] = $frStatusMap[$activeFr->status] ?? ['bg-slate-100 text-slate-500', $activeFr->status];
+                            @endphp
+                            <a href="{{ route('fund-requests.show', $activeFr) }}" class="inline-flex items-center gap-1.5 no-underline">
+                                <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold {{ $frCls }}">{{ $frLabel }}</span>
+                                <span class="text-[11px] text-slate-400 font-mono">{{ $activeFr->reference }}</span>
+                            </a>
+                        @else
+                            <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-50 text-slate-400">Tersedia</span>
+                        @endif
+                    </td>
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="5" class="px-4 py-6 text-center text-slate-400 text-sm">Belum ada jadwal. Coba simpan ulang program.</td>
+                    <td colspan="6" class="px-4 py-6 text-center text-slate-400 text-sm">Belum ada jadwal. Coba simpan ulang program.</td>
                 </tr>
                 @endforelse
             </tbody>

@@ -83,6 +83,16 @@ class BudgetProgram extends Model
         }
     }
 
+    // Termin berikutnya yang belum "diambil" pengajuan dana manapun (selain yang ditolak) --
+    // dipakai untuk otomatis menautkan pengajuan baru ke termin secara berurutan.
+    public function nextAvailableSchedule(): ?BudgetProgramSchedule
+    {
+        return $this->schedules()
+            ->whereDoesntHave('fundRequests', fn($q) => $q->where('status', '!=', 'rejected'))
+            ->orderBy('termin')
+            ->first();
+    }
+
     // Pengajuan Dana hanya boleh dibuat kalau semua termin di Estimasi Jadwal
     // sudah punya tanggal (jadwal jadi acuan pencairan, bukan sekadar catatan).
     public function hasCompleteSchedule(): bool

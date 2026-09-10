@@ -127,6 +127,11 @@
         Estimasi Jadwal program kerja ini belum lengkap (masih ada termin yang belum dijadwalkan). Lengkapi dulu semua termin di halaman Program Kerja sebelum bisa membuat pengajuan.
     </div>
 
+    <div id="no-termin-msg" class="flex items-start gap-2.5 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl mb-5 text-sm text-amber-700" style="display:none">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" class="shrink-0 mt-px"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Semua termin untuk program ini sudah diajukan/disetujui. Tidak bisa membuat pengajuan baru sampai ada termin yang tersedia lagi (misalnya kalau salah satu pengajuan ditolak).
+    </div>
+
     {{-- Form pengajuan --}}
     <div id="form-fields" style="display:none">
         <div class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3.5 pb-2 border-b border-slate-100">Detail Pengajuan</div>
@@ -315,6 +320,7 @@ function onProgramChange(programId, keepValues = false) {
     hide('program-detail');
     hide('form-fields');
     hide('schedule-incomplete-msg');
+    hide('no-termin-msg');
     document.getElementById('submit-btn').disabled = true;
 
     // Kosongkan isian sebelumnya supaya tidak terbawa saat ganti program
@@ -366,29 +372,36 @@ function onProgramChange(programId, keepValues = false) {
     // Jadwal & estimasi -- tampilkan satu termin dulu (yang berikutnya belum dijadwalkan),
     // sisanya disembunyikan di balik tombol supaya tidak langsung penuh sekaligus.
     // Nominalnya mengikuti Total Diajukan di rincian (live, lihat recalcTotal()), bukan
-    // rata-rata pagu seluruh program.
+    // rata-rata pagu seluruh program. Termin yang sudah "diambil" pengajuan lain (belum
+    // ditolak) ditandai "Sudah diajukan" -- pengajuan baru otomatis dapat termin berikutnya
+    // yang masih tersedia (ditandai khusus), bukan pilih manual.
     let schedHtml = '';
     if (p.schedules && p.schedules.length > 0) {
-        const renderTermin = (s) => {
+        const nextIdx = p.schedules.findIndex(s => !s.taken);
+
+        const renderTermin = (s, isNext) => {
             const tgl = s.estimated_date && s.estimated_date !== '-'
                 ? `<span class="text-slate-500 font-normal">${escHtml(s.estimated_date)}</span>`
                 : '<span class="text-slate-300 font-normal">belum dijadwalkan</span>';
-            return `<div class="inline-flex flex-col gap-0.5 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs">
+            const boxClass = isNext
+                ? 'border-orange-300 bg-orange-50'
+                : (s.taken ? 'border-slate-200 bg-slate-100 opacity-60' : 'border-slate-200 bg-slate-50');
+            return `<div class="inline-flex flex-col gap-0.5 px-3 py-2 border rounded-lg text-xs ${boxClass}">
                 <span class="font-bold text-slate-600">Termin ${s.termin} · ${tgl}</span>
-                <span class="font-mono font-semibold text-orange-600 termin-amount">Rp 0</span>
+                ${isNext
+                    ? `<span class="font-mono font-semibold text-orange-600 termin-amount">Rp 0</span><span class="text-orange-500 font-semibold">Termin ini yang akan diajukan</span>`
+                    : (s.taken ? '<span class="text-slate-400 font-semibold">Sudah diajukan</span>' : '<span class="text-slate-400">Tersedia</span>')}
                 ${s.notes ? `<span class="text-slate-400 font-normal">${escHtml(s.notes)}</span>` : ''}
             </div>`;
         };
 
-        const nextIdx = p.schedules.findIndex(s => !s.estimated_date || s.estimated_date === '-');
-        const firstIdx = nextIdx === -1 ? 0 : nextIdx;
-        schedHtml += renderTermin(p.schedules[firstIdx]);
+        schedHtml += renderTermin(p.schedules[nextIdx], true);
 
-        const rest = p.schedules.filter((_, i) => i !== firstIdx);
+        const rest = p.schedules.filter((_, i) => i !== nextIdx);
         if (rest.length > 0) {
             schedHtml += `<button type="button" onclick="document.getElementById('sched-rest').style.display='contents'; this.style.display='none';"
                 class="text-xs text-orange-500 underline bg-transparent border-0 cursor-pointer px-1">+${rest.length} termin lainnya</button>`;
-            schedHtml += `<span id="sched-rest" style="display:none">${rest.map(renderTermin).join('')}</span>`;
+            schedHtml += `<span id="sched-rest" style="display:none">${rest.map(s => renderTermin(s, false)).join('')}</span>`;
         }
     } else {
         schedHtml = '<span class="text-xs text-slate-400">Belum ada jadwal pencairan.</span>';
@@ -421,6 +434,13 @@ function onProgramChange(programId, keepValues = false) {
 
     if (!p.has_complete_schedule) {
         show('schedule-incomplete-msg');
+        hide('form-fields');
+        document.getElementById('submit-btn').disabled = true;
+        return;
+    }
+
+    if (!p.has_available_termin) {
+        show('no-termin-msg');
         hide('form-fields');
         document.getElementById('submit-btn').disabled = true;
         return;
@@ -475,9 +495,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 opt.value = p.id;
                 const jenis = p.type_label && p.type_label !== '-' ? `[${p.type_label}] ` : '';
                 const incomplete = !p.has_complete_schedule;
+                const noTermin  = p.has_complete_schedule && !p.has_available_termin;
                 opt.textContent = `${jenis}${p.name} — ${fmt(p.total_amount)} (${p.frequency}× @ ${fmt(Math.round(p.nominal_per_termin))})`
-                    + (incomplete ? ' — Jadwal belum lengkap' : '');
-                if (incomplete) opt.disabled = true;
+                    + (incomplete ? ' — Jadwal belum lengkap' : (noTermin ? ' — Semua termin sudah diajukan' : ''));
+                if (incomplete || noTermin) opt.disabled = true;
                 sel.appendChild(opt);
             });
 

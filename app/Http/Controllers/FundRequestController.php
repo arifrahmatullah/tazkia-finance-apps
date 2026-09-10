@@ -164,11 +164,23 @@ class FundRequestController extends Controller
             return back()->withInput()->withErrors(['lines' => $error]);
         }
 
+        // Setiap pengajuan otomatis menempati termin BERIKUTNYA yang belum "diambil"
+        // pengajuan lain (selain yang ditolak) -- urut sesuai nomor termin, bukan dipilih manual.
+        $schedule = $program->nextAvailableSchedule();
+        if (!$schedule) {
+            return back()->withInput()->withErrors(['budget_program_id' => 'Semua termin untuk program ini sudah diajukan/disetujui. Tidak bisa membuat pengajuan baru untuk program ini.']);
+        }
+
         $orgId          = $employee->organization_id;
         $deptId         = $department->id;
         $budgetPeriodId = $program->budgetAllocation->budget_period_id;
 
-        $fundRequest = DB::transaction(function () use ($request, $employee, $activePosition, $orgId, $deptId, $budgetPeriodId, $amount, $preparedLines) {
+        $fundRequest = DB::transaction(function () use ($request, $employee, $activePosition, $orgId, $deptId, $budgetPeriodId, $amount, $preparedLines, $program, $schedule) {
+            // Cek ulang di dalam transaksi supaya tidak ada dua pengajuan menempati termin yang sama
+            // kalau ada dua request nyaris bersamaan.
+            $schedule = $program->nextAvailableSchedule();
+            abort_unless($schedule, 422, 'Semua termin untuk program ini sudah diajukan/disetujui.');
+
             $reference = FundRequest::generateReference($orgId, now()->toDateString());
 
             $fundRequest = FundRequest::create([
@@ -176,6 +188,7 @@ class FundRequestController extends Controller
                 'department_id'         => $deptId,
                 'budget_period_id'      => $budgetPeriodId,
                 'budget_program_id'     => $request->budget_program_id,
+                'budget_program_schedule_id' => $schedule->id,
                 'requester_id'          => $employee->id,
                 'requester_position_id' => $activePosition->id,
                 'reference'             => $reference,
@@ -226,6 +239,7 @@ class FundRequestController extends Controller
         $fundRequest->load([
             'organization', 'department', 'budgetPeriod',
             'budgetProgram.details.account', 'budgetProgram.schedules',
+            'schedule',
             'details.account',
             'requester', 'requesterPosition',
             'approvals.approverPosition', 'approvals.approverUser',
@@ -386,7 +400,7 @@ class FundRequestController extends Controller
             return response()->json(['programs' => [], 'allocation' => null]);
         }
 
-        $programs = BudgetProgram::with(['details.account', 'schedules'])
+        $programs = BudgetProgram::with(['details.account', 'schedules.fundRequests'])
             ->where('budget_allocation_id', $allocation->id)
             ->where('is_active', true)
             ->orderBy('name')
@@ -401,6 +415,7 @@ class FundRequestController extends Controller
                     'frequency'         => $p->frequency,
                     'nominal_per_termin'=> (float) $p->nominal_per_termin,
                     'has_complete_schedule' => $p->hasCompleteSchedule(),
+                    'has_available_termin' => $p->schedules->contains(fn($s) => !$s->fundRequests->contains(fn($fr) => $fr->status !== 'rejected')),
                     'details'           => $p->details->map(fn($d) => [
                         'id'           => $d->id,
                         'account'      => $d->account?->name ?? '-',
@@ -414,6 +429,7 @@ class FundRequestController extends Controller
                         'termin'         => $s->termin,
                         'estimated_date' => $s->estimated_date?->format('d/m/Y') ?? '-',
                         'notes'          => $s->notes ?? '',
+                        'taken'          => $s->fundRequests->contains(fn($fr) => $fr->status !== 'rejected'),
                     ])->values(),
                 ];
             });
