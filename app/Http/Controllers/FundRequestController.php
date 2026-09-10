@@ -151,6 +151,10 @@ class FundRequestController extends Controller
         $activePosition = $matchingPosition->position;
         $department     = $activePosition->department;
 
+        if (!$program->hasCompleteSchedule()) {
+            return back()->withInput()->withErrors(['budget_program_id' => 'Estimasi Jadwal program kerja ini belum lengkap. Lengkapi dulu semua termin di halaman Program Kerja sebelum membuat pengajuan.']);
+        }
+
         [$amount, $preparedLines, $lineError] = $this->prepareRequestLines($program, $request->input('lines', []));
         if ($lineError) {
             return back()->withInput()->withErrors(['lines' => $lineError]);
@@ -396,6 +400,7 @@ class FundRequestController extends Controller
                     'total_amount'      => (float) $p->total_amount,
                     'frequency'         => $p->frequency,
                     'nominal_per_termin'=> (float) $p->nominal_per_termin,
+                    'has_complete_schedule' => $p->hasCompleteSchedule(),
                     'details'           => $p->details->map(fn($d) => [
                         'id'           => $d->id,
                         'account'      => $d->account?->name ?? '-',

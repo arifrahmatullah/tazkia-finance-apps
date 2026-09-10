@@ -83,6 +83,15 @@ class BudgetProgram extends Model
         }
     }
 
+    // Pengajuan Dana hanya boleh dibuat kalau semua termin di Estimasi Jadwal
+    // sudah punya tanggal (jadwal jadi acuan pencairan, bukan sekadar catatan).
+    public function hasCompleteSchedule(): bool
+    {
+        $freq = max(1, (int) $this->frequency);
+        $filled = $this->schedules()->whereNotNull('estimated_date')->count();
+        return $this->schedules()->count() >= $freq && $filled >= $freq;
+    }
+
     // Edit Program Kerja (info, rincian, nominal per termin) hanya bebas dilakukan selama
     // periode perencanaan (planning_start s.d. planning_end) milik periode anggarannya.
     // Di luar itu, perubahan harus lewat alur approval (lihat BudgetProgramChangeRequest).

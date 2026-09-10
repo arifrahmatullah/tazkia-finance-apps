@@ -122,6 +122,11 @@
         </div>
     </div>
 
+    <div id="schedule-incomplete-msg" class="flex items-start gap-2.5 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl mb-5 text-sm text-amber-700" style="display:none">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" class="shrink-0 mt-px"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Estimasi Jadwal program kerja ini belum lengkap (masih ada termin yang belum dijadwalkan). Lengkapi dulu semua termin di halaman Program Kerja sebelum bisa membuat pengajuan.
+    </div>
+
     {{-- Form pengajuan --}}
     <div id="form-fields" style="display:none">
         <div class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3.5 pb-2 border-b border-slate-100">Detail Pengajuan</div>
@@ -309,6 +314,7 @@ toggleBankOther(document.getElementById('bankSelect'));
 function onProgramChange(programId, keepValues = false) {
     hide('program-detail');
     hide('form-fields');
+    hide('schedule-incomplete-msg');
     document.getElementById('submit-btn').disabled = true;
 
     // Kosongkan isian sebelumnya supaya tidak terbawa saat ganti program
@@ -412,6 +418,14 @@ function onProgramChange(programId, keepValues = false) {
     if (!titleInput.value) titleInput.value = p.name;
 
     show('program-detail');
+
+    if (!p.has_complete_schedule) {
+        show('schedule-incomplete-msg');
+        hide('form-fields');
+        document.getElementById('submit-btn').disabled = true;
+        return;
+    }
+
     show('form-fields');
     document.getElementById('submit-btn').disabled = !(p.details && p.details.length > 0);
 }
@@ -460,7 +474,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 const opt = document.createElement('option');
                 opt.value = p.id;
                 const jenis = p.type_label && p.type_label !== '-' ? `[${p.type_label}] ` : '';
-                opt.textContent = `${jenis}${p.name} — ${fmt(p.total_amount)} (${p.frequency}× @ ${fmt(Math.round(p.nominal_per_termin))})`;
+                const incomplete = !p.has_complete_schedule;
+                opt.textContent = `${jenis}${p.name} — ${fmt(p.total_amount)} (${p.frequency}× @ ${fmt(Math.round(p.nominal_per_termin))})`
+                    + (incomplete ? ' — Jadwal belum lengkap' : '');
+                if (incomplete) opt.disabled = true;
                 sel.appendChild(opt);
             });
 
