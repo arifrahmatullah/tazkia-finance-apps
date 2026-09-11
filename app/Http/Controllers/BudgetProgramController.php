@@ -249,7 +249,7 @@ class BudgetProgramController extends Controller
             'name'                 => 'required|string|max:255',
             'type'                 => 'required|in:pengadaan,kegiatan,pembayaran',
             'notes'                => 'nullable|string|max:1000',
-            'frequency'            => 'required|integer|min:1|max:366',
+            'frequency'            => 'required|integer|min:1|max:24',
             'lines'                => 'nullable|array',
             'lines.*.description'  => 'nullable|string|max:255',
             'lines.*.account_id'   => 'nullable|exists:accounts,id',
@@ -377,7 +377,7 @@ class BudgetProgramController extends Controller
             'name'      => 'required|string|max:255',
             'type'      => 'required|in:pengadaan,kegiatan,pembayaran',
             'notes'     => 'nullable|string|max:1000',
-            'frequency' => 'required|integer|min:1|max:366',
+            'frequency' => 'required|integer|min:1|max:24',
             'is_active' => 'boolean',
         ]);
 

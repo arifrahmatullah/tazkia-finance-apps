@@ -382,9 +382,12 @@
                     <select name="pattern" id="af-pattern"
                         class="no-select2 w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-700 bg-white outline-none focus:border-orange-400 transition-colors"
                         onchange="toggleCustomInterval(this.value)">
-                        <option value="monthly">Bulanan (tiap 1 bulan)</option>
                         <option value="weekly">Mingguan (tiap 1 minggu)</option>
+                        <option value="biweekly">Dua Mingguan (tiap 2 minggu)</option>
+                        <option value="monthly">Bulanan (tiap 1 bulan)</option>
                         <option value="quarterly">Triwulan (tiap 3 bulan)</option>
+                        <option value="semiannual">Semesteran (tiap 6 bulan / 2× setahun)</option>
+                        <option value="annual">Tahunan (tiap 12 bulan / 1× setahun)</option>
                         <option value="custom">Kustom (interval hari)</option>
                     </select>
                 </div>

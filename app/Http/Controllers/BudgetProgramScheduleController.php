@@ -64,7 +64,7 @@ class BudgetProgramScheduleController extends Controller
 
         $request->validate([
             'start_date' => 'required|date',
-            'pattern'    => 'required|in:monthly,weekly,quarterly,custom',
+            'pattern'    => 'required|in:weekly,biweekly,monthly,quarterly,semiannual,annual,custom',
             'interval'   => 'nullable|integer|min:1',
         ]);
 
@@ -75,10 +75,13 @@ class BudgetProgramScheduleController extends Controller
         \DB::transaction(function () use ($schedules, $pattern, $start, $request) {
             foreach ($schedules as $i => $schedule) {
                 $date = match ($pattern) {
-                    'monthly'   => $start->copy()->addMonths($i),
-                    'weekly'    => $start->copy()->addWeeks($i),
-                    'quarterly' => $start->copy()->addMonths($i * 3),
-                    'custom'    => $start->copy()->addDays($i * max(1, (int) $request->interval)),
+                    'weekly'     => $start->copy()->addWeeks($i),
+                    'biweekly'   => $start->copy()->addWeeks($i * 2),
+                    'monthly'    => $start->copy()->addMonths($i),
+                    'quarterly'  => $start->copy()->addMonths($i * 3),
+                    'semiannual' => $start->copy()->addMonths($i * 6),
+                    'annual'     => $start->copy()->addMonths($i * 12),
+                    'custom'     => $start->copy()->addDays($i * max(1, (int) $request->interval)),
                 };
                 $schedule->update(['estimated_date' => $date->toDateString()]);
             }

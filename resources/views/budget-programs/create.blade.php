@@ -50,16 +50,16 @@
         <div>
             <label class="block text-xs font-semibold text-slate-600 mb-1.5">
                 Frekuensi <span class="text-red-500">*</span>
-                <span class="font-normal text-slate-400 ml-1">— berapa kali dalam periode</span>
+                <span class="font-normal text-slate-400 ml-1">— berapa kali dalam periode (maks. 24×)</span>
             </label>
             <div class="flex items-center gap-2 flex-wrap">
                 <input type="number" name="frequency" id="frequency-input" value="{{ old('frequency', 1) }}"
-                    min="1" max="366"
+                    min="1" max="24"
                     class="w-24 px-3.5 py-2.5 border {{ $errors->has('frequency') ? 'border-red-400' : 'border-slate-200' }} rounded-xl text-sm text-slate-700 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors font-mono"
                     oninput="onFrequencyChange(this.value)">
                 <span class="text-xs text-slate-400">kali</span>
                 <div class="flex gap-1.5">
-                    @foreach([['1','1×'],['3','3×'],['4','4×'],['6','6×'],['12','12×']] as [$v,$l])
+                    @foreach([['1','1×'],['2','2×'],['3','3×'],['4','4×'],['6','6×'],['12','12×'],['24','24×']] as [$v,$l])
                     <button type="button" onclick="setFrequency({{ $v }})"
                         data-val="{{ $v }}"
                         class="freq-btn px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-colors {{ old('frequency', 1) == $v ? 'bg-orange-500 text-white border-orange-500' : 'border-slate-200 text-slate-500 hover:border-orange-300 hover:text-orange-500' }}">
@@ -182,7 +182,7 @@ function buildAccountOptions(selectedId) {
 }
 
 function setFrequency(val) {
-    currentFreq = Math.max(1, parseInt(val) || 1);
+    currentFreq = Math.min(24, Math.max(1, parseInt(val) || 1));
     document.getElementById('frequency-input').value = currentFreq;
     document.querySelectorAll('.freq-btn').forEach(b => {
         const isActive = parseInt(b.dataset.val) === currentFreq;
@@ -195,7 +195,7 @@ function setFrequency(val) {
 }
 
 function onFrequencyChange(val) {
-    currentFreq = Math.max(1, parseInt(val) || 1);
+    currentFreq = Math.min(24, Math.max(1, parseInt(val) || 1));
     document.querySelectorAll('.freq-btn').forEach(b => {
         const isActive = parseInt(b.dataset.val) === currentFreq;
         b.className = b.className.replace(/bg-orange-500 text-white border-orange-500|border-slate-200 text-slate-500 hover:border-orange-300 hover:text-orange-500/g, '');
