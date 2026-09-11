@@ -56,7 +56,9 @@ class BudgetProgramDetailController extends Controller
                 ->with('success', 'Periode perencanaan sudah lewat. Rincian baru menunggu approval Keuangan.');
         }
 
+        $oldNominalPerTermin = $program->nominal_per_termin;
         BudgetProgramDetail::create(array_merge($payload, ['quantity' => $program->frequency]));
+        $program->syncScheduleAmountsAfterTotalChange($oldNominalPerTermin);
 
         return redirect()
             ->route('budget-programs.show', $program)
@@ -132,7 +134,9 @@ class BudgetProgramDetailController extends Controller
                 ->with('success', 'Periode perencanaan sudah lewat. Perubahan menunggu approval Keuangan.');
         }
 
+        $oldNominalPerTermin = $program->nominal_per_termin;
         $budgetProgramDetail->update(array_merge($payload, ['quantity' => $program->frequency]));
+        $program->syncScheduleAmountsAfterTotalChange($oldNominalPerTermin);
 
         return redirect()
             ->route('budget-programs.show', $program)
@@ -158,7 +162,9 @@ class BudgetProgramDetailController extends Controller
                 ->with('success', 'Periode perencanaan sudah lewat. Penghapusan menunggu approval Keuangan.');
         }
 
+        $oldNominalPerTermin = $program->nominal_per_termin;
         $budgetProgramDetail->delete();
+        $program->syncScheduleAmountsAfterTotalChange($oldNominalPerTermin);
 
         return redirect()
             ->route('budget-programs.show', $program)

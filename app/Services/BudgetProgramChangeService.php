@@ -120,6 +120,7 @@ class BudgetProgramChangeService
     {
         $program = $request->budgetProgram;
         $payload = $request->payload ?? [];
+        $oldNominalPerTermin = $program->nominal_per_termin;
 
         match ($request->action) {
             'update_info' => $this->applyUpdateInfo($program, $payload),
@@ -129,6 +130,10 @@ class BudgetProgramChangeService
             'update_schedule' => BudgetProgramSchedule::find($request->subject_id)?->update($payload),
             default => null,
         };
+
+        if (in_array($request->action, ['add_detail', 'update_detail', 'delete_detail'])) {
+            $program->syncScheduleAmountsAfterTotalChange($oldNominalPerTermin);
+        }
     }
 
     private function applyUpdateInfo(BudgetProgram $program, array $payload): void

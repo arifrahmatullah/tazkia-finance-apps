@@ -83,6 +83,29 @@ class BudgetProgram extends Model
         }
     }
 
+    // Kalau nominal rincian berubah (nominal_per_termin ikut berubah), sinkronkan nominal
+    // termin di Estimasi Jadwal yang MASIH default (sama dengan nominal_per_termin LAMA,
+    // belum pernah di-custom manual satu-satu) ke nilai yang baru. Termin yang nilainya
+    // sudah beda dari nominal lama dianggap sudah sengaja di-custom staf Keuangan --
+    // dibiarkan, tidak ditimpa. Termin yang sudah "diambil" pengajuan dana (belum ditolak)
+    // juga dibiarkan, supaya tidak diam-diam mengubah nominal yang sudah diajukan/disetujui.
+    public function syncScheduleAmountsAfterTotalChange(float $oldNominalPerTermin): void
+    {
+        $newNominalPerTermin = $this->nominal_per_termin;
+        if (abs($newNominalPerTermin - $oldNominalPerTermin) < 0.01) {
+            return;
+        }
+
+        $this->schedules()->with('fundRequests')->get()->each(function ($sch) use ($oldNominalPerTermin, $newNominalPerTermin) {
+            $isStillDefault = $sch->amount === null || abs((float) $sch->amount - $oldNominalPerTermin) < 0.01;
+            $isTaken = $sch->fundRequests->contains(fn($fr) => $fr->status !== 'rejected');
+
+            if ($isStillDefault && !$isTaken) {
+                $sch->update(['amount' => $newNominalPerTermin]);
+            }
+        });
+    }
+
     // Termin berikutnya yang belum "diambil" pengajuan dana manapun (selain yang ditolak) --
     // dipakai untuk otomatis menautkan pengajuan baru ke termin secara berurutan.
     public function nextAvailableSchedule(): ?BudgetProgramSchedule
