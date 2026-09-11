@@ -118,6 +118,7 @@ Route::middleware(['auth', 'role.selected'])->group(function () {
     // Pengajuan Dana
     Route::resource('fund-requests', FundRequestController::class);
     Route::post('fund-requests/{fund_request}/submit', [FundRequestController::class, 'submit'])->name('fund-requests.submit');
+    Route::post('fund-requests/{fund_request}/cancel', [FundRequestController::class, 'cancel'])->name('fund-requests.cancel');
     Route::get('fund-requests-deps', [FundRequestController::class, 'getDependencies'])->name('fund-requests.deps');
     Route::get('fund-requests-programs', [FundRequestController::class, 'getPrograms'])->name('fund-requests.programs');
 

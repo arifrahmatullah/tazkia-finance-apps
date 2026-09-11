@@ -74,6 +74,7 @@
         <option value="pending"             {{ request('status') === 'pending'             ? 'selected' : '' }}>Menunggu Approval</option>
         <option value="diproses"            {{ request('status') === 'diproses'            ? 'selected' : '' }}>Diproses</option>
         <option value="rejected"            {{ request('status') === 'rejected'            ? 'selected' : '' }}>Ditolak</option>
+        <option value="cancelled"           {{ request('status') === 'cancelled'           ? 'selected' : '' }}>Dibatalkan</option>
         <option value="menunggu_konfirmasi" {{ request('status') === 'menunggu_konfirmasi' ? 'selected' : '' }}>Menunggu Konfirmasi</option>
         <option value="sudah_cair"          {{ request('status') === 'sudah_cair'          ? 'selected' : '' }}>Sudah Cair</option>
     </select>
@@ -115,6 +116,7 @@
             $fr->status === 'draft'                        => 'draft',
             $fr->status === 'pending'                      => 'pending',
             $fr->status === 'rejected'                     => 'rejected',
+            $fr->status === 'cancelled'                    => 'cancelled',
             $isDisbursed && is_null($fr->receipt_status)   => 'menunggu_konfirmasi',
             $isDisbursed                                   => 'sudah_cair',
             default                                        => 'diproses',
@@ -124,6 +126,7 @@
             'pending'             => ['label' => 'Menunggu Approval',   'badge' => 'bg-amber-100 text-amber-800', 'bar' => '#f59e0b'],
             'diproses'            => ['label' => 'Diproses',            'badge' => 'bg-blue-100 text-blue-800',   'bar' => '#3b82f6'],
             'rejected'            => ['label' => 'Ditolak',             'badge' => 'bg-red-100 text-red-700',     'bar' => '#ef4444'],
+            'cancelled'           => ['label' => 'Dibatalkan',          'badge' => 'bg-slate-200 text-slate-600', 'bar' => '#94a3b8'],
             'menunggu_konfirmasi' => ['label' => 'Menunggu Konfirmasi', 'badge' => 'bg-amber-100 text-amber-800', 'bar' => '#3b82f6'],
             'sudah_cair'          => ['label' => 'Sudah Cair',          'badge' => 'bg-blue-100 text-blue-800',   'bar' => '#3b82f6'],
         ][$state];
@@ -228,6 +231,19 @@
                     <div class="text-[13px] font-bold text-red-700">Ditolak oleh {{ $rejectedApproval->approverPosition->name }}</div>
                     @if($rejectedApproval->notes)
                     <div class="text-[13px] text-red-900/80 mt-0.5">{{ $rejectedApproval->notes }}</div>
+                    @endif
+                </div>
+            </div>
+            @endif
+
+            {{-- Dibatalkan: catatan --}}
+            @if($fr->isCancelled())
+            <div class="flex items-start gap-2.5 mt-4 p-3.5 bg-slate-50 rounded-[10px]">
+                <svg width="16" height="16" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" class="flex-shrink-0 mt-0.5"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+                <div>
+                    <div class="text-[13px] font-bold text-slate-600">Dibatalkan{{ $fr->cancelled_by ? ' oleh ' . $fr->cancelled_by : '' }}</div>
+                    @if($fr->notes)
+                    <div class="text-[13px] text-slate-500 mt-0.5">{{ $fr->notes }}</div>
                     @endif
                 </div>
             </div>

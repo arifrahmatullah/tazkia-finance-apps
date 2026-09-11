@@ -32,9 +32,12 @@
         'approved' => $fundRequest->isDisbursed()
                         ? ['bg-blue-100 text-blue-700', 'Sudah Dicairkan']
                         : ['bg-green-100 text-green-700', 'Disetujui'],
-        'rejected' => ['bg-red-100 text-red-600',       'Ditolak'],
+        'rejected'  => ['bg-red-100 text-red-600',      'Ditolak'],
+        'cancelled' => ['bg-slate-200 text-slate-600',  'Dibatalkan'],
     ];
     [$cls, $label] = $statusConfig[$fundRequest->status];
+    $canCancel = $fundRequest->canBeCancelled()
+        && ($isRequester || auth()->user()->isSuperAdmin() || auth()->user()->hasPermission('menu.pencairan-dana'));
 @endphp
 
 <div class="flex items-start justify-between gap-4 mb-6 flex-wrap">
@@ -103,8 +106,27 @@
             </button>
             @endif
         @endif
+        @if($canCancel)
+            <button type="button" id="btn-cancel-request"
+                class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors border-0 cursor-pointer">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+                Batalkan Pengajuan
+            </button>
+        @endif
     </div>
 </div>
+
+@if($fundRequest->isCancelled())
+<div class="flex items-start gap-2.5 mb-5 p-3.5 bg-slate-50 border border-slate-200 rounded-[10px]">
+    <svg width="16" height="16" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" class="flex-shrink-0 mt-0.5"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+    <div>
+        <div class="text-[13px] font-bold text-slate-600">Dibatalkan{{ $fundRequest->cancelled_by ? ' oleh ' . $fundRequest->cancelled_by : '' }}{{ $fundRequest->cancelled_at ? ' — ' . $fundRequest->cancelled_at->format('d/m/Y H:i') : '' }}</div>
+        @if($fundRequest->notes)
+        <div class="text-[13px] text-slate-500 mt-0.5">{{ $fundRequest->notes }}</div>
+        @endif
+    </div>
+</div>
+@endif
 
 <div class="grid grid-cols-2 gap-5 mb-5">
     {{-- Info Pengajuan --}}
@@ -597,6 +619,31 @@
     </div>
 </div>
 
+{{-- Cancel Modal --}}
+<div class="fixed inset-0 z-[999] bg-slate-900/50 backdrop-blur-sm items-center justify-center" id="cancel-overlay" style="display:none;">
+    <div class="bg-white rounded-2xl w-[420px] max-w-[90vw] shadow-2xl overflow-hidden">
+        <div class="px-6 py-5 border-b border-slate-100">
+            <div class="text-base font-bold text-slate-700">Batalkan Pengajuan</div>
+            <div class="text-xs text-slate-500 mt-1">{{ $fundRequest->reference }} — {{ $fundRequest->title }}</div>
+        </div>
+        <form id="cancel-form" method="POST" action="{{ route('fund-requests.cancel', $fundRequest) }}">
+            @csrf
+            <div class="px-6 py-5">
+                <label class="text-xs font-semibold text-slate-600 block mb-1.5">Alasan Pembatalan <span class="text-red-500">*</span></label>
+                <textarea name="notes" rows="3" class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors resize-y" placeholder="Contoh: salah input nominal, dibuat ulang." required></textarea>
+                <div class="text-[11px] text-slate-400 mt-1.5">Catatan wajib diisi untuk pembatalan.</div>
+            </div>
+            <div class="px-6 py-4 border-t border-slate-100 flex gap-2 justify-end">
+                <button type="button" class="cancel-modal-btn px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 border border-slate-200 text-sm font-medium cursor-pointer hover:bg-slate-200 transition-colors">Tutup</button>
+                <button type="submit" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold bg-slate-600 text-white border-0 cursor-pointer hover:bg-slate-700 transition-colors shadow-sm">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+                    Ya, Batalkan
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 {{-- Reject Modal --}}
 <div class="fixed inset-0 z-[999] bg-slate-900/50 backdrop-blur-sm items-center justify-center" id="reject-overlay" style="display:none;">
     <div class="bg-white rounded-2xl w-[420px] max-w-[90vw] shadow-2xl overflow-hidden">
@@ -740,6 +787,17 @@
     if (approveOverlay) approveOverlay.addEventListener('click', function(e) { if (e.target === e.currentTarget) closeActionModals(); });
     if (rejectOverlay)  rejectOverlay.addEventListener('click',  function(e) { if (e.target === e.currentTarget) closeActionModals(); });
 
+    // Cancel (Batalkan Pengajuan) modal
+    var cancelOverlay = document.getElementById('cancel-overlay');
+    var btnCancelReq  = document.getElementById('btn-cancel-request');
+    if (btnCancelReq && cancelOverlay) {
+        btnCancelReq.addEventListener('click', function() { cancelOverlay.style.display = 'flex'; });
+        cancelOverlay.querySelectorAll('.cancel-modal-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() { cancelOverlay.style.display = 'none'; });
+        });
+        cancelOverlay.addEventListener('click', function(e) { if (e.target === e.currentTarget) cancelOverlay.style.display = 'none'; });
+    }
+
     // Dispute modal
     var disputeOverlay = document.getElementById('dispute-overlay');
     var btnDispute     = document.getElementById('btn-dispute');
@@ -754,6 +812,7 @@
         if (e.key === 'Escape') {
             closeActionModals();
             if (disputeOverlay) disputeOverlay.style.display = 'none';
+            if (cancelOverlay)  cancelOverlay.style.display  = 'none';
         }
     });
 })();

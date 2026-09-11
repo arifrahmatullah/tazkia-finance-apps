@@ -43,6 +43,7 @@ class FundRequestController extends Controller
                 'pending'             => $query->where('status', 'pending'),
                 'diproses'            => $query->where('status', 'approved')->whereNull('disbursed_at'),
                 'rejected'            => $query->where('status', 'rejected'),
+                'cancelled'           => $query->where('status', 'cancelled'),
                 'menunggu_konfirmasi' => $query->whereNotNull('disbursed_at')->whereNull('receipt_status'),
                 'sudah_cair'          => $query->whereNotNull('disbursed_at'),
                 default               => null,
@@ -310,6 +311,29 @@ class FundRequestController extends Controller
         $fundRequest->delete();
 
         return redirect()->route('fund-requests.index')->with('success', 'Pengajuan berhasil dihapus.');
+    }
+
+    public function cancel(Request $request, FundRequest $fundRequest)
+    {
+        $user = auth()->user();
+
+        $isRequester = $fundRequest->requester->user_id === $user->id;
+        abort_unless($isRequester || $user->isSuperAdmin() || $user->hasPermission('menu.pencairan-dana'), 403);
+        abort_unless($fundRequest->canBeCancelled(), 422, 'Pengajuan ini tidak bisa dibatalkan (sudah dicairkan, ditolak, atau sudah dibatalkan sebelumnya).');
+
+        $request->validate([
+            'notes' => 'required|string|max:500',
+        ], ['notes.required' => 'Alasan pembatalan wajib diisi.']);
+
+        $fundRequest->update([
+            'status'       => 'cancelled',
+            'cancelled_at' => now(),
+            'cancelled_by' => $user->name ?? $user->email,
+            'notes'        => $request->notes,
+        ]);
+
+        return redirect()->route('fund-requests.show', $fundRequest)
+            ->with('success', 'Pengajuan berhasil dibatalkan.');
     }
 
     public function submit(FundRequest $fundRequest)

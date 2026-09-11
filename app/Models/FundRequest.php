@@ -19,6 +19,7 @@ class FundRequest extends Model
         'bank_name', 'bank_account_number', 'bank_account_name',
         'status', 'current_step', 'total_steps', 'notes',
         'submitted_at', 'approved_at', 'rejected_at',
+        'cancelled_at', 'cancelled_by',
         'disbursed_at', 'disbursement_notes', 'disbursed_by', 'disburse_account_id',
         'receipt_status', 'receipt_confirmed_at', 'receipt_notes', 'auto_confirmed',
     ];
@@ -28,6 +29,7 @@ class FundRequest extends Model
         'submitted_at'         => 'datetime',
         'approved_at'          => 'datetime',
         'rejected_at'          => 'datetime',
+        'cancelled_at'         => 'datetime',
         'disbursed_at'         => 'datetime',
         'receipt_confirmed_at' => 'datetime',
         'auto_confirmed'       => 'boolean',
@@ -127,6 +129,15 @@ class FundRequest extends Model
     public function isPending(): bool  { return $this->status === 'pending'; }
     public function isApproved(): bool { return $this->status === 'approved'; }
     public function isRejected(): bool { return $this->status === 'rejected'; }
+    public function isCancelled(): bool { return $this->status === 'cancelled'; }
+
+    // Bisa dibatalkan pengaju selama belum dicairkan -- baik masih menunggu approval
+    // maupun sudah disetujui tapi Keuangan belum menekan "Cairkan". Begitu dana sudah
+    // cair, pembatalan harus lewat proses pengembalian dana, bukan tombol batal ini.
+    public function canBeCancelled(): bool
+    {
+        return in_array($this->status, ['pending', 'approved'], true) && !$this->isDisbursed();
+    }
 
     public static function generateReference(string $orgId, string $date): string
     {
