@@ -18,16 +18,15 @@ class BudgetProgramController extends Controller
         $user   = auth()->user();
         $orgIds = $user->organizationIds();
 
-        // Staf hanya melihat program dari departemen jabatan-jabatan aktifnya sendiri
-        // (bisa lebih dari satu jabatan/departemen sekaligus);
-        // superadmin & keuangan (pencairan dana) melihat semua departemen di organisasinya
-        $isRestricted    = !$user->isSuperAdmin() && !$user->hasPermission('menu.pencairan-dana');
-        $restrictDeptIds = [];
-        $activeEmployee  = null;
-        if ($isRestricted) {
-            $activeEmployee  = $user->employee()->with('activePositions.position.department')->first();
-            $restrictDeptIds = $activeEmployee?->activeDepartmentIds() ?? [];
-        }
+        // Siapa pun yang menjabat (punya jabatan aktif) dibatasi ke departemen jabatannya
+        // sendiri (bisa lebih dari satu jabatan/departemen sekaligus) -- walau rolenya
+        // superadmin atau Keuangan sekalipun (mis. staf Keuangan yang role sistemnya
+        // superadmin, atau Warek yang role sistemnya Keuangan tetap dibatasi ke jabatannya).
+        // Superadmin/Keuangan "murni" tanpa jabatan (akun admin, tanpa data Employee/posisi
+        // aktif) yang melihat semua departemen di organisasinya.
+        $activeEmployee  = $user->employee()->with('activePositions.position.department')->first();
+        $restrictDeptIds = $activeEmployee?->activeDepartmentIds() ?? [];
+        $isRestricted    = !empty($restrictDeptIds);
 
         // Departemen/jabatan yang sedang ditampilkan: kunjungan pertama (belum pernah pilih filter)
         // staf otomatis diarahkan ke jabatan pertamanya saja (bukan gabungan semua jabatan sekaligus);
