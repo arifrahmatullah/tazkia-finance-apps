@@ -11,6 +11,12 @@ class FundRequest extends Model
 {
     use HasUuids, SoftDeletes, Auditable;
 
+    // Status yang berarti pengajuan ini tidak lagi "aktif menahan" apa pun --
+    // baik pagu program maupun termin di Estimasi Jadwal -- karena ditolak
+    // approver ATAU dibatalkan sendiri oleh pengaju/Keuangan. Dipakai di semua
+    // tempat yang menghitung "sisa pagu" atau "termin masih tersedia".
+    public const VOID_STATUSES = ['rejected', 'cancelled'];
+
     protected $fillable = [
         'organization_id', 'department_id', 'budget_period_id', 'budget_program_id',
         'budget_program_schedule_id',
@@ -130,6 +136,7 @@ class FundRequest extends Model
     public function isApproved(): bool { return $this->status === 'approved'; }
     public function isRejected(): bool { return $this->status === 'rejected'; }
     public function isCancelled(): bool { return $this->status === 'cancelled'; }
+    public function isVoid(): bool { return in_array($this->status, self::VOID_STATUSES, true); }
 
     // Bisa dibatalkan pengaju selama belum dicairkan -- baik masih menunggu approval
     // maupun sudah disetujui tapi Keuangan belum menekan "Cairkan". Begitu dana sudah

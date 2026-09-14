@@ -29,10 +29,11 @@ class BudgetProgramSchedule extends Model
         return $this->hasMany(FundRequest::class, 'budget_program_schedule_id');
     }
 
-    // Termin dianggap "terpakai" kalau ada pengajuan dana yang menempel padanya dan
-    // belum ditolak -- begitu ditolak, termin otomatis kebuka lagi untuk pengajuan berikutnya.
+    // Termin dianggap "terpakai" kalau ada pengajuan dana yang menempel padanya dan masih
+    // aktif -- begitu ditolak atau dibatalkan, termin otomatis kebuka lagi untuk pengajuan
+    // berikutnya.
     public function activeFundRequest()
     {
-        return $this->fundRequests()->where('status', '!=', 'rejected')->latest()->first();
+        return $this->fundRequests()->whereNotIn('status', FundRequest::VOID_STATUSES)->latest()->first();
     }
 }

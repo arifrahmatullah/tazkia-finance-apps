@@ -231,22 +231,46 @@
                     </td>
                     <td class="px-4 py-3 align-middle text-sm text-slate-500">{{ $sch->notes ?? '—' }}</td>
                     <td class="px-4 py-3 align-middle">
-                        @php $activeFr = $sch->fundRequests->first(fn($fr) => $fr->status !== 'rejected'); @endphp
-                        @if($activeFr)
-                            @php
-                                $frStatusMap = [
-                                    'draft'    => ['bg-slate-100 text-slate-500', 'Draft'],
-                                    'pending'  => ['bg-yellow-100 text-yellow-700', 'Menunggu Approval'],
-                                    'approved' => $activeFr->disbursed_at ? ['bg-blue-100 text-blue-700', 'Sudah Dicairkan'] : ['bg-green-100 text-green-700', 'Disetujui'],
+                        @php
+                            $frStatusBadge = function ($fr) {
+                                $map = [
+                                    'draft'     => ['bg-slate-100 text-slate-500', 'Draft'],
+                                    'pending'   => ['bg-yellow-100 text-yellow-700', 'Menunggu Approval'],
+                                    'approved'  => $fr->disbursed_at ? ['bg-blue-100 text-blue-700', 'Sudah Dicairkan'] : ['bg-green-100 text-green-700', 'Disetujui'],
+                                    'rejected'  => ['bg-red-100 text-red-600', 'Ditolak'],
+                                    'cancelled' => ['bg-slate-200 text-slate-600', 'Dibatalkan'],
                                 ];
-                                [$frCls, $frLabel] = $frStatusMap[$activeFr->status] ?? ['bg-slate-100 text-slate-500', $activeFr->status];
-                            @endphp
+                                return $map[$fr->status] ?? ['bg-slate-100 text-slate-500', $fr->status];
+                            };
+                            $activeFr = $sch->fundRequests->first(fn($fr) => !$fr->isVoid());
+                            $historyFrs = $sch->fundRequests
+                                ->reject(fn($fr) => $activeFr && $fr->id === $activeFr->id)
+                                ->sortByDesc('created_at')
+                                ->values();
+                        @endphp
+                        @if($activeFr)
+                            @php [$frCls, $frLabel] = $frStatusBadge($activeFr); @endphp
                             <a href="{{ route('fund-requests.show', $activeFr) }}" class="inline-flex items-center gap-1.5 no-underline">
                                 <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold {{ $frCls }}">{{ $frLabel }}</span>
                                 <span class="text-[11px] text-slate-400 font-mono">{{ $activeFr->reference }}</span>
                             </a>
                         @else
                             <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-50 text-slate-400">Tersedia</span>
+                        @endif
+                        @if($historyFrs->isNotEmpty())
+                            <button type="button" onclick="document.getElementById('hist-{{ $sch->id }}').classList.toggle('hidden')"
+                                class="block mt-1 text-[10px] text-orange-500 underline bg-transparent border-0 cursor-pointer p-0">
+                                +{{ $historyFrs->count() }} riwayat
+                            </button>
+                            <div id="hist-{{ $sch->id }}" class="hidden mt-1.5 flex flex-col gap-1">
+                                @foreach($historyFrs as $hfr)
+                                    @php [$hCls, $hLabel] = $frStatusBadge($hfr); @endphp
+                                    <a href="{{ route('fund-requests.show', $hfr) }}" class="inline-flex items-center gap-1.5 no-underline">
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold {{ $hCls }}">{{ $hLabel }}</span>
+                                        <span class="text-[10px] text-slate-400 font-mono">{{ $hfr->reference }}</span>
+                                    </a>
+                                @endforeach
+                            </div>
                         @endif
                     </td>
                 </tr>

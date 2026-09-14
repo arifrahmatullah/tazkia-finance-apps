@@ -36,8 +36,6 @@
         'cancelled' => ['bg-slate-200 text-slate-600',  'Dibatalkan'],
     ];
     [$cls, $label] = $statusConfig[$fundRequest->status];
-    $canCancel = $fundRequest->canBeCancelled()
-        && ($isRequester || auth()->user()->isSuperAdmin() || auth()->user()->hasPermission('menu.pencairan-dana'));
 @endphp
 
 <div class="flex items-start justify-between gap-4 mb-6 flex-wrap">

@@ -87,8 +87,9 @@ class BudgetProgram extends Model
     // termin di Estimasi Jadwal yang MASIH default (sama dengan nominal_per_termin LAMA,
     // belum pernah di-custom manual satu-satu) ke nilai yang baru. Termin yang nilainya
     // sudah beda dari nominal lama dianggap sudah sengaja di-custom staf Keuangan --
-    // dibiarkan, tidak ditimpa. Termin yang sudah "diambil" pengajuan dana (belum ditolak)
-    // juga dibiarkan, supaya tidak diam-diam mengubah nominal yang sudah diajukan/disetujui.
+    // dibiarkan, tidak ditimpa. Termin yang sudah "diambil" pengajuan dana yang masih aktif
+    // (belum ditolak/dibatalkan) juga dibiarkan, supaya tidak diam-diam mengubah nominal
+    // yang sudah diajukan/disetujui.
     public function syncScheduleAmountsAfterTotalChange(float $oldNominalPerTermin): void
     {
         $newNominalPerTermin = $this->nominal_per_termin;
@@ -98,7 +99,7 @@ class BudgetProgram extends Model
 
         $this->schedules()->with('fundRequests')->get()->each(function ($sch) use ($oldNominalPerTermin, $newNominalPerTermin) {
             $isStillDefault = $sch->amount === null || abs((float) $sch->amount - $oldNominalPerTermin) < 0.01;
-            $isTaken = $sch->fundRequests->contains(fn($fr) => $fr->status !== 'rejected');
+            $isTaken = $sch->fundRequests->contains(fn($fr) => !$fr->isVoid());
 
             if ($isStillDefault && !$isTaken) {
                 $sch->update(['amount' => $newNominalPerTermin]);
@@ -106,12 +107,13 @@ class BudgetProgram extends Model
         });
     }
 
-    // Termin berikutnya yang belum "diambil" pengajuan dana manapun (selain yang ditolak) --
+    // Termin berikutnya yang belum "diambil" pengajuan dana manapun yang masih aktif
+    // (bukan yang ditolak atau dibatalkan -- keduanya membebaskan terminnya lagi) --
     // dipakai untuk otomatis menautkan pengajuan baru ke termin secara berurutan.
     public function nextAvailableSchedule(): ?BudgetProgramSchedule
     {
         return $this->schedules()
-            ->whereDoesntHave('fundRequests', fn($q) => $q->where('status', '!=', 'rejected'))
+            ->whereDoesntHave('fundRequests', fn($q) => $q->whereNotIn('status', FundRequest::VOID_STATUSES))
             ->orderBy('termin')
             ->first();
     }

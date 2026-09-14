@@ -117,7 +117,7 @@
             </thead>
             <tbody>
                 @foreach($transactions as $fr)
-                @php $belumCair = is_null($fr->disbursed_at) && $fr->status !== 'rejected'; @endphp
+                @php $belumCair = is_null($fr->disbursed_at) && !$fr->isVoid(); @endphp
                 <tr class="border-b border-slate-50 last:border-0 hover:bg-slate-50/50 transition-colors {{ $belumCair ? 'bg-red-50/40' : '' }}">
                     <td class="py-2.5 px-4 text-slate-500 whitespace-nowrap">{{ $fr->submitted_at?->translatedFormat('d M Y') ?? '-' }}</td>
                     <td class="py-2.5 px-3 text-slate-600">{{ $fr->department?->name ?? '-' }}</td>

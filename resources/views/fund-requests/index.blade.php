@@ -186,7 +186,7 @@
             </div>
 
             {{-- Approval steps (nama inline, klik untuk detail) --}}
-            @if($fr->total_steps > 0 && !$isDisbursed && $fr->status !== 'rejected' && $fr->status !== 'draft')
+            @if($fr->total_steps > 0 && !$isDisbursed && !$fr->isVoid() && $fr->status !== 'draft')
             <button type="button" onclick="openApprovalModal('{{ addslashes($fr->reference) }}', '{{ addslashes($fr->title) }}', {{ $fr->current_step }}, {{ $fr->total_steps }}, {{ $approvalJson }})"
                 class="flex items-center gap-2 flex-wrap w-full mt-4 px-3.5 py-3 bg-slate-50 rounded-[10px] border-0 cursor-pointer text-left hover:bg-slate-100 transition-colors">
                 @foreach($fr->approvals->sortBy('step') as $approval)

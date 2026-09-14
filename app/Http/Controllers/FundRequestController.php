@@ -246,8 +246,9 @@ class FundRequestController extends Controller
 
         $canApprove  = $this->currentUserCanApprove($fundRequest, $user);
         $isRequester = $fundRequest->requester->user_id === $user->id;
+        $canCancel   = $fundRequest->canBeCancelled() && $this->canViewFundRequest($fundRequest, $user);
 
-        return view('fund-requests.show', compact('fundRequest', 'canApprove', 'isRequester'));
+        return view('fund-requests.show', compact('fundRequest', 'canApprove', 'isRequester', 'canCancel'));
     }
 
     public function edit(FundRequest $fundRequest)
@@ -317,8 +318,11 @@ class FundRequestController extends Controller
     {
         $user = auth()->user();
 
-        $isRequester = $fundRequest->requester->user_id === $user->id;
-        abort_unless($isRequester || $user->isSuperAdmin() || $user->hasPermission('menu.pencairan-dana'), 403);
+        // Sama seperti hak lihat detail: pengaju sendiri, Keuangan, superadmin, atau
+        // siapa pun di rantai approval-nya (langkah manapun) -- termasuk yang approval-nya
+        // sendiri sudah lewat, supaya kalau ada yang baru sadar ada salah setelah dia
+        // approve (kayak kasus Dina), dia tetap bisa menghentikannya sebelum cair.
+        abort_unless($this->canViewFundRequest($fundRequest, $user), 403);
         abort_unless($fundRequest->canBeCancelled(), 422, 'Pengajuan ini tidak bisa dibatalkan (sudah dicairkan, ditolak, atau sudah dibatalkan sebelumnya).');
 
         $request->validate([
@@ -436,7 +440,7 @@ class FundRequestController extends Controller
                     'frequency'         => $p->frequency,
                     'nominal_per_termin'=> (float) $p->nominal_per_termin,
                     'has_complete_schedule' => $p->hasCompleteSchedule(),
-                    'has_available_termin' => $p->schedules->contains(fn($s) => !$s->fundRequests->contains(fn($fr) => $fr->status !== 'rejected')),
+                    'has_available_termin' => $p->schedules->contains(fn($s) => $s->fundRequests->every(fn($fr) => $fr->isVoid())),
                     'details'           => $p->details->map(fn($d) => [
                         'id'           => $d->id,
                         'account'      => $d->account?->name ?? '-',
@@ -450,7 +454,7 @@ class FundRequestController extends Controller
                         'termin'         => $s->termin,
                         'estimated_date' => $s->estimated_date?->format('d/m/Y') ?? '-',
                         'notes'          => $s->notes ?? '',
-                        'taken'          => $s->fundRequests->contains(fn($fr) => $fr->status !== 'rejected'),
+                        'taken'          => $s->fundRequests->contains(fn($fr) => !$fr->isVoid()),
                     ])->values(),
                 ];
             });
@@ -594,7 +598,7 @@ class FundRequestController extends Controller
         $programTotal = (float) $program->total_amount;
 
         $usedByOthers = (float) FundRequest::where('budget_program_id', $program->id)
-            ->where('status', '!=', 'rejected')
+            ->whereNotIn('status', FundRequest::VOID_STATUSES)
             ->when($excludeFundRequestId, fn($q) => $q->where('id', '!=', $excludeFundRequestId))
             ->sum('amount');
 
