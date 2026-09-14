@@ -20,13 +20,15 @@ class BudgetProgramController extends Controller
 
         // Siapa pun yang menjabat (punya jabatan aktif) dibatasi ke departemen jabatannya
         // sendiri (bisa lebih dari satu jabatan/departemen sekaligus) -- walau rolenya
-        // superadmin atau Keuangan sekalipun (mis. staf Keuangan yang role sistemnya
-        // superadmin, atau Warek yang role sistemnya Keuangan tetap dibatasi ke jabatannya).
-        // Superadmin/Keuangan "murni" tanpa jabatan (akun admin, tanpa data Employee/posisi
-        // aktif) yang melihat semua departemen di organisasinya.
+        // Keuangan sekalipun (mis. dinadiana sebagai Warek yang role sistemnya Keuangan
+        // tetap dibatasi ke jabatannya, bukan lihat semua departemen).
+        // Pengecualian: kalau ROLE AKTIF-nya saat ini superadmin (role bisa di-pindah/switch,
+        // lihat User::activeRole()), tetap lihat semua departemen walau punya jabatan --
+        // mis. mfurqonh yang punya jabatan Keuangan TAPI juga punya role superadmin untuk
+        // Kampus Tazkia: begitu dia pindah ke role superadmin, dia lihat semua lagi.
         $activeEmployee  = $user->employee()->with('activePositions.position.department')->first();
         $restrictDeptIds = $activeEmployee?->activeDepartmentIds() ?? [];
-        $isRestricted    = !empty($restrictDeptIds);
+        $isRestricted    = !empty($restrictDeptIds) && !$user->isSuperAdmin();
 
         // Departemen/jabatan yang sedang ditampilkan: kunjungan pertama (belum pernah pilih filter)
         // staf otomatis diarahkan ke jabatan pertamanya saja (bukan gabungan semua jabatan sekaligus);
