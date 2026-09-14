@@ -371,7 +371,7 @@
 
 {{-- Modal: Edit tanggal per termin --}}
 <div id="modal-edit" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4" style="background:rgba(0,0,0,.35)">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm flex flex-col" style="max-height:88vh;">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md flex flex-col" style="max-height:88vh;">
         <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
             <h3 class="text-sm font-bold text-slate-900" id="modal-edit-title">Edit Termin</h3>
             <button type="button" onclick="closeEdit()" class="text-slate-400 hover:text-slate-600 border-0 bg-transparent cursor-pointer text-lg leading-none">×</button>
