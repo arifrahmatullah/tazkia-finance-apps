@@ -351,17 +351,25 @@ function onProgramChange(programId, keepValues = false) {
     // berjalan (kalau rincian itu sudah sebagian/semua dipakai pengajuan lain di termin yang sama).
     let rows = '';
     if (p.details && p.details.length > 0 && ct) {
+        // Kalau rincian cuma satu-satunya, tidak perlu centang -- otomatis kepakai
+        // (tetap bisa diedit nominalnya, tapi tidak ada pilihan lain buat dicentang/tidak).
+        const isSingle = p.details.length === 1;
+
         p.details.forEach((d, idx) => {
             const oldLine    = oldLines[d.id];
             const remaining  = Math.max(0, d.remaining_in_termin ?? d.unit_price);
             const exhausted  = remaining <= 0;
-            const startPrice = oldLine ? Number(oldLine.unit_price) : 0;
-            const wasChecked = !!oldLine;
+            const autoOn     = isSingle && !exhausted;
+            const wasChecked = !!oldLine || autoOn;
+            const startPrice = oldLine ? Number(oldLine.unit_price) : (autoOn ? remaining : 0);
+            const checkboxCell = isSingle
+                ? (autoOn ? `<svg width="14" height="14" fill="none" stroke="#16a34a" stroke-width="2.5" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>` : '—')
+                : `<input type="checkbox" class="line-check" data-detail-id="${d.id}"
+                        ${exhausted ? 'disabled' : ''} ${wasChecked ? 'checked' : ''}
+                        onchange="onLineCheckToggle(this)">`;
             rows += `<tr class="${exhausted ? 'opacity-50' : ''}">
                 <td class="px-2 py-2 border border-slate-200 text-center">
-                    <input type="checkbox" class="line-check" data-detail-id="${d.id}"
-                        ${exhausted ? 'disabled' : ''} ${wasChecked ? 'checked' : ''}
-                        onchange="onLineCheckToggle(this)">
+                    ${checkboxCell}
                 </td>
                 <td class="px-3 py-2 border border-slate-200 text-slate-700">${escHtml(d.account)}</td>
                 <td class="px-3 py-2 border border-slate-200 text-slate-700">${escHtml(d.description)}</td>
