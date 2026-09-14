@@ -98,7 +98,13 @@
             </div>
 
             <div class="px-4 py-3">
-                <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-2">Rincian Kegiatan <span class="font-normal normal-case text-slate-400">(centang yang mau diajukan — tidak harus semua)</span></div>
+                <div class="flex items-center justify-between gap-2 mb-2 flex-wrap">
+                    <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Rincian Kegiatan <span class="font-normal normal-case text-slate-400">(centang yang mau diajukan — tidak harus semua)</span></div>
+                    <button type="button" id="check-all-btn" onclick="toggleCheckAllLines()"
+                        class="text-[11px] font-semibold text-orange-500 underline bg-transparent border-0 cursor-pointer p-0">
+                        Centang Semua
+                    </button>
+                </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-xs border-collapse">
                         <thead>
@@ -385,6 +391,7 @@ function onProgramChange(programId, keepValues = false) {
         rows = '<tr><td colspan="6" class="px-3 py-4 text-center text-slate-400 border border-slate-200">Belum ada rincian kegiatan.</td></tr>';
     }
     document.getElementById('detail-tbody').innerHTML = rows;
+    updateCheckAllLabel();
 
     // Termin yang benar-benar dipakai: yang tanggal estimasinya jatuh di bulan berjalan
     // (dihitung di server). Kalau tidak ada yang cocok, ct null -- ditangani onProgramChange.
@@ -442,7 +449,7 @@ function onProgramChange(programId, keepValues = false) {
     recalcTotal();
 }
 
-function onLineCheckToggle(checkbox) {
+function onLineCheckToggle(checkbox, focusIt = true) {
     const id = checkbox.dataset.detailId;
     const priceInput   = document.getElementById(`line-price-${id}`);
     const hiddenDetail = document.getElementById(`line-detail-${id}`);
@@ -464,11 +471,41 @@ function onLineCheckToggle(checkbox) {
         priceInput.value = ceiling ? ceiling.toLocaleString('id-ID') : '';
         hiddenPrice.value = ceiling;
         document.getElementById(`line-total-${id}`).textContent = fmt(ceiling);
-        priceInput.focus();
-        priceInput.select();
+        if (focusIt) { priceInput.focus(); priceInput.select(); }
     }
 
+    updateCheckAllLabel();
     recalcTotal();
+}
+
+// Tombol "Centang Semua" -- toggle ke arah kebalikan dari status saat ini (kalau semua
+// sudah tercentang jadi "Hapus Semua Centang", kalau belum jadi "Centang Semua").
+// Rincian yang sudah habis plafonnya (checkbox disabled) tetap dilewati.
+function toggleCheckAllLines() {
+    const boxes = Array.from(document.querySelectorAll('.line-check:not(:disabled)'));
+    if (boxes.length === 0) return;
+
+    const allChecked = boxes.every(cb => cb.checked);
+    boxes.forEach(cb => {
+        if (cb.checked === allChecked) {
+            cb.checked = !allChecked;
+            onLineCheckToggle(cb, false);
+        }
+    });
+}
+
+function updateCheckAllLabel() {
+    const btn = document.getElementById('check-all-btn');
+    if (!btn) return;
+
+    const boxes = Array.from(document.querySelectorAll('.line-check'));
+    if (boxes.length === 0) { btn.style.display = 'none'; return; }
+
+    const selectable = boxes.filter(cb => !cb.disabled);
+    if (selectable.length === 0) { btn.style.display = 'none'; return; }
+
+    btn.style.display = '';
+    btn.textContent = selectable.every(cb => cb.checked) ? 'Hapus Semua Centang' : 'Centang Semua';
 }
 
 function onLinePriceInput(el) {
