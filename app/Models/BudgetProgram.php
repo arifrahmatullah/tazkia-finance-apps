@@ -107,15 +107,47 @@ class BudgetProgram extends Model
         });
     }
 
-    // Termin berikutnya yang belum "diambil" pengajuan dana manapun yang masih aktif
-    // (bukan yang ditolak atau dibatalkan -- keduanya membebaskan terminnya lagi) --
-    // dipakai untuk otomatis menautkan pengajuan baru ke termin secara berurutan.
-    public function nextAvailableSchedule(): ?BudgetProgramSchedule
+    // Termin yang tanggal estimasinya jatuh di bulan yang sama dengan $date (default hari
+    // ini) -- pengajuan dana ditautkan ke termin sesuai kalender berjalan, bukan sekadar
+    // nomor urut. Null kalau tidak ada termin yang tanggalnya cocok dengan bulan itu.
+    public function scheduleForMonth(?\Carbon\Carbon $date = null): ?BudgetProgramSchedule
     {
+        $date = $date ?? now();
+
         return $this->schedules()
-            ->whereDoesntHave('fundRequests', fn($q) => $q->whereNotIn('status', FundRequest::VOID_STATUSES))
-            ->orderBy('termin')
+            ->whereNotNull('estimated_date')
+            ->whereYear('estimated_date', $date->year)
+            ->whereMonth('estimated_date', $date->month)
             ->first();
+    }
+
+    // Sisa plafon termin itu (nominal termin dikurangi total SEMUA pengajuan aktif yang
+    // sudah menempel di termin ini, lintas rincian) -- dipakai supaya beberapa pengajuan
+    // per-rincian yang terpisah tetap tidak melebihi anggaran periode itu secara gabungan.
+    public function scheduleRemainingCapacity(BudgetProgramSchedule $schedule): float
+    {
+        $ceiling = $schedule->amount !== null ? (float) $schedule->amount : $this->nominal_per_termin;
+
+        $used = (float) $schedule->fundRequests()
+            ->whereNotIn('status', FundRequest::VOID_STATUSES)
+            ->sum('amount');
+
+        return $ceiling - $used;
+    }
+
+    // Sisa plafon satu rincian kegiatan tertentu DI TERMIN ini saja (bukan gabungan semua
+    // rincian) -- supaya satu rincian tidak bisa diajukan berkali-kali melebihi nominal
+    // per-termin-nya sendiri, walau termin secara keseluruhan masih ada sisa dari rincian lain.
+    public function detailRemainingCapacity(BudgetProgramDetail $detail, BudgetProgramSchedule $schedule): float
+    {
+        $used = (float) FundRequestDetail::where('budget_program_detail_id', $detail->id)
+            ->whereHas('fundRequest', function ($q) use ($schedule) {
+                $q->where('budget_program_schedule_id', $schedule->id)
+                    ->whereNotIn('status', FundRequest::VOID_STATUSES);
+            })
+            ->sum('total_amount');
+
+        return (float) $detail->unit_price - $used;
     }
 
     // Pengajuan Dana hanya boleh dibuat kalau semua termin di Estimasi Jadwal

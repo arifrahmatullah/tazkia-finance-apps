@@ -6,6 +6,7 @@ use App\Models\ApprovalSetting;
 use App\Models\BudgetAllocation;
 use App\Models\BudgetPeriod;
 use App\Models\BudgetProgram;
+use App\Models\BudgetProgramSchedule;
 use App\Models\Department;
 use App\Models\FundRequest;
 use App\Models\FundRequestApproval;
@@ -156,20 +157,29 @@ class FundRequestController extends Controller
             return back()->withInput()->withErrors(['budget_program_id' => 'Estimasi Jadwal program kerja ini belum lengkap. Lengkapi dulu semua termin di halaman Program Kerja sebelum membuat pengajuan.']);
         }
 
-        [$amount, $preparedLines, $lineError] = $this->prepareRequestLines($program, $request->input('lines', []));
+        // Termin ditentukan dari tanggal berjalan (bulan ini), bukan dipilih manual atau
+        // nomor urut -- jadwal jadi acuan kapan rincian itu semestinya dicairkan.
+        $schedule = $program->scheduleForMonth();
+        if (!$schedule) {
+            return back()->withInput()->withErrors(['budget_program_id' => 'Tidak ada termin di Estimasi Jadwal program ini untuk bulan berjalan. Cek/koordinasikan jadwalnya dengan bagian Keuangan.']);
+        }
+
+        [$amount, $preparedLines, $lineError] = $this->prepareRequestLines($program, $schedule, $request->input('lines', []));
         if ($lineError) {
             return back()->withInput()->withErrors(['lines' => $lineError]);
         }
 
-        if ($error = $this->programBudgetError($program, $amount)) {
-            return back()->withInput()->withErrors(['lines' => $error]);
+        // Plafon termin ini digabung lintas rincian (selain plafon per-rincian yang sudah
+        // dicek di prepareRequestLines()) -- menjaga total SEMUA pengajuan untuk periode ini
+        // (biarpun terpisah per-rincian, dari beberapa pengajuan berbeda) tidak melebihi
+        // nominal yang sudah ditetapkan untuk termin tsb.
+        $remainingTermin = $program->scheduleRemainingCapacity($schedule);
+        if ($amount > $remainingTermin + 0.01) {
+            return back()->withInput()->withErrors(['lines' => 'Total pengajuan (Rp ' . number_format($amount, 0, ',', '.') . ') melebihi sisa plafon termin ini (Rp ' . number_format(max($remainingTermin, 0), 0, ',', '.') . ').']);
         }
 
-        // Setiap pengajuan otomatis menempati termin BERIKUTNYA yang belum "diambil"
-        // pengajuan lain (selain yang ditolak) -- urut sesuai nomor termin, bukan dipilih manual.
-        $schedule = $program->nextAvailableSchedule();
-        if (!$schedule) {
-            return back()->withInput()->withErrors(['budget_program_id' => 'Semua termin untuk program ini sudah diajukan/disetujui. Tidak bisa membuat pengajuan baru untuk program ini.']);
+        if ($error = $this->programBudgetError($program, $amount)) {
+            return back()->withInput()->withErrors(['lines' => $error]);
         }
 
         $orgId          = $employee->organization_id;
@@ -177,10 +187,10 @@ class FundRequestController extends Controller
         $budgetPeriodId = $program->budgetAllocation->budget_period_id;
 
         $fundRequest = DB::transaction(function () use ($request, $employee, $activePosition, $orgId, $deptId, $budgetPeriodId, $amount, $preparedLines, $program, $schedule) {
-            // Cek ulang di dalam transaksi supaya tidak ada dua pengajuan menempati termin yang sama
-            // kalau ada dua request nyaris bersamaan.
-            $schedule = $program->nextAvailableSchedule();
-            abort_unless($schedule, 422, 'Semua termin untuk program ini sudah diajukan/disetujui.');
+            // Cek ulang plafon termin di dalam transaksi supaya tidak kebobolan kalau ada
+            // dua pengajuan (rincian berbeda) untuk termin yang sama nyaris bersamaan.
+            $remainingTermin = $program->scheduleRemainingCapacity($schedule);
+            abort_if($amount > $remainingTermin + 0.01, 422, 'Sisa plafon termin ini sudah berubah (dipakai pengajuan lain). Muat ulang halaman dan coba lagi.');
 
             $reference = FundRequest::generateReference($orgId, now()->toDateString());
 
@@ -485,6 +495,10 @@ class FundRequestController extends Controller
             ->orderBy('name')
             ->get()
             ->map(function ($p) {
+                // Termin bulan berjalan -- satu-satunya termin yang relevan untuk pengajuan
+                // baru saat ini (null kalau tidak ada termin yang tanggalnya cocok).
+                $currentSchedule = $p->hasCompleteSchedule() ? $p->scheduleForMonth() : null;
+
                 return [
                     'id'                => $p->id,
                     'name'              => $p->name,
@@ -494,22 +508,22 @@ class FundRequestController extends Controller
                     'frequency'         => $p->frequency,
                     'nominal_per_termin'=> (float) $p->nominal_per_termin,
                     'has_complete_schedule' => $p->hasCompleteSchedule(),
-                    'has_available_termin' => $p->schedules->contains(fn($s) => $s->fundRequests->every(fn($fr) => $fr->isVoid())),
-                    'details'           => $p->details->map(fn($d) => [
-                        'id'           => $d->id,
-                        'account'      => $d->account?->name ?? '-',
-                        'description'  => $d->description,
-                        'quantity'     => (float) $d->quantity,
-                        'unit'         => $d->unit ?? '',
-                        'unit_price'   => (float) $d->unit_price,
-                        'total_amount' => (float) $d->total_amount,
-                    ])->values(),
-                    'schedules'         => $p->schedules->map(fn($s) => [
-                        'termin'         => $s->termin,
-                        'estimated_date' => $s->estimated_date?->format('d/m/Y') ?? '-',
-                        'notes'          => $s->notes ?? '',
-                        'taken'          => $s->fundRequests->contains(fn($fr) => !$fr->isVoid()),
-                    ])->values(),
+                    'current_termin'    => $currentSchedule ? [
+                        'termin'         => $currentSchedule->termin,
+                        'estimated_date' => $currentSchedule->estimated_date?->format('d/m/Y'),
+                        'ceiling'        => (float) ($currentSchedule->amount ?? $p->nominal_per_termin),
+                        'remaining'      => (float) $p->scheduleRemainingCapacity($currentSchedule),
+                    ] : null,
+                    'details'           => $p->details->map(function ($d) use ($p, $currentSchedule) {
+                        return [
+                            'id'                  => $d->id,
+                            'account'             => $d->account?->name ?? '-',
+                            'description'         => $d->description,
+                            'unit'                => $d->unit ?? '',
+                            'unit_price'          => (float) $d->unit_price,
+                            'remaining_in_termin' => $currentSchedule ? (float) $p->detailRemainingCapacity($d, $currentSchedule) : null,
+                        ];
+                    })->values(),
                 ];
             });
 
@@ -604,29 +618,38 @@ class FundRequestController extends Controller
      * Menghitung sisa pagu program (total_amount dikurangi pengajuan lain yang masih berlaku)
      * dan mengembalikan pesan error jika nominal baru melebihi sisa tersebut, atau null jika aman.
      */
-    // Cocokkan lines yang dikirim user dengan rincian program kerja: harus mencakup semua baris,
-    // dan harga satuan tiap baris tidak boleh melebihi harga satuan yang sudah ditetapkan di program
-    // (qty & baris lain diambil dari program, bukan dari input user, supaya tidak bisa dimanipulasi).
-    private function prepareRequestLines(BudgetProgram $program, array $lines): array
+    // Cocokkan lines yang dikirim user dengan rincian program kerja -- BOLEH cuma sebagian
+    // rincian (tidak wajib semua), tapi tiap baris yang dipilih tetap divalidasi ke program
+    // (bukan input bebas): harga satuan tidak boleh melebihi plafon rincian itu sendiri, DAN
+    // tidak boleh melebihi sisa plafon rincian itu KHUSUS di termin ($schedule) yang sedang
+    // diajukan (rincian yang sama bisa saja sudah sebagian dipakai pengajuan lain di termin
+    // yang sama sebelumnya).
+    private function prepareRequestLines(BudgetProgram $program, BudgetProgramSchedule $schedule, array $lines): array
     {
-        $submitted = collect($lines)->keyBy('budget_program_detail_id');
+        $submitted   = collect($lines)->keyBy('budget_program_detail_id');
+        $detailsById = $program->details->keyBy('id');
 
-        if ($submitted->count() !== $program->details->count() || $program->details->isEmpty()) {
-            return [0, [], 'Rincian pengajuan tidak lengkap. Muat ulang halaman dan coba lagi.'];
+        if ($submitted->isEmpty()) {
+            return [0, [], 'Pilih minimal satu rincian kegiatan untuk diajukan.'];
         }
 
         $amount   = 0;
         $prepared = [];
 
-        foreach ($program->details as $detail) {
-            $line = $submitted->get($detail->id);
-            if (!$line) {
-                return [0, [], 'Rincian pengajuan tidak lengkap. Muat ulang halaman dan coba lagi.'];
+        foreach ($submitted as $detailId => $line) {
+            $detail = $detailsById->get($detailId);
+            if (!$detail) {
+                return [0, [], 'Rincian pengajuan tidak valid. Muat ulang halaman dan coba lagi.'];
             }
 
             $unitPrice = (float) $line['unit_price'];
             if ($unitPrice > (float) $detail->unit_price) {
                 return [0, [], "Harga satuan \"{$detail->description}\" tidak boleh melebihi Rp " . number_format($detail->unit_price, 0, ',', '.') . '.'];
+            }
+
+            $remainingForDetail = $program->detailRemainingCapacity($detail, $schedule);
+            if ($unitPrice > $remainingForDetail + 0.01) {
+                return [0, [], "Rincian \"{$detail->description}\" sudah terpakai sebagian/semua di termin ini. Sisa yang bisa diajukan: Rp " . number_format(max($remainingForDetail, 0), 0, ',', '.') . '.'];
             }
 
             // unit_price di program adalah nominal per termin -- pengajuan dana selalu untuk

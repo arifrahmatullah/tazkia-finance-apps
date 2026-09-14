@@ -242,28 +242,37 @@
                                 ];
                                 return $map[$fr->status] ?? ['bg-slate-100 text-slate-500', $fr->status];
                             };
-                            $activeFr = $sch->fundRequests->first(fn($fr) => !$fr->isVoid());
-                            $historyFrs = $sch->fundRequests
-                                ->reject(fn($fr) => $activeFr && $fr->id === $activeFr->id)
-                                ->sortByDesc('created_at')
-                                ->values();
+                            // Satu termin sekarang bisa ditempeli beberapa pengajuan aktif sekaligus
+                            // (per-rincian, bukan cuma satu pengajuan borongan semua rincian).
+                            $activeFrs = $sch->fundRequests->filter(fn($fr) => !$fr->isVoid())->sortBy('created_at')->values();
+                            $voidFrs   = $sch->fundRequests->filter(fn($fr) => $fr->isVoid())->sortByDesc('created_at')->values();
+                            $ceilingTermin = $sch->amount !== null ? (float) $sch->amount : $budgetProgram->nominal_per_termin;
+                            $usedTermin    = (float) $activeFrs->sum('amount');
                         @endphp
-                        @if($activeFr)
-                            @php [$frCls, $frLabel] = $frStatusBadge($activeFr); @endphp
-                            <a href="{{ route('fund-requests.show', $activeFr) }}" class="inline-flex items-center gap-1.5 no-underline">
-                                <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold {{ $frCls }}">{{ $frLabel }}</span>
-                                <span class="text-[11px] text-slate-400 font-mono">{{ $activeFr->reference }}</span>
-                            </a>
+                        @if($activeFrs->isNotEmpty())
+                            <div class="flex flex-col gap-1">
+                                @foreach($activeFrs as $afr)
+                                    @php [$frCls, $frLabel] = $frStatusBadge($afr); @endphp
+                                    <a href="{{ route('fund-requests.show', $afr) }}" class="inline-flex items-center gap-1.5 no-underline">
+                                        <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold {{ $frCls }}">{{ $frLabel }}</span>
+                                        <span class="text-[11px] text-slate-400 font-mono">{{ $afr->reference }}</span>
+                                        <span class="text-[10px] text-slate-400">Rp {{ number_format($afr->amount, 0, ',', '.') }}</span>
+                                    </a>
+                                @endforeach
+                                <span class="text-[10px] {{ $usedTermin >= $ceilingTermin ? 'text-red-500 font-semibold' : 'text-slate-400' }}">
+                                    Terpakai Rp {{ number_format($usedTermin, 0, ',', '.') }} dari Rp {{ number_format($ceilingTermin, 0, ',', '.') }}
+                                </span>
+                            </div>
                         @else
                             <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-50 text-slate-400">Tersedia</span>
                         @endif
-                        @if($historyFrs->isNotEmpty())
+                        @if($voidFrs->isNotEmpty())
                             <button type="button" onclick="document.getElementById('hist-{{ $sch->id }}').classList.toggle('hidden')"
                                 class="block mt-1 text-[10px] text-orange-500 underline bg-transparent border-0 cursor-pointer p-0">
-                                +{{ $historyFrs->count() }} riwayat
+                                +{{ $voidFrs->count() }} riwayat
                             </button>
                             <div id="hist-{{ $sch->id }}" class="hidden mt-1.5 flex flex-col gap-1">
-                                @foreach($historyFrs as $hfr)
+                                @foreach($voidFrs as $hfr)
                                     @php [$hCls, $hLabel] = $frStatusBadge($hfr); @endphp
                                     <a href="{{ route('fund-requests.show', $hfr) }}" class="inline-flex items-center gap-1.5 no-underline">
                                         <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold {{ $hCls }}">{{ $hLabel }}</span>

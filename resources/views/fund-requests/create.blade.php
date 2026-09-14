@@ -98,15 +98,16 @@
             </div>
 
             <div class="px-4 py-3">
-                <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-2">Rincian Kegiatan <span class="font-normal normal-case text-slate-400">(untuk 1 termin pencairan)</span></div>
+                <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-2">Rincian Kegiatan <span class="font-normal normal-case text-slate-400">(centang yang mau diajukan — tidak harus semua)</span></div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-xs border-collapse">
                         <thead>
                             <tr class="bg-slate-50">
+                                <th class="px-2 py-2 border border-slate-200 w-8"></th>
                                 <th class="px-3 py-2 text-left font-semibold text-slate-500 border border-slate-200">Jenis Pengeluaran</th>
                                 <th class="px-3 py-2 text-left font-semibold text-slate-500 border border-slate-200">Deskripsi</th>
                                 <th class="px-3 py-2 text-left font-semibold text-slate-500 border border-slate-200 w-14">Sat.</th>
-                                <th class="px-3 py-2 text-right font-semibold text-slate-500 border border-slate-200 w-32">Harga Satuan/Termin</th>
+                                <th class="px-3 py-2 text-right font-semibold text-slate-500 border border-slate-200 w-36">Harga Satuan/Termin</th>
                                 <th class="px-3 py-2 text-right font-semibold text-slate-500 border border-slate-200 w-32">Total</th>
                             </tr>
                         </thead>
@@ -116,7 +117,7 @@
             </div>
 
             <div class="px-4 py-3 border-t border-slate-100">
-                <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-2">Jadwal &amp; Estimasi Pencairan</div>
+                <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-2">Termin yang Diajukan (sesuai bulan berjalan)</div>
                 <div class="flex flex-wrap gap-2" id="schedule-list"></div>
             </div>
         </div>
@@ -129,7 +130,7 @@
 
     <div id="no-termin-msg" class="flex items-start gap-2.5 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl mb-5 text-sm text-amber-700" style="display:none">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" class="shrink-0 mt-px"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-        Semua termin untuk program ini sudah diajukan/disetujui. Tidak bisa membuat pengajuan baru sampai ada termin yang tersedia lagi (misalnya kalau salah satu pengajuan ditolak).
+        Tidak ada termin di Estimasi Jadwal program ini untuk bulan berjalan. Cek/koordinasikan jadwalnya dengan bagian Keuangan.
     </div>
 
     {{-- Form pengajuan --}}
@@ -336,75 +337,66 @@ function onProgramChange(programId, keepValues = false) {
     if (!programId || !programsCache[programId]) return;
 
     const p = programsCache[programId];
+    const ct = p.current_termin; // termin bulan berjalan (null kalau tidak ada yang cocok)
 
-    // Rincian -- Harga Satuan bisa diturunkan dari yang ditetapkan di program, tapi
-    // tidak boleh melebihinya (dibatasi di sini, dan divalidasi ulang di server saat submit).
+    // Rincian -- boleh pilih sebagian (centang), tidak wajib semua. Harga Satuan dibatasi ke
+    // yang LEBIH KECIL antara plafon rincian itu sendiri dan sisa plafonnya di termin bulan
+    // berjalan (kalau rincian itu sudah sebagian/semua dipakai pengajuan lain di termin yang sama).
     let rows = '';
-    if (p.details && p.details.length > 0) {
+    if (p.details && p.details.length > 0 && ct) {
         p.details.forEach((d, idx) => {
-            const oldLine   = oldLines[d.id];
-            const startPrice = oldLine ? Number(oldLine.unit_price) : d.unit_price;
-            rows += `<tr>
+            const oldLine    = oldLines[d.id];
+            const remaining  = Math.max(0, d.remaining_in_termin ?? d.unit_price);
+            const exhausted  = remaining <= 0;
+            const startPrice = oldLine ? Number(oldLine.unit_price) : 0;
+            const wasChecked = !!oldLine;
+            rows += `<tr class="${exhausted ? 'opacity-50' : ''}">
+                <td class="px-2 py-2 border border-slate-200 text-center">
+                    <input type="checkbox" class="line-check" data-detail-id="${d.id}"
+                        ${exhausted ? 'disabled' : ''} ${wasChecked ? 'checked' : ''}
+                        onchange="onLineCheckToggle(this)">
+                </td>
                 <td class="px-3 py-2 border border-slate-200 text-slate-700">${escHtml(d.account)}</td>
                 <td class="px-3 py-2 border border-slate-200 text-slate-700">${escHtml(d.description)}</td>
                 <td class="px-3 py-2 border border-slate-200 text-slate-500">${escHtml(d.unit)}</td>
                 <td class="px-3 py-2 border border-slate-200 text-right">
-                    <input type="text" inputmode="numeric" class="line-price w-full px-2 py-1 border border-slate-200 rounded-lg text-right font-mono text-slate-800 outline-none focus:border-orange-400"
-                        data-detail-id="${d.id}" data-ceiling="${d.unit_price}"
-                        value="${Number(startPrice).toLocaleString('id-ID')}"
+                    <input type="text" inputmode="numeric" class="line-price w-full px-2 py-1 border border-slate-200 rounded-lg text-right font-mono text-slate-800 outline-none focus:border-orange-400 disabled:bg-slate-100"
+                        id="line-price-${d.id}" data-detail-id="${d.id}" data-ceiling="${remaining}"
+                        value="${startPrice ? Number(startPrice).toLocaleString('id-ID') : ''}"
+                        ${wasChecked ? '' : 'disabled'}
                         oninput="onLinePriceInput(this)">
-                    <div class="text-[10px] text-slate-400 mt-0.5">Maks ${fmt(d.unit_price)}/termin</div>
-                    <input type="hidden" name="lines[${idx}][budget_program_detail_id]" value="${d.id}">
-                    <input type="hidden" name="lines[${idx}][unit_price]" id="line-unit-price-${d.id}" value="${startPrice}">
+                    <div class="text-[10px] ${exhausted ? 'text-red-500' : 'text-slate-400'} mt-0.5">
+                        ${exhausted ? 'Sudah habis untuk termin ini' : `Sisa termin ini: ${fmt(remaining)} dari ${fmt(d.unit_price)}`}
+                    </div>
+                    <input type="hidden" name="lines[${idx}][budget_program_detail_id]" id="line-detail-${d.id}" value="${d.id}" ${wasChecked ? '' : 'disabled'}>
+                    <input type="hidden" name="lines[${idx}][unit_price]" id="line-unit-price-${d.id}" value="${startPrice}" ${wasChecked ? '' : 'disabled'}>
                 </td>
                 <td class="px-3 py-2 border border-slate-200 text-right font-mono font-semibold text-slate-800" id="line-total-${d.id}">${fmt(startPrice)}</td>
             </tr>`;
         });
         rows += `<tr class="bg-slate-50">
-            <td colspan="4" class="px-3 py-2 border border-slate-200 text-right text-xs font-semibold text-slate-500">Total Diajukan (1 termin)</td>
+            <td colspan="5" class="px-3 py-2 border border-slate-200 text-right text-xs font-semibold text-slate-500">Total Diajukan</td>
             <td class="px-3 py-2 border border-slate-200 text-right font-mono font-bold text-orange-600" id="rincian-grand-total">Rp 0</td>
         </tr>`;
+    } else if (!ct) {
+        rows = '<tr><td colspan="6" class="px-3 py-4 text-center text-slate-400 border border-slate-200">Tidak ada termin untuk bulan berjalan.</td></tr>';
     } else {
-        rows = '<tr><td colspan="5" class="px-3 py-4 text-center text-slate-400 border border-slate-200">Belum ada rincian kegiatan.</td></tr>';
+        rows = '<tr><td colspan="6" class="px-3 py-4 text-center text-slate-400 border border-slate-200">Belum ada rincian kegiatan.</td></tr>';
     }
     document.getElementById('detail-tbody').innerHTML = rows;
 
-    // Jadwal & estimasi -- tampilkan satu termin dulu (yang berikutnya belum dijadwalkan),
-    // sisanya disembunyikan di balik tombol supaya tidak langsung penuh sekaligus.
-    // Nominalnya mengikuti Total Diajukan di rincian (live, lihat recalcTotal()), bukan
-    // rata-rata pagu seluruh program. Termin yang sudah "diambil" pengajuan lain (belum
-    // ditolak) ditandai "Sudah diajukan" -- pengajuan baru otomatis dapat termin berikutnya
-    // yang masih tersedia (ditandai khusus), bukan pilih manual.
+    // Termin yang benar-benar dipakai: yang tanggal estimasinya jatuh di bulan berjalan
+    // (dihitung di server). Kalau tidak ada yang cocok, ct null -- ditangani onProgramChange.
     let schedHtml = '';
-    if (p.schedules && p.schedules.length > 0) {
-        const nextIdx = p.schedules.findIndex(s => !s.taken);
-
-        const renderTermin = (s, isNext) => {
-            const tgl = s.estimated_date && s.estimated_date !== '-'
-                ? `<span class="text-slate-500 font-normal">${escHtml(s.estimated_date)}</span>`
-                : '<span class="text-slate-300 font-normal">belum dijadwalkan</span>';
-            const boxClass = isNext
-                ? 'border-orange-300 bg-orange-50'
-                : (s.taken ? 'border-slate-200 bg-slate-100 opacity-60' : 'border-slate-200 bg-slate-50');
-            return `<div class="inline-flex flex-col gap-0.5 px-3 py-2 border rounded-lg text-xs ${boxClass}">
-                <span class="font-bold text-slate-600">Termin ${s.termin} · ${tgl}</span>
-                ${isNext
-                    ? `<span class="font-mono font-semibold text-orange-600 termin-amount">Rp 0</span><span class="text-orange-500 font-semibold">Termin ini yang akan diajukan</span>`
-                    : (s.taken ? '<span class="text-slate-400 font-semibold">Sudah diajukan</span>' : '<span class="text-slate-400">Tersedia</span>')}
-                ${s.notes ? `<span class="text-slate-400 font-normal">${escHtml(s.notes)}</span>` : ''}
-            </div>`;
-        };
-
-        schedHtml += renderTermin(p.schedules[nextIdx], true);
-
-        const rest = p.schedules.filter((_, i) => i !== nextIdx);
-        if (rest.length > 0) {
-            schedHtml += `<button type="button" onclick="document.getElementById('sched-rest').style.display='contents'; this.style.display='none';"
-                class="text-xs text-orange-500 underline bg-transparent border-0 cursor-pointer px-1">+${rest.length} termin lainnya</button>`;
-            schedHtml += `<span id="sched-rest" style="display:none">${rest.map(s => renderTermin(s, false)).join('')}</span>`;
-        }
+    if (ct) {
+        const sisaCls = ct.remaining <= 0 ? 'text-red-600' : 'text-slate-700';
+        schedHtml = `<div class="inline-flex flex-col gap-0.5 px-3 py-2 border rounded-lg text-xs border-orange-300 bg-orange-50">
+            <span class="font-bold text-slate-600">Termin ${ct.termin} · <span class="text-slate-500 font-normal">${escHtml(ct.estimated_date ?? '-')}</span></span>
+            <span class="font-mono font-semibold text-orange-600 termin-amount">Rp 0</span>
+            <span class="${sisaCls}">Sisa plafon termin ini: ${fmt(Math.max(0, ct.remaining))} dari ${fmt(ct.ceiling)}</span>
+        </div>`;
     } else {
-        schedHtml = '<span class="text-xs text-slate-400">Belum ada jadwal pencairan.</span>';
+        schedHtml = '<span class="text-xs text-slate-400">Tidak ada termin untuk bulan berjalan.</span>';
     }
     document.getElementById('schedule-list').innerHTML = schedHtml;
 
@@ -425,7 +417,6 @@ function onProgramChange(programId, keepValues = false) {
     document.getElementById('detail-freq').textContent       = p.frequency + '×';
     document.getElementById('detail-per-termin').textContent = fmt(Math.round(p.nominal_per_termin));
     document.getElementById('detail-pagu').textContent       = fmt(p.total_amount);
-    recalcTotal();
 
     const titleInput = document.getElementById('title-input');
     if (!titleInput.value) titleInput.value = p.name;
@@ -439,7 +430,7 @@ function onProgramChange(programId, keepValues = false) {
         return;
     }
 
-    if (!p.has_available_termin) {
+    if (!ct) {
         show('no-termin-msg');
         hide('form-fields');
         document.getElementById('submit-btn').disabled = true;
@@ -447,7 +438,29 @@ function onProgramChange(programId, keepValues = false) {
     }
 
     show('form-fields');
-    document.getElementById('submit-btn').disabled = !(p.details && p.details.length > 0);
+    recalcTotal();
+}
+
+function onLineCheckToggle(checkbox) {
+    const id = checkbox.dataset.detailId;
+    const priceInput   = document.getElementById(`line-price-${id}`);
+    const hiddenDetail = document.getElementById(`line-detail-${id}`);
+    const hiddenPrice  = document.getElementById(`line-unit-price-${id}`);
+    const checked = checkbox.checked;
+
+    priceInput.disabled   = !checked;
+    hiddenDetail.disabled = !checked;
+    hiddenPrice.disabled  = !checked;
+
+    if (!checked) {
+        priceInput.value = '';
+        hiddenPrice.value = 0;
+        document.getElementById(`line-total-${id}`).textContent = fmt(0);
+    } else {
+        priceInput.focus();
+    }
+
+    recalcTotal();
 }
 
 function onLinePriceInput(el) {
@@ -466,7 +479,9 @@ function onLinePriceInput(el) {
 
 function recalcTotal() {
     let total = 0;
-    document.querySelectorAll('.line-price').forEach(input => {
+    let anyChecked = false;
+    document.querySelectorAll('.line-price:not(:disabled)').forEach(input => {
+        anyChecked = true;
         const raw = input.value.replace(/\./g, '').replace(/[^0-9]/g, '');
         total += raw ? parseInt(raw, 10) : 0;
     });
@@ -474,6 +489,10 @@ function recalcTotal() {
     const grand = document.getElementById('rincian-grand-total');
     if (grand) grand.textContent = fmt(total);
     document.querySelectorAll('.termin-amount').forEach(el => el.textContent = fmt(total));
+
+    const submitBtn = document.getElementById('submit-btn');
+    if (submitBtn) submitBtn.disabled = !anyChecked || total <= 0;
+
     return total;
 }
 
@@ -495,9 +514,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 opt.value = p.id;
                 const jenis = p.type_label && p.type_label !== '-' ? `[${p.type_label}] ` : '';
                 const incomplete = !p.has_complete_schedule;
-                const noTermin  = p.has_complete_schedule && !p.has_available_termin;
+                const noTermin  = p.has_complete_schedule && !p.current_termin;
                 opt.textContent = `${jenis}${p.name} — ${fmt(p.total_amount)} (${p.frequency}× @ ${fmt(Math.round(p.nominal_per_termin))})`
-                    + (incomplete ? ' — Jadwal belum lengkap' : (noTermin ? ' — Semua termin sudah diajukan' : ''));
+                    + (incomplete ? ' — Jadwal belum lengkap' : (noTermin ? ' — Tidak ada termin bulan ini' : ''));
                 if (incomplete || noTermin) opt.disabled = true;
                 sel.appendChild(opt);
             });
