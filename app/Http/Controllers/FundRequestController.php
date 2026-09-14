@@ -161,7 +161,7 @@ class FundRequestController extends Controller
         // nomor urut -- jadwal jadi acuan kapan rincian itu semestinya dicairkan.
         $schedule = $program->scheduleForMonth();
         if (!$schedule) {
-            return back()->withInput()->withErrors(['budget_program_id' => 'Tidak ada termin di Estimasi Jadwal program ini untuk bulan berjalan. Cek/koordinasikan jadwalnya dengan bagian Keuangan.']);
+            return back()->withInput()->withErrors(['budget_program_id' => 'Tidak ada termin di Estimasi Jadwal program ini untuk bulan ' . now()->locale('id')->translatedFormat('F Y') . '. Cek/koordinasikan jadwalnya dengan bagian Keuangan.']);
         }
 
         [$amount, $preparedLines, $lineError] = $this->prepareRequestLines($program, $schedule, $request->input('lines', []));
@@ -175,7 +175,7 @@ class FundRequestController extends Controller
         // nominal yang sudah ditetapkan untuk termin tsb.
         $remainingTermin = $program->scheduleRemainingCapacity($schedule);
         if ($amount > $remainingTermin + 0.01) {
-            return back()->withInput()->withErrors(['lines' => 'Total pengajuan (Rp ' . number_format($amount, 0, ',', '.') . ') melebihi sisa plafon termin ini (Rp ' . number_format(max($remainingTermin, 0), 0, ',', '.') . ').']);
+            return back()->withInput()->withErrors(['lines' => 'Total pengajuan (Rp ' . number_format($amount, 0, ',', '.') . ') melebihi sisa plafon termin ' . $schedule->monthLabel() . ' (Rp ' . number_format(max($remainingTermin, 0), 0, ',', '.') . ').']);
         }
 
         if ($error = $this->programBudgetError($program, $amount)) {
@@ -190,7 +190,7 @@ class FundRequestController extends Controller
             // Cek ulang plafon termin di dalam transaksi supaya tidak kebobolan kalau ada
             // dua pengajuan (rincian berbeda) untuk termin yang sama nyaris bersamaan.
             $remainingTermin = $program->scheduleRemainingCapacity($schedule);
-            abort_if($amount > $remainingTermin + 0.01, 422, 'Sisa plafon termin ini sudah berubah (dipakai pengajuan lain). Muat ulang halaman dan coba lagi.');
+            abort_if($amount > $remainingTermin + 0.01, 422, 'Sisa plafon termin ' . $schedule->monthLabel() . ' sudah berubah (dipakai pengajuan lain). Muat ulang halaman dan coba lagi.');
 
             $reference = FundRequest::generateReference($orgId, now()->toDateString());
 
@@ -511,6 +511,7 @@ class FundRequestController extends Controller
                     'current_termin'    => $currentSchedule ? [
                         'termin'         => $currentSchedule->termin,
                         'estimated_date' => $currentSchedule->estimated_date?->format('d/m/Y'),
+                        'month_label'    => $currentSchedule->monthLabel(),
                         'ceiling'        => (float) ($currentSchedule->amount ?? $p->nominal_per_termin),
                         'remaining'      => (float) $p->scheduleRemainingCapacity($currentSchedule),
                     ] : null,
@@ -649,7 +650,7 @@ class FundRequestController extends Controller
 
             $remainingForDetail = $program->detailRemainingCapacity($detail, $schedule);
             if ($unitPrice > $remainingForDetail + 0.01) {
-                return [0, [], "Rincian \"{$detail->description}\" sudah terpakai sebagian/semua di termin ini. Sisa yang bisa diajukan: Rp " . number_format(max($remainingForDetail, 0), 0, ',', '.') . '.'];
+                return [0, [], "Rincian \"{$detail->description}\" sudah terpakai sebagian/semua di termin {$schedule->monthLabel()}. Sisa yang bisa diajukan: Rp " . number_format(max($remainingForDetail, 0), 0, ',', '.') . '.'];
             }
 
             // unit_price di program adalah nominal per termin -- pengajuan dana selalu untuk

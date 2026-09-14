@@ -36,4 +36,11 @@ class BudgetProgramSchedule extends Model
     {
         return $this->fundRequests()->whereNotIn('status', FundRequest::VOID_STATUSES)->latest()->first();
     }
+
+    // Label bulan+tahun berbahasa Indonesia dari tanggal estimasi termin ini (mis. "September
+    // 2026") -- dipakai di narasi UI/pesan error supaya jelas termin yang mana yang dimaksud.
+    public function monthLabel(): ?string
+    {
+        return $this->estimated_date?->locale('id')->translatedFormat('F Y');
+    }
 }

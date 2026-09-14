@@ -130,7 +130,7 @@
 
     <div id="no-termin-msg" class="flex items-start gap-2.5 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl mb-5 text-sm text-amber-700" style="display:none">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" class="shrink-0 mt-px"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-        Tidak ada termin di Estimasi Jadwal program ini untuk bulan berjalan. Cek/koordinasikan jadwalnya dengan bagian Keuangan.
+        Tidak ada termin di Estimasi Jadwal program ini untuk bulan {{ now()->locale('id')->translatedFormat('F Y') }}. Cek/koordinasikan jadwalnya dengan bagian Keuangan.
     </div>
 
     {{-- Form pengajuan --}}
@@ -235,6 +235,7 @@
 const programsUrl = '{{ route('fund-requests.programs') }}';
 const orgId       = '{{ $employee->organization_id }}';
 const deptId      = '{{ $activePosition->department_id }}';
+const currentMonthLabel = '{{ now()->locale('id')->translatedFormat('F Y') }}';
 let programsCache = {};
 const oldLines    = @json(collect(old('lines', []))->keyBy('budget_program_detail_id'));
 
@@ -366,7 +367,7 @@ function onProgramChange(programId, keepValues = false) {
                         ${wasChecked ? '' : 'disabled'}
                         oninput="onLinePriceInput(this)">
                     <div class="text-[10px] ${exhausted ? 'text-red-500' : 'text-slate-400'} mt-0.5">
-                        ${exhausted ? 'Sudah habis untuk termin ini' : `Sisa termin ini: ${fmt(remaining)} dari ${fmt(d.unit_price)}`}
+                        ${exhausted ? `Sudah habis untuk termin ${escHtml(ct.month_label)}` : `Sisa termin ${escHtml(ct.month_label)}: ${fmt(remaining)} dari ${fmt(d.unit_price)}`}
                     </div>
                     <input type="hidden" name="lines[${idx}][budget_program_detail_id]" id="line-detail-${d.id}" value="${d.id}" ${wasChecked ? '' : 'disabled'}>
                     <input type="hidden" name="lines[${idx}][unit_price]" id="line-unit-price-${d.id}" value="${startPrice}" ${wasChecked ? '' : 'disabled'}>
@@ -379,7 +380,7 @@ function onProgramChange(programId, keepValues = false) {
             <td class="px-3 py-2 border border-slate-200 text-right font-mono font-bold text-orange-600" id="rincian-grand-total">Rp 0</td>
         </tr>`;
     } else if (!ct) {
-        rows = '<tr><td colspan="6" class="px-3 py-4 text-center text-slate-400 border border-slate-200">Tidak ada termin untuk bulan berjalan.</td></tr>';
+        rows = `<tr><td colspan="6" class="px-3 py-4 text-center text-slate-400 border border-slate-200">Tidak ada termin untuk bulan ${currentMonthLabel}.</td></tr>`;
     } else {
         rows = '<tr><td colspan="6" class="px-3 py-4 text-center text-slate-400 border border-slate-200">Belum ada rincian kegiatan.</td></tr>';
     }
@@ -391,12 +392,12 @@ function onProgramChange(programId, keepValues = false) {
     if (ct) {
         const sisaCls = ct.remaining <= 0 ? 'text-red-600' : 'text-slate-700';
         schedHtml = `<div class="inline-flex flex-col gap-0.5 px-3 py-2 border rounded-lg text-xs border-orange-300 bg-orange-50">
-            <span class="font-bold text-slate-600">Termin ${ct.termin} · <span class="text-slate-500 font-normal">${escHtml(ct.estimated_date ?? '-')}</span></span>
+            <span class="font-bold text-slate-600">Termin ${ct.termin} · ${escHtml(ct.month_label)} <span class="text-slate-500 font-normal">(${escHtml(ct.estimated_date ?? '-')})</span></span>
             <span class="font-mono font-semibold text-orange-600 termin-amount">Rp 0</span>
-            <span class="${sisaCls}">Sisa plafon termin ini: ${fmt(Math.max(0, ct.remaining))} dari ${fmt(ct.ceiling)}</span>
+            <span class="${sisaCls}">Sisa plafon termin ${escHtml(ct.month_label)}: ${fmt(Math.max(0, ct.remaining))} dari ${fmt(ct.ceiling)}</span>
         </div>`;
     } else {
-        schedHtml = '<span class="text-xs text-slate-400">Tidak ada termin untuk bulan berjalan.</span>';
+        schedHtml = `<span class="text-xs text-slate-400">Tidak ada termin untuk bulan ${currentMonthLabel}.</span>`;
     }
     document.getElementById('schedule-list').innerHTML = schedHtml;
 
