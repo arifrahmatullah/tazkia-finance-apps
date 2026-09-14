@@ -7,6 +7,7 @@ use App\Models\BudgetAllocation;
 use App\Models\BudgetPeriod;
 use App\Models\BudgetProgram;
 use App\Models\Department;
+use App\Models\FundRequest;
 use App\Services\BudgetProgramChangeService;
 use Illuminate\Http\Request;
 
@@ -138,15 +139,22 @@ class BudgetProgramController extends Controller
 
         $allocationSummaries = $allocationQuery->get()
             ->map(function ($alloc) {
-                $terpakai = BudgetProgram::with('details')
-                    ->where('budget_allocation_id', $alloc->id)->get()
-                    ->sum(fn($p) => (float) $p->total_amount);
+                $programs   = BudgetProgram::with('details')->where('budget_allocation_id', $alloc->id)->get();
+                $terpakai   = $programs->sum(fn($p) => (float) $p->total_amount);
+                // Uang yang benar-benar sudah cair (disbursed) dari pengajuan dana program-program
+                // di alokasi ini -- beda dengan "Total Program" yang cuma rencana/pagu program.
+                $cair = (float) FundRequest::whereIn('budget_program_id', $programs->pluck('id'))
+                    ->whereNotNull('disbursed_at')
+                    ->sum('amount');
                 return [
-                    'dept'     => $alloc->department->name,
-                    'periode'  => $alloc->budgetPeriod->name,
-                    'pagu'     => (float) $alloc->amount,
-                    'terpakai' => $terpakai,
-                    'sisa'     => (float) $alloc->amount - $terpakai,
+                    'dept'          => $alloc->department->name,
+                    'department_id' => $alloc->department_id,
+                    'periode'       => $alloc->budgetPeriod->name,
+                    'pagu'          => (float) $alloc->amount,
+                    'terpakai'      => $terpakai,
+                    'sisa'          => (float) $alloc->amount - $terpakai,
+                    'cair'          => $cair,
+                    'sisa_cair'     => $terpakai - $cair,
                 ];
             });
 
@@ -179,8 +187,27 @@ class BudgetProgramController extends Controller
         $user = auth()->user();
 
         if ($user->isSuperAdmin()) {
-            $activePosition = $user->employee()->with('activePosition.position.department')->first()?->activePosition?->position;
-            $department     = $activePosition?->department;
+            $departmentId = $request->query('department_id');
+
+            if (!$departmentId) {
+                $orgIds = $user->organizationIds();
+                $allocations = BudgetAllocation::with(['department', 'budgetPeriod'])
+                    ->whereHas('budgetPeriod', fn($q) => $q->where('is_active', true))
+                    ->where('is_active', true)
+                    ->whereHas('department', function ($q) use ($orgIds) {
+                        if ($orgIds !== null) {
+                            $q->whereIn('organization_id', $orgIds);
+                        }
+                        $q->where('is_active', true);
+                    })
+                    ->get()
+                    ->unique('department_id')
+                    ->sortBy(fn($a) => $a->department->name);
+
+                return view('budget-programs.create-select-department', compact('allocations'));
+            }
+
+            $department = Department::findOrFail($departmentId);
         } else {
             $employee  = $user->employee()->with('activePositions.position.department')->first();
             $creatable = ($employee?->activePositions ?? collect())
