@@ -97,11 +97,12 @@ class BudgetProgram extends Model
             return;
         }
 
-        $this->schedules()->with('fundRequests')->get()->each(function ($sch) use ($oldNominalPerTermin, $newNominalPerTermin) {
+        $this->schedules()->with(['fundRequests', 'detailOverrides'])->get()->each(function ($sch) use ($oldNominalPerTermin, $newNominalPerTermin) {
             $isStillDefault = $sch->amount === null || abs((float) $sch->amount - $oldNominalPerTermin) < 0.01;
             $isTaken = $sch->fundRequests->contains(fn($fr) => !$fr->isVoid());
+            $hasDetailOverride = $sch->detailOverrides->isNotEmpty();
 
-            if ($isStillDefault && !$isTaken) {
+            if ($isStillDefault && !$isTaken && !$hasDetailOverride) {
                 $sch->update(['amount' => $newNominalPerTermin]);
             }
         });
@@ -147,7 +148,7 @@ class BudgetProgram extends Model
             })
             ->sum('total_amount');
 
-        return (float) $detail->unit_price - $used;
+        return $schedule->effectiveUnitPriceFor($detail) - $used;
     }
 
     // Pengajuan Dana hanya boleh dibuat kalau semua termin di Estimasi Jadwal

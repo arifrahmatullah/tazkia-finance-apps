@@ -489,7 +489,7 @@ class FundRequestController extends Controller
             return response()->json(['programs' => [], 'allocation' => null]);
         }
 
-        $programs = BudgetProgram::with(['details.account', 'schedules.fundRequests'])
+        $programs = BudgetProgram::with(['details.account', 'schedules.fundRequests', 'schedules.detailOverrides'])
             ->where('budget_allocation_id', $allocation->id)
             ->where('is_active', true)
             ->orderBy('name')
@@ -516,12 +516,15 @@ class FundRequestController extends Controller
                         'remaining'      => (float) $p->scheduleRemainingCapacity($currentSchedule),
                     ] : null,
                     'details'           => $p->details->map(function ($d) use ($p, $currentSchedule) {
+                        // Plafon rincian ini KHUSUS termin bulan berjalan -- bisa beda dari
+                        // unit_price default kalau sudah di-custom lewat Edit Termin.
+                        $effectiveCeiling = $currentSchedule ? $currentSchedule->effectiveUnitPriceFor($d) : (float) $d->unit_price;
                         return [
                             'id'                  => $d->id,
                             'account'             => $d->account?->name ?? '-',
                             'description'         => $d->description,
                             'unit'                => $d->unit ?? '',
-                            'unit_price'          => (float) $d->unit_price,
+                            'unit_price'          => $effectiveCeiling,
                             'remaining_in_termin' => $currentSchedule ? (float) $p->detailRemainingCapacity($d, $currentSchedule) : null,
                         ];
                     })->values(),
@@ -643,9 +646,13 @@ class FundRequestController extends Controller
                 return [0, [], 'Rincian pengajuan tidak valid. Muat ulang halaman dan coba lagi.'];
             }
 
-            $unitPrice = (float) $line['unit_price'];
-            if ($unitPrice > (float) $detail->unit_price) {
-                return [0, [], "Harga satuan \"{$detail->description}\" tidak boleh melebihi Rp " . number_format($detail->unit_price, 0, ',', '.') . '.'];
+            // Plafon rincian ini KHUSUS untuk termin ini -- bisa beda dari unit_price default
+            // program kalau Keuangan sudah menggeser nominal antar termin (lihat modal Edit
+            // Termin di halaman Program Kerja).
+            $unitPrice        = (float) $line['unit_price'];
+            $effectiveCeiling = $schedule->effectiveUnitPriceFor($detail);
+            if ($unitPrice > $effectiveCeiling + 0.01) {
+                return [0, [], "Harga satuan \"{$detail->description}\" tidak boleh melebihi Rp " . number_format($effectiveCeiling, 0, ',', '.') . " untuk termin {$schedule->monthLabel()}."];
             }
 
             $remainingForDetail = $program->detailRemainingCapacity($detail, $schedule);
@@ -663,7 +670,7 @@ class FundRequestController extends Controller
                 'description'              => $detail->description,
                 'quantity'                 => 1,
                 'unit'                     => $detail->unit,
-                'ceiling_unit_price'       => $detail->unit_price,
+                'ceiling_unit_price'       => $effectiveCeiling,
                 'unit_price'               => $unitPrice,
             ];
         }

@@ -12,6 +12,17 @@
     $freq       = max(1, (int) $budgetProgram->frequency);
     $schedules  = $budgetProgram->schedules;
     $filledCount = $schedules->whereNotNull('estimated_date')->count();
+
+    // Breakdown nominal per rincian KHUSUS tiap termin (override-aware) -- dipakai modal Edit
+    // Termin supaya Keuangan bisa geser nominal antar termin per rincian, bukan cuma lump total.
+    $hasMultipleDetails = $budgetProgram->details->count() > 1;
+    $scheduleDetailsMap = $schedules->mapWithKeys(function ($sch) use ($budgetProgram) {
+        return [$sch->id => $budgetProgram->details->map(fn($d) => [
+            'id'          => $d->id,
+            'description' => $d->description,
+            'unit_price'  => $sch->effectiveUnitPriceFor($d),
+        ])->values()];
+    });
 @endphp
 
 <div class="flex items-center justify-between mb-5">
@@ -381,10 +392,22 @@
                 <div class="text-[11px] text-slate-400 mt-1">Total semua termin tidak boleh melebihi total pagu program (Rp {{ number_format($totalUsed, 0, ',', '.') }}).</div>
                 <div id="edit-amount-error" class="text-[11px] text-red-500 mt-1" style="display:none"></div>
             </div>
+            @if($hasMultipleDetails)
+            <div id="edit-breakdown-wrap" class="border-t border-slate-100 pt-3">
+                <label class="block text-xs font-semibold text-slate-600 mb-1.5">
+                    Breakdown per Rincian <span class="font-normal text-slate-400">(jumlahnya harus sama persis dengan Nominal Termin Ini)</span>
+                </label>
+                <div id="edit-breakdown-rows" class="flex flex-col gap-2"></div>
+                <div class="flex items-center justify-between mt-2 text-[11px]">
+                    <span class="text-slate-400">Jumlah breakdown: <span id="edit-breakdown-sum" class="font-mono font-semibold text-slate-700">Rp 0</span></span>
+                    <span id="edit-breakdown-match" class="font-semibold"></span>
+                </div>
+            </div>
+            @endif
         </div>
         <div class="flex gap-2.5 mt-5">
-            <button type="button" onclick="saveEdit()"
-                class="flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-br from-orange-400 to-orange-500 text-white text-sm font-semibold border-0 cursor-pointer hover:-translate-y-px transition-all">
+            <button type="button" id="edit-save-btn" onclick="saveEdit()"
+                class="flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-br from-orange-400 to-orange-500 text-white text-sm font-semibold border-0 cursor-pointer hover:-translate-y-px transition-all disabled:opacity-40 disabled:cursor-not-allowed">
                 Simpan
             </button>
             <button type="button" onclick="closeEdit()"
@@ -451,6 +474,8 @@
 const sisaPagu = {{ $sisa }};
 const hasPagu  = {{ $pagu > 0 ? 'true' : 'false' }};
 const freqCountAdd = {{ $freq }};
+const hasMultipleDetails = {{ $hasMultipleDetails ? 'true' : 'false' }};
+const scheduleDetailsMap = @json($scheduleDetailsMap);
 
 function fmtNominal(input) {
     const raw = input.value.replace(/[^\d]/g, '');
@@ -471,6 +496,50 @@ function fmtEditAmount(input) {
     const raw = input.value.replace(/[^\d]/g, '');
     document.getElementById('edit-amount').value = raw || '0';
     input.value = raw ? parseInt(raw).toLocaleString('id-ID') : '';
+    checkBreakdownMatch();
+}
+
+function renderBreakdown(scheduleId) {
+    const wrap = document.getElementById('edit-breakdown-wrap');
+    if (!wrap) return; // program cuma 1 rincian -- tidak ada breakdown
+
+    const details = scheduleDetailsMap[scheduleId] || [];
+    const rowsEl = document.getElementById('edit-breakdown-rows');
+    rowsEl.innerHTML = details.map(d => `
+        <div class="flex items-center gap-2">
+            <span class="flex-1 text-xs text-slate-600 truncate" title="${d.description}">${d.description}</span>
+            <input type="text" inputmode="numeric" class="edit-breakdown-input w-32 px-2 py-1.5 border border-slate-200 rounded-lg text-right font-mono text-xs outline-none focus:border-orange-400"
+                data-detail-id="${d.id}" value="${Math.round(d.unit_price).toLocaleString('id-ID')}"
+                oninput="onBreakdownInput(this)">
+        </div>
+    `).join('');
+
+    checkBreakdownMatch();
+}
+
+function onBreakdownInput(input) {
+    const raw = input.value.replace(/[^\d]/g, '');
+    input.value = raw ? parseInt(raw).toLocaleString('id-ID') : '';
+    checkBreakdownMatch();
+}
+
+// Jumlah breakdown per rincian HARUS persis sama dengan Nominal Termin Ini -- tombol Simpan
+// dikunci selama belum sama, supaya total termin & rincian tidak pernah kontradiksi.
+function checkBreakdownMatch() {
+    const saveBtn = document.getElementById('edit-save-btn');
+    const wrap = document.getElementById('edit-breakdown-wrap');
+    if (!wrap) { if (saveBtn) saveBtn.disabled = false; return; }
+
+    const inputs = Array.from(document.querySelectorAll('.edit-breakdown-input'));
+    const sum = inputs.reduce((t, el) => t + (parseInt(el.value.replace(/[^\d]/g, '')) || 0), 0);
+    const target = parseInt(document.getElementById('edit-amount').value) || 0;
+
+    document.getElementById('edit-breakdown-sum').textContent = 'Rp ' + sum.toLocaleString('id-ID');
+    const matchEl = document.getElementById('edit-breakdown-match');
+    const match = sum === target;
+    matchEl.textContent = match ? '✓ Sudah sama' : '✗ Belum sama dengan Nominal Termin Ini';
+    matchEl.className = 'font-semibold ' + (match ? 'text-green-600' : 'text-red-500');
+    if (saveBtn) saveBtn.disabled = !match;
 }
 
 function openEdit(id, date, notes, termin, amount) {
@@ -482,6 +551,7 @@ function openEdit(id, date, notes, termin, amount) {
     document.getElementById('edit-amount-display').value = amountInt.toLocaleString('id-ID');
     document.getElementById('edit-amount').value = amountInt;
     document.getElementById('edit-amount-error').style.display = 'none';
+    renderBreakdown(id);
     document.getElementById('modal-edit').classList.remove('hidden');
 }
 
@@ -496,6 +566,15 @@ function saveEdit() {
     const notes  = document.getElementById('edit-notes').value;
     const amount = document.getElementById('edit-amount').value;
 
+    const payload = { estimated_date: date || null, notes: notes || null, amount: amount };
+
+    if (document.getElementById('edit-breakdown-wrap')) {
+        payload.details = Array.from(document.querySelectorAll('.edit-breakdown-input')).map(el => ({
+            budget_program_detail_id: el.dataset.detailId,
+            unit_price: parseInt(el.value.replace(/[^\d]/g, '')) || 0,
+        }));
+    }
+
     fetch(`/budget-program-schedules/${editingId}`, {
         method: 'PATCH',
         headers: {
@@ -503,7 +582,7 @@ function saveEdit() {
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
                          || '{{ csrf_token() }}',
         },
-        body: JSON.stringify({ estimated_date: date || null, notes: notes || null, amount: amount }),
+        body: JSON.stringify(payload),
     })
     .then(async r => ({ ok: r.ok, data: await r.json() }))
     .then(({ ok, data }) => {

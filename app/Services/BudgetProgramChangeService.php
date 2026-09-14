@@ -127,7 +127,7 @@ class BudgetProgramChangeService
             'add_detail'  => $program->details()->create(array_merge($payload, ['quantity' => $program->frequency])),
             'update_detail' => BudgetProgramDetail::find($request->subject_id)?->update($payload),
             'delete_detail' => BudgetProgramDetail::find($request->subject_id)?->delete(),
-            'update_schedule' => BudgetProgramSchedule::find($request->subject_id)?->update($payload),
+            'update_schedule' => $this->applyUpdateSchedule($request->subject_id, $payload),
             default => null,
         };
 
@@ -143,6 +143,26 @@ class BudgetProgramChangeService
         if (array_key_exists('frequency', $payload)) {
             $program->details()->update(['quantity' => $payload['frequency']]);
             $program->refresh()->regenerateSchedules();
+        }
+    }
+
+    private function applyUpdateSchedule(string $scheduleId, array $payload): void
+    {
+        $schedule = BudgetProgramSchedule::find($scheduleId);
+        if (!$schedule) {
+            return;
+        }
+
+        $schedule->update($payload);
+
+        foreach ($payload['details'] ?? [] as $d) {
+            \App\Models\BudgetProgramScheduleDetail::updateOrCreate(
+                [
+                    'budget_program_schedule_id' => $schedule->id,
+                    'budget_program_detail_id'   => $d['budget_program_detail_id'],
+                ],
+                ['unit_price' => $d['unit_price']]
+            );
         }
     }
 }
