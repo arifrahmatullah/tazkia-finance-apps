@@ -83,7 +83,7 @@
                 </div>
             </div>
             <div class="text-right">
-                <div class="text-[10px] text-slate-400 uppercase tracking-wide">Belum Cair</div>
+                <div class="text-[10px] text-slate-400 uppercase tracking-wide">Sisa Uang</div>
                 <div class="text-sm font-bold font-mono {{ $s['sisa_cair'] < 0 ? 'text-red-600' : 'text-slate-700' }}">
                     Rp {{ number_format($s['sisa_cair'], 0, ',', '.') }}
                 </div>
