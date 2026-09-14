@@ -340,6 +340,60 @@ class FundRequestController extends Controller
             ->with('success', 'Pengajuan berhasil dibatalkan.');
     }
 
+    // Bikin draft baru terisi dari pengajuan yang sudah dibatalkan, supaya pengaju tinggal
+    // koreksi yang salah lalu submit -- pengajuan lama tetap utuh sebagai riwayat "Dibatalkan",
+    // tidak diedit/dihidupkan lagi. Cuma pengaju aslinya yang boleh (draft baru ini atas nama dia).
+    public function resubmit(FundRequest $fundRequest)
+    {
+        $user = auth()->user();
+        abort_unless($fundRequest->requester->user_id === $user->id, 403);
+        abort_unless($fundRequest->isCancelled(), 422, 'Cuma pengajuan yang dibatalkan yang bisa diajukan ulang.');
+
+        $fundRequest->loadMissing('details', 'budgetProgram');
+        $schedule = $fundRequest->budgetProgram?->nextAvailableSchedule();
+
+        $duplicate = DB::transaction(function () use ($fundRequest, $schedule) {
+            $reference = FundRequest::generateReference($fundRequest->organization_id, now()->toDateString());
+
+            $duplicate = FundRequest::create([
+                'organization_id'            => $fundRequest->organization_id,
+                'department_id'              => $fundRequest->department_id,
+                'budget_period_id'           => $fundRequest->budget_period_id,
+                'budget_program_id'          => $fundRequest->budget_program_id,
+                'budget_program_schedule_id' => $schedule?->id,
+                'requester_id'               => $fundRequest->requester_id,
+                'requester_position_id'      => $fundRequest->requester_position_id,
+                'reference'                  => $reference,
+                'title'                      => $fundRequest->title,
+                'purpose'                    => $fundRequest->purpose,
+                'amount'                     => $fundRequest->amount,
+                'bank_name'                  => $fundRequest->bank_name,
+                'bank_account_number'        => $fundRequest->bank_account_number,
+                'bank_account_name'          => $fundRequest->bank_account_name,
+                'status'                     => 'draft',
+                'current_step'               => 0,
+                'total_steps'                => 0,
+            ]);
+
+            foreach ($fundRequest->details as $detail) {
+                $duplicate->details()->create([
+                    'budget_program_detail_id' => $detail->budget_program_detail_id,
+                    'account_id'               => $detail->account_id,
+                    'description'              => $detail->description,
+                    'quantity'                 => $detail->quantity,
+                    'unit'                     => $detail->unit,
+                    'ceiling_unit_price'       => $detail->ceiling_unit_price,
+                    'unit_price'               => $detail->unit_price,
+                ]);
+            }
+
+            return $duplicate;
+        });
+
+        return redirect()->route('fund-requests.show', $duplicate)
+            ->with('success', 'Draft baru dibuat dari pengajuan ' . $fundRequest->reference . ' yang dibatalkan. Periksa datanya (lampiran perlu diunggah ulang) lalu Submit.');
+    }
+
     public function submit(FundRequest $fundRequest)
     {
         $user = auth()->user();

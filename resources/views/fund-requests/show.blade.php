@@ -117,10 +117,20 @@
 @if($fundRequest->isCancelled())
 <div class="flex items-start gap-2.5 mb-5 p-3.5 bg-slate-50 border border-slate-200 rounded-[10px]">
     <svg width="16" height="16" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" class="flex-shrink-0 mt-0.5"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
-    <div>
+    <div class="flex-1">
         <div class="text-[13px] font-bold text-slate-600">Dibatalkan{{ $fundRequest->cancelled_by ? ' oleh ' . $fundRequest->cancelled_by : '' }}{{ $fundRequest->cancelled_at ? ' — ' . $fundRequest->cancelled_at->format('d/m/Y H:i') : '' }}</div>
         @if($fundRequest->notes)
         <div class="text-[13px] text-slate-500 mt-0.5">{{ $fundRequest->notes }}</div>
+        @endif
+        @if($isRequester)
+        <form method="POST" action="{{ route('fund-requests.resubmit', $fundRequest) }}" class="mt-2.5">
+            @csrf
+            <button type="submit" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold bg-orange-50 text-orange-600 hover:bg-orange-100 transition-colors border-0 cursor-pointer">
+                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0115.36-6.36L21 8M21 3v5h-5M21 12a9 9 0 01-15.36 6.36L3 16m0 5v-5h5"/></svg>
+                Ajukan Ulang
+            </button>
+            <div class="text-[11px] text-slate-400 mt-1">Bikin draft baru terisi data pengajuan ini, tinggal koreksi lalu submit.</div>
+        </form>
         @endif
     </div>
 </div>
