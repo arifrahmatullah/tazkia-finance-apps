@@ -371,12 +371,12 @@
 
 {{-- Modal: Edit tanggal per termin --}}
 <div id="modal-edit" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4" style="background:rgba(0,0,0,.35)">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
-        <div class="flex items-center justify-between mb-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full {{ $hasMultipleDetails ? 'max-w-lg' : 'max-w-sm' }} flex flex-col" style="max-height:88vh;">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
             <h3 class="text-sm font-bold text-slate-900" id="modal-edit-title">Edit Termin</h3>
             <button type="button" onclick="closeEdit()" class="text-slate-400 hover:text-slate-600 border-0 bg-transparent cursor-pointer text-lg leading-none">×</button>
         </div>
-        <div class="flex flex-col gap-3">
+        <div class="flex flex-col gap-3 px-6 py-4 overflow-y-auto" style="min-height:0;">
             <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-1.5">Tanggal Estimasi</label>
                 <input type="date" id="edit-date" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:border-orange-400 transition-colors">
@@ -394,18 +394,18 @@
             </div>
             @if($hasMultipleDetails)
             <div id="edit-breakdown-wrap" class="border-t border-slate-100 pt-3">
-                <label class="block text-xs font-semibold text-slate-600 mb-1.5">
+                <label class="block text-xs font-semibold text-slate-600 mb-2">
                     Breakdown per Rincian <span class="font-normal text-slate-400">(jumlahnya harus sama persis dengan Nominal Termin Ini)</span>
                 </label>
-                <div id="edit-breakdown-rows" class="flex flex-col gap-2"></div>
-                <div class="flex items-center justify-between mt-2 text-[11px]">
+                <div id="edit-breakdown-rows" class="flex flex-col gap-2.5"></div>
+                <div class="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-100 text-[11px]">
                     <span class="text-slate-400">Jumlah breakdown: <span id="edit-breakdown-sum" class="font-mono font-semibold text-slate-700">Rp 0</span></span>
                     <span id="edit-breakdown-match" class="font-semibold"></span>
                 </div>
             </div>
             @endif
         </div>
-        <div class="flex gap-2.5 mt-5">
+        <div class="flex gap-2.5 px-6 py-4 border-t border-slate-100 shrink-0">
             <button type="button" id="edit-save-btn" onclick="saveEdit()"
                 class="flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-br from-orange-400 to-orange-500 text-white text-sm font-semibold border-0 cursor-pointer hover:-translate-y-px transition-all disabled:opacity-40 disabled:cursor-not-allowed">
                 Simpan
@@ -499,16 +499,22 @@ function fmtEditAmount(input) {
     checkBreakdownMatch();
 }
 
+function escHtmlEdit(str) {
+    return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 function renderBreakdown(scheduleId) {
     const wrap = document.getElementById('edit-breakdown-wrap');
     if (!wrap) return; // program cuma 1 rincian -- tidak ada breakdown
 
     const details = scheduleDetailsMap[scheduleId] || [];
     const rowsEl = document.getElementById('edit-breakdown-rows');
+    // Deskripsi ditaruh DI ATAS input (bukan sebaris) supaya nama rincian yang panjang tetap
+    // terbaca penuh, tidak kepotong "...".
     rowsEl.innerHTML = details.map(d => `
-        <div class="flex items-center gap-2">
-            <span class="flex-1 text-xs text-slate-600 truncate" title="${d.description}">${d.description}</span>
-            <input type="text" inputmode="numeric" class="edit-breakdown-input w-32 px-2 py-1.5 border border-slate-200 rounded-lg text-right font-mono text-xs outline-none focus:border-orange-400"
+        <div>
+            <label class="block text-[11px] text-slate-500 mb-1 leading-snug">${escHtmlEdit(d.description)}</label>
+            <input type="text" inputmode="numeric" class="edit-breakdown-input w-full px-3 py-2 border border-slate-200 rounded-lg text-right font-mono text-xs outline-none focus:border-orange-400"
                 data-detail-id="${d.id}" value="${Math.round(d.unit_price).toLocaleString('id-ID')}"
                 oninput="onBreakdownInput(this)">
         </div>
