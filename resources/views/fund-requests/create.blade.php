@@ -458,7 +458,14 @@ function onLineCheckToggle(checkbox) {
         hiddenPrice.value = 0;
         document.getElementById(`line-total-${id}`).textContent = fmt(0);
     } else {
+        // Otomatis isi nominal dari sisa plafon rincian ini di program kerja -- tinggal
+        // diedit manual kalau mau nominal yang lebih kecil (tetap dibatasi ke sisa plafon).
+        const ceiling = parseFloat(priceInput.dataset.ceiling) || 0;
+        priceInput.value = ceiling ? ceiling.toLocaleString('id-ID') : '';
+        hiddenPrice.value = ceiling;
+        document.getElementById(`line-total-${id}`).textContent = fmt(ceiling);
         priceInput.focus();
+        priceInput.select();
     }
 
     recalcTotal();
