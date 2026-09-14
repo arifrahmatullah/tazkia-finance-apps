@@ -5,7 +5,7 @@
         <h2 class="text-lg font-bold text-slate-900 m-0 mb-0.5">Program Kerja</h2>
         <p class="text-xs text-slate-400 m-0">Daftar program kerja per departemen dan periode anggaran</p>
     </div>
-    @if($canCreate && !($filterLabel === 'Jabatan' && $jabatanRows->count() > 1))
+    @if($canCreate && !auth()->user()->isSuperAdmin() && !($filterLabel === 'Jabatan' && $jabatanRows->count() > 1))
     <a href="{{ route('budget-programs.create') }}"
         class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-br from-orange-400 to-orange-500 text-white text-sm font-semibold shadow-sm hover:-translate-y-px transition-all no-underline">
         <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
