@@ -236,6 +236,16 @@
                     Tolak
                 </button>
                 @endif
+                @if($filterStatus === 'approved' && $fr->canBeCancelled())
+                <button type="button"
+                    class="btn-cancel-req inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors border-0 cursor-pointer"
+                    data-cancel-url="{{ route('fund-requests.cancel', $fr) }}"
+                    data-ref="{{ $fr->reference }}"
+                    data-title="{{ $fr->title }}">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+                    Batalkan
+                </button>
+                @endif
             </div>
         </div>
     </div>
@@ -322,18 +332,52 @@
     </div>
 </div>
 
+{{-- Cancel Modal --}}
+<div class="fixed inset-0 z-[999] bg-slate-900/50 backdrop-blur-sm items-center justify-center" id="cancel-overlay" style="display:none;">
+    <div class="bg-white rounded-2xl w-[420px] max-w-[90vw] shadow-2xl overflow-hidden">
+        <div class="px-6 py-5 border-b border-slate-100 flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center flex-shrink-0">
+                <svg width="18" height="18" fill="none" stroke="#475569" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+            </div>
+            <div>
+                <div class="text-sm font-bold text-slate-700">Batalkan Pengajuan</div>
+                <div id="cancel-ref" class="text-[11px] text-slate-500 mt-0.5"></div>
+            </div>
+        </div>
+        <form id="cancel-form" method="POST" action="">
+            @csrf
+            <div class="px-6 py-5">
+                <label class="text-xs font-semibold text-slate-600 block mb-1.5">Alasan Pembatalan <span class="text-red-500">*</span></label>
+                <textarea name="notes" rows="3" class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-colors resize-none" placeholder="Contoh: salah input nominal, dibuat ulang." required></textarea>
+                <div class="text-[11px] text-slate-400 mt-1.5">Catatan wajib diisi untuk pembatalan.</div>
+            </div>
+            <div class="px-6 py-4 border-t border-slate-100 flex gap-2 justify-end">
+                <button type="button" id="cancel-req-cancel" class="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 border border-slate-200 text-sm font-medium cursor-pointer hover:bg-slate-200 transition-colors">Tutup</button>
+                <button type="submit" class="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-semibold bg-slate-600 text-white border-0 cursor-pointer hover:bg-slate-700 transition-colors shadow-sm">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+                    Ya, Batalkan
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
 (function() {
     var approveOverlay = document.getElementById('approve-overlay');
     var rejectOverlay  = document.getElementById('reject-overlay');
+    var cancelOverlay  = document.getElementById('cancel-overlay');
     var approveForm    = document.getElementById('approve-form');
     var rejectForm     = document.getElementById('reject-form');
+    var cancelForm     = document.getElementById('cancel-form');
 
     function closeModals() {
         approveOverlay.style.display = 'none';
         rejectOverlay.style.display  = 'none';
+        cancelOverlay.style.display  = 'none';
         approveForm.querySelector('textarea').value = '';
         rejectForm.querySelector('textarea').value  = '';
+        cancelForm.querySelector('textarea').value  = '';
     }
 
     document.querySelectorAll('.btn-approve').forEach(function(btn) {
@@ -352,11 +396,21 @@
         });
     });
 
+    document.querySelectorAll('.btn-cancel-req').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            cancelForm.action = btn.dataset.cancelUrl;
+            document.getElementById('cancel-ref').textContent = btn.dataset.ref + ' — ' + btn.dataset.title;
+            cancelOverlay.style.display = 'flex';
+        });
+    });
+
     document.getElementById('approve-cancel').addEventListener('click', closeModals);
     document.getElementById('reject-cancel').addEventListener('click', closeModals);
+    document.getElementById('cancel-req-cancel').addEventListener('click', closeModals);
 
     approveOverlay.addEventListener('click', function(e) { if (e.target === e.currentTarget) closeModals(); });
     rejectOverlay.addEventListener('click',  function(e) { if (e.target === e.currentTarget) closeModals(); });
+    cancelOverlay.addEventListener('click',  function(e) { if (e.target === e.currentTarget) closeModals(); });
     document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeModals(); });
 })();
 </script>
