@@ -139,28 +139,28 @@
             <div id="fund-request-no-match" class="hidden text-xs text-slate-400 italic px-1 py-2">Tidak ada pengajuan yang cocok dengan pencarian.</div>
         </div>
 
-        <div id="fund-request-total-bar" class="hidden mt-3 flex items-center justify-between gap-3 px-3 py-2.5 bg-blue-50 border border-blue-100 rounded-xl flex-wrap">
-            <div class="text-xs text-blue-700">
-                <span id="fund-request-total-count" class="font-bold">0</span> pengajuan dipilih ·
-                Total <span id="fund-request-total-amount" class="font-mono font-bold">Rp 0</span>
-            </div>
-            <button type="button" id="fund-request-fill-amount"
-                class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white border-0 cursor-pointer hover:bg-blue-700 transition-colors">
-                Isi ke Jumlah Saldo Diajukan
-            </button>
+        <div id="fund-request-selected-hint" class="hidden mt-2 text-xs text-blue-700">
+            <span id="fund-request-total-count" class="font-bold">0</span> pengajuan dipilih, totalnya otomatis terisi ke "Jumlah Saldo Diajukan" di bawah.
         </div>
         @endif
     </div>
 
-    <div class="flex justify-end gap-2">
-        <a href="{{ route('cash-topup-requests.index') }}"
-            class="inline-flex items-center px-5 py-2.5 rounded-xl text-sm font-semibold bg-slate-100 text-slate-600 no-underline hover:bg-slate-200 transition-colors">
-            Batal
-        </a>
-        <button type="submit"
-            class="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 cursor-pointer hover:opacity-90 transition-opacity shadow-sm">
-            Kirim Pengajuan ke Yayasan
-        </button>
+    {{-- Footer sticky: total & tombol kirim selalu kelihatan tanpa perlu scroll ke atas/bawah --}}
+    <div class="sticky bottom-0 z-10 bg-white border border-slate-200 rounded-xl shadow-[0_-6px_20px_rgba(15,23,42,0.08)] px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
+        <div>
+            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Jumlah Saldo Diajukan</div>
+            <div id="footer-total-amount" class="text-2xl font-extrabold text-slate-900 font-mono">Rp 0</div>
+        </div>
+        <div class="flex gap-2">
+            <a href="{{ route('cash-topup-requests.index') }}"
+                class="inline-flex items-center px-5 py-2.5 rounded-xl text-sm font-semibold bg-slate-100 text-slate-600 no-underline hover:bg-slate-200 transition-colors">
+                Batal
+            </a>
+            <button type="submit"
+                class="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 cursor-pointer hover:opacity-90 transition-opacity shadow-sm">
+                Kirim Pengajuan ke Yayasan
+            </button>
+        </div>
     </div>
 </form>
 
@@ -172,36 +172,43 @@ document.getElementById('organization-select').addEventListener('change', functi
 </script>
 @endif
 
-@if($candidateFundRequests->isNotEmpty())
 <script>
 (function () {
-    var searchInput = document.getElementById('fund-request-search');
-    var rows        = Array.prototype.slice.call(document.querySelectorAll('.fund-request-row'));
-    var noMatch     = document.getElementById('fund-request-no-match');
-    var selectAll   = document.getElementById('fund-request-select-all');
-    var checkboxes  = Array.prototype.slice.call(document.querySelectorAll('.fund-request-checkbox'));
-    var totalBar    = document.getElementById('fund-request-total-bar');
-    var totalCount  = document.getElementById('fund-request-total-count');
-    var totalAmount = document.getElementById('fund-request-total-amount');
-    var fillBtn     = document.getElementById('fund-request-fill-amount');
-    var amountInput = document.getElementById('amount-input');
+    var amountInput  = document.getElementById('amount-input');
+    var footerAmount = document.getElementById('footer-total-amount');
+
+    function syncFooter() {
+        var val = parseFloat(amountInput.value || '0');
+        footerAmount.textContent = 'Rp ' + (isNaN(val) ? 0 : val).toLocaleString('id-ID');
+    }
+
+    amountInput.addEventListener('input', syncFooter);
+    syncFooter();
+
+    @if($candidateFundRequests->isNotEmpty())
+    var searchInput   = document.getElementById('fund-request-search');
+    var rows          = Array.prototype.slice.call(document.querySelectorAll('.fund-request-row'));
+    var noMatch       = document.getElementById('fund-request-no-match');
+    var selectAll     = document.getElementById('fund-request-select-all');
+    var checkboxes    = Array.prototype.slice.call(document.querySelectorAll('.fund-request-checkbox'));
+    var selectedHint  = document.getElementById('fund-request-selected-hint');
+    var selectedCount = document.getElementById('fund-request-total-count');
 
     function visibleCheckboxes() {
         return checkboxes.filter(function (cb) { return !cb.closest('.fund-request-row').classList.contains('hidden'); });
     }
 
-    function updateTotal() {
+    // Setiap centang berubah, "Jumlah Saldo Diajukan" otomatis diisi ulang dengan
+    // total dari yang dicentang -- user masih bisa mengubahnya manual setelahnya.
+    function updateAmountFromChecklist() {
         var checked = checkboxes.filter(function (cb) { return cb.checked; });
         var total = checked.reduce(function (sum, cb) { return sum + parseFloat(cb.dataset.amount || '0'); }, 0);
 
-        if (checked.length === 0) {
-            totalBar.classList.add('hidden');
-        } else {
-            totalBar.classList.remove('hidden');
-            totalCount.textContent = checked.length;
-            totalAmount.textContent = 'Rp ' + total.toLocaleString('id-ID');
-            fillBtn.dataset.total = total;
-        }
+        selectedHint.classList.toggle('hidden', checked.length === 0);
+        selectedCount.textContent = checked.length;
+
+        amountInput.value = total || '';
+        syncFooter();
     }
 
     function updateSelectAllState() {
@@ -228,25 +235,20 @@ document.getElementById('organization-select').addEventListener('change', functi
 
     selectAll.addEventListener('change', function () {
         visibleCheckboxes().forEach(function (cb) { cb.checked = selectAll.checked; });
-        updateTotal();
+        updateAmountFromChecklist();
         updateSelectAllState();
     });
 
     checkboxes.forEach(function (cb) {
         cb.addEventListener('change', function () {
-            updateTotal();
+            updateAmountFromChecklist();
             updateSelectAllState();
         });
     });
 
-    fillBtn.addEventListener('click', function () {
-        amountInput.value = this.dataset.total || 0;
-    });
-
-    updateTotal();
     updateSelectAllState();
+    @endif
 })();
 </script>
-@endif
 
 </x-layouts.app>
