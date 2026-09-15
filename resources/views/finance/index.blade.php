@@ -405,12 +405,12 @@
                             <span id="disburse-account-name" class="font-medium"></span>
                         </div>
                     </div>
-                    {{-- Peringatan saldo kurang --}}
+                    {{-- Peringatan saldo kurang/kosong --}}
                     <div id="disburse-balance-warning" class="mt-2 hidden">
                         <div class="flex items-start gap-2 px-3 py-2.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
                             <svg width="14" height="14" class="flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
                             <div>
-                                Saldo rekening ini tidak cukup untuk pencairan ini.
+                                <span id="disburse-balance-warning-text">Saldo rekening ini tidak cukup untuk pencairan ini.</span>
                                 @if($canRequestTopup ?? false)
                                 <a href="{{ route('cash-topup-requests.create') }}" class="font-semibold underline">Ajukan saldo ke Yayasan &rarr;</a>
                                 @endif
@@ -455,15 +455,21 @@
         allAccounts = JSON.parse(document.getElementById('disburse-account-data').textContent || '[]');
     } catch (e) { allAccounts = []; }
 
+    var accWarnText = document.getElementById('disburse-balance-warning-text');
+    var orgAccounts = [];
+
+    function fmtRupiah(n) { return 'Rp ' + Number(n).toLocaleString('id-ID'); }
+
     function populateAccounts(organizationId) {
         if (!accSel) return;
         accSel.innerHTML = '<option value="">— Pilih Rekening Bank —</option>';
-        allAccounts.filter(function (a) { return a.organization_id === organizationId; }).forEach(function (a) {
+        orgAccounts = allAccounts.filter(function (a) { return a.organization_id === organizationId; });
+        orgAccounts.forEach(function (a) {
             var opt = document.createElement('option');
             opt.value = a.id;
             opt.dataset.code = a.code;
             opt.dataset.balance = a.balance;
-            opt.textContent = a.name + ' (Rp ' + Number(a.balance).toLocaleString('id-ID') + ')';
+            opt.textContent = a.name + ' (' + (Number(a.balance) <= 0 ? 'Saldo kosong' : 'Saldo ' + fmtRupiah(a.balance)) + ')';
             accSel.appendChild(opt);
         });
     }
@@ -474,13 +480,47 @@
         if (accSel) { accSel.value = ''; if (accInfo) accInfo.classList.add('hidden'); if (accWarn) accWarn.classList.add('hidden'); }
     }
 
+    function showWarning(text) {
+        if (accWarnText) accWarnText.textContent = text;
+        if (accWarn) accWarn.classList.remove('hidden');
+    }
+
+    function hideWarning() {
+        if (accWarn) accWarn.classList.add('hidden');
+    }
+
     function checkBalance() {
-        if (!accSel || !accSel.value) { if (accWarn) accWarn.classList.add('hidden'); if (submitBtn) submitBtn.disabled = false; return; }
-        var opt = accSel.options[accSel.selectedIndex];
-        var balance = parseFloat(opt.dataset.balance || '0');
-        var insufficient = balance < currentAmount;
-        if (accWarn) accWarn.classList.toggle('hidden', !insufficient);
-        if (submitBtn) submitBtn.disabled = insufficient;
+        if (accSel && accSel.value) {
+            // Rekening tertentu sudah dipilih -- cek saldo rekening itu saja.
+            var opt = accSel.options[accSel.selectedIndex];
+            var balance = parseFloat(opt.dataset.balance || '0');
+            var insufficient = balance < currentAmount;
+            if (insufficient) {
+                showWarning(balance <= 0
+                    ? 'Saldo rekening ini kosong.'
+                    : 'Saldo rekening ini (' + fmtRupiah(balance) + ') tidak cukup untuk pencairan ini.');
+            } else {
+                hideWarning();
+            }
+            if (submitBtn) submitBtn.disabled = insufficient;
+            return;
+        }
+
+        // Belum pilih rekening -- kasih tau lebih awal kalau SEMUA rekening organisasi ini
+        // saldonya tidak cukup, tanpa nunggu user pilih satu-satu dulu.
+        if (submitBtn) submitBtn.disabled = false;
+        if (orgAccounts.length === 0) {
+            showWarning('Organisasi ini belum punya rekening bank yang terdaftar.');
+            return;
+        }
+        var maxBalance = Math.max.apply(null, orgAccounts.map(function (a) { return parseFloat(a.balance || 0); }));
+        if (maxBalance < currentAmount) {
+            showWarning(maxBalance <= 0
+                ? 'Semua rekening organisasi ini saldonya kosong.'
+                : 'Saldo tertinggi di organisasi ini cuma ' + fmtRupiah(maxBalance) + ', belum cukup untuk pencairan ini.');
+        } else {
+            hideWarning();
+        }
     }
 
     document.querySelectorAll('.btn-disburse').forEach(function (btn) {
