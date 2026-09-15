@@ -108,9 +108,17 @@
         @if($candidateFundRequests->isEmpty())
         <div class="text-xs text-slate-400 italic">Tidak ada pengajuan dana berstatus disetujui & belum cair pada organisasi ini.</div>
         @else
+        <div class="relative mb-3">
+            <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input type="text" id="fund-request-search" placeholder="Cari referensi, judul, departemen, atau program kerja..."
+                class="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-400 transition-colors">
+        </div>
         <div class="flex flex-col gap-2 max-h-72 overflow-y-auto" id="fund-request-checklist">
             @foreach($candidateFundRequests as $fr)
-            <label class="flex items-start gap-3 px-3 py-2.5 border border-slate-100 rounded-xl hover:bg-slate-50 cursor-pointer">
+            @php
+                $searchText = strtolower($fr->reference . ' ' . $fr->title . ' ' . ($fr->department->name ?? '') . ' ' . ($fr->budgetProgram->name ?? ''));
+            @endphp
+            <label class="fund-request-row flex items-start gap-3 px-3 py-2.5 border border-slate-100 rounded-xl hover:bg-slate-50 cursor-pointer" data-search="{{ $searchText }}">
                 <input type="checkbox" name="fund_request_ids[]" value="{{ $fr->id }}" data-amount="{{ $fr->amount }}" class="mt-0.5 fund-request-checkbox">
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center justify-between gap-2 flex-wrap">
@@ -122,6 +130,7 @@
                 </div>
             </label>
             @endforeach
+            <div id="fund-request-no-match" class="hidden text-xs text-slate-400 italic px-1 py-2">Tidak ada pengajuan yang cocok dengan pencarian.</div>
         </div>
 
         <div id="fund-request-total-bar" class="hidden mt-3 flex items-center justify-between gap-3 px-3 py-2.5 bg-blue-50 border border-blue-100 rounded-xl flex-wrap">
@@ -160,6 +169,23 @@ document.getElementById('organization-select').addEventListener('change', functi
 @if($candidateFundRequests->isNotEmpty())
 <script>
 (function () {
+    var searchInput = document.getElementById('fund-request-search');
+    var rows        = document.querySelectorAll('.fund-request-row');
+    var noMatch     = document.getElementById('fund-request-no-match');
+
+    if (searchInput) {
+        searchInput.addEventListener('input', function () {
+            var q = this.value.trim().toLowerCase();
+            var visibleCount = 0;
+            rows.forEach(function (row) {
+                var match = !q || row.dataset.search.indexOf(q) !== -1;
+                row.classList.toggle('hidden', !match);
+                if (match) visibleCount++;
+            });
+            noMatch.classList.toggle('hidden', visibleCount > 0);
+        });
+    }
+
     var checkboxes = document.querySelectorAll('.fund-request-checkbox');
     var totalBar    = document.getElementById('fund-request-total-bar');
     var totalCount  = document.getElementById('fund-request-total-count');
