@@ -13,6 +13,7 @@ use App\Http\Controllers\IncomeEstimateDetailController;
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\ApprovalSettingController;
 use App\Http\Controllers\BankReconciliationController;
+use App\Http\Controllers\CashTopupRequestController;
 use App\Http\Controllers\FinanceController;
 use App\Http\Controllers\FixedAssetController;
 use App\Http\Controllers\FundApprovalController;
@@ -166,6 +167,13 @@ Route::middleware(['auth', 'role.selected'])->group(function () {
         Route::get('finance/pengembalian', [FinanceController::class, 'pengembalianIndex'])->name('finance.pengembalian');
         Route::post('finance/pengembalian/{fundRefund}/confirm', [FinanceController::class, 'confirmRefund'])->name('finance.pengembalian.confirm');
         Route::post('finance/pengembalian/{fundRefund}/reject', [FinanceController::class, 'rejectRefund'])->name('finance.pengembalian.reject');
+        // Pengajuan Saldo ke Yayasan (top-up rekening ke organisasi induk)
+        Route::get('cash-topup-requests/create', [CashTopupRequestController::class, 'create'])->name('cash-topup-requests.create');
+        Route::post('cash-topup-requests', [CashTopupRequestController::class, 'store'])->name('cash-topup-requests.store');
+        Route::get('cash-topup-requests', [CashTopupRequestController::class, 'index'])->name('cash-topup-requests.index');
+        Route::get('cash-topup-requests/{cashTopupRequest}', [CashTopupRequestController::class, 'show'])->name('cash-topup-requests.show');
+        Route::post('cash-topup-requests/{cashTopupRequest}/approve', [CashTopupRequestController::class, 'approve'])->name('cash-topup-requests.approve');
+        Route::post('cash-topup-requests/{cashTopupRequest}/reject', [CashTopupRequestController::class, 'reject'])->name('cash-topup-requests.reject');
     });
 
     // Rekonsiliasi Bank

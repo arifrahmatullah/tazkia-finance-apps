@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Account;
+use App\Models\CashTopupRequest;
 use App\Models\FundRefund;
 use App\Models\FundReport;
 use App\Models\FundRequest;
@@ -194,6 +195,54 @@ class FundJournalService
         );
 
         return [$entry, null];
+    }
+
+    // Posting saldo yang disetujui Yayasan: DUA jurnal terpisah (beda organisasi), sama
+    // seperti transfer antar-perusahaan biasa -- masing-masing sisi mencatat sesuai akun yang
+    // dipilih sendiri saat itu (Kampus/STMIK saat mengajukan, Yayasan saat approve):
+    //   - Sisi Kampus/STMIK : Dr rekening tujuan (target_account)     / Cr akun lawan Kampus (source_credit_account)
+    //   - Sisi Yayasan      : Dr akun lawan Yayasan (yayasan_debit)   / Cr rekening sumber Yayasan (yayasan_source)
+    // Dua source_type berbeda dipakai (meski source_id sama) supaya existingEntry() bisa
+    // menemukan masing-masing entry secara independen kalau approve() dipanggil ulang.
+    public function postCashTopupApproval(CashTopupRequest $topup, User $user): array
+    {
+        // load() (bukan loadMissing()) karena caller baru saja update() kolom yayasan_source_account_id
+        // / yayasan_debit_account_id di instance yang sama -- loadMissing() akan melewatkan relasi yang
+        // sebelumnya sempat ke-cache null (mis. dari show() sebelum approval) walau kolomnya sudah terisi.
+        $topup->load(['requestingOrganization', 'targetAccount', 'sourceCreditAccount', 'yayasanSourceAccount', 'yayasanDebitAccount']);
+
+        $amount = (float) $topup->amount;
+        $desc   = 'Pengajuan saldo ' . $topup->reference . ' -- ' . $topup->requestingOrganization->name;
+
+        $childEntry = $this->existingEntry('cash_topup_request.child', $topup->id);
+        if (!$childEntry) {
+            $childEntry = $this->createEntry(
+                $topup->requesting_organization_id,
+                $user,
+                'cash_topup_request.child',
+                $topup->id,
+                $desc,
+                $topup->targetAccount,
+                $topup->sourceCreditAccount,
+                $amount,
+            );
+        }
+
+        $yayasanEntry = $this->existingEntry('cash_topup_request.yayasan', $topup->id);
+        if (!$yayasanEntry) {
+            $yayasanEntry = $this->createEntry(
+                $topup->yayasanDebitAccount->organization_id,
+                $user,
+                'cash_topup_request.yayasan',
+                $topup->id,
+                $desc,
+                $topup->yayasanDebitAccount,
+                $topup->yayasanSourceAccount,
+                $amount,
+            );
+        }
+
+        return [$childEntry, $yayasanEntry, null];
     }
 
     private function createEntry(

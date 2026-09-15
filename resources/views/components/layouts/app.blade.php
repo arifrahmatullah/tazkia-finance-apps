@@ -331,9 +331,18 @@
             $budgetChangeApprovalCount = $canSeeBudgetChangeApprovals
                 ? app(\App\Services\BudgetProgramChangeService::class)->pendingFor(auth()->user())->count()
                 : 0;
-            $approvalActive = request()->routeIs('fund-approvals.*') || request()->routeIs('budget-program-change-requests.*');
+            $topupOrgIds = auth()->user()->organizationIds();
+            $canSeeTopupApprovals = auth()->user()->hasPermission('menu.pencairan-dana')
+                && ($topupOrgIds === null || auth()->user()->isSuperAdmin()
+                    || \App\Models\Organization::whereIn('parent_id', $topupOrgIds)->exists());
+            $topupApprovalCount = $canSeeTopupApprovals
+                ? \App\Models\CashTopupRequest::where('status', 'pending')
+                    ->whereHas('requestingOrganization', fn($q) => $q->when($topupOrgIds !== null, fn($sq) => $sq->whereIn('parent_id', $topupOrgIds)))
+                    ->count()
+                : 0;
+            $approvalActive = request()->routeIs('fund-approvals.*') || request()->routeIs('budget-program-change-requests.*') || request()->routeIs('cash-topup-requests.*');
         @endphp
-        @if($canSeeInboxApproval || $canSeeBudgetChangeApprovals)
+        @if($canSeeInboxApproval || $canSeeBudgetChangeApprovals || $canSeeTopupApprovals)
         <div>
             <div class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg cursor-pointer text-[0.835rem] transition-all relative
                         {{ $approvalActive ? 'active bg-orange-500/[0.15] text-white font-[550]' : 'text-slate-300/85 font-[450] hover:bg-white/10 hover:text-white' }}"
@@ -343,7 +352,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
                 </svg>
                 Approval
-                @php $totalApprovalCount = $inboxWaitingCount + $budgetChangeApprovalCount; @endphp
+                @php $totalApprovalCount = $inboxWaitingCount + $budgetChangeApprovalCount + $topupApprovalCount; @endphp
                 @if($totalApprovalCount > 0)
                 <span class="ml-auto mr-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full bg-red-500 text-white text-[10px] font-bold leading-none">{{ $totalApprovalCount }}</span>
                 @endif
@@ -370,6 +379,16 @@
                     Approval Program Kerja
                     @if($budgetChangeApprovalCount > 0)
                     <span class="ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full bg-red-500 text-white text-[10px] font-bold leading-none">{{ $budgetChangeApprovalCount }}</span>
+                    @endif
+                </a>
+                @endif
+                @if($canSeeTopupApprovals)
+                <a href="{{ route('cash-topup-requests.index') }}"
+                   class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
+                          {{ request()->routeIs('cash-topup-requests.*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">
+                    Approval Saldo
+                    @if($topupApprovalCount > 0)
+                    <span class="ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full bg-red-500 text-white text-[10px] font-bold leading-none">{{ $topupApprovalCount }}</span>
                     @endif
                 </a>
                 @endif
@@ -416,6 +435,9 @@
                 <a href="{{ route('finance.pengembalian') }}"
                    class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
                           {{ request()->routeIs('finance.pengembalian*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Pengembalian Dana</a>
+                <a href="{{ route('cash-topup-requests.index') }}"
+                   class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
+                          {{ request()->routeIs('cash-topup-requests.*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Pengajuan Saldo</a>
             </div>
         </div>
         @endif

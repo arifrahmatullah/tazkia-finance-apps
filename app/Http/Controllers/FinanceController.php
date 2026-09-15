@@ -54,16 +54,24 @@ class FinanceController extends Controller
             ->whereDoesntHave('disbursementProofs')
             ->count();
 
-        // Akun bank dari COA: semua akun dengan kode di bawah 1.1.01.01 (REKENING BANK)
+        // Akun bank dari COA: akun dengan kode di bawah 1.1.01.01 (REKENING BANK), diambil
+        // per organisasi karena tiap organisasi (Kampus/STMIK/Yayasan) punya rekening sendiri.
         $bankAccounts = Account::where('code', 'LIKE', '1.1.01.01.%')
             ->where('is_active', true)
             ->where('is_header', false)
-            ->orderBy('code')
-            ->get(['id', 'code', 'name']);
+            ->when($orgIds !== null, fn($q) => $q->whereIn('organization_id', $orgIds))
+            ->orderBy('organization_id')->orderBy('code')
+            ->get(['id', 'organization_id', 'code', 'name'])
+            ->each(fn($a) => $a->balance = $a->currentBalance());
 
         $filterStatus = $request->get('status', '');
 
-        return view('finance.index', compact('fundRequests', 'organizations', 'filterStatus', 'bankAccounts', 'missingProofCount'));
+        // Dipakai untuk menampilkan link "Ajukan saldo ke Yayasan" saat saldo kurang --
+        // hanya relevan buat organisasi yang punya induk (Kampus/STMIK), bukan Yayasan sendiri.
+        $canRequestTopup = $orgIds === null
+            || Organization::whereNotNull('parent_id')->whereIn('id', $orgIds)->exists();
+
+        return view('finance.index', compact('fundRequests', 'organizations', 'filterStatus', 'bankAccounts', 'missingProofCount', 'canRequestTopup'));
     }
 
     public function disburse(Request $request, FundRequest $fundRequest)
@@ -76,8 +84,21 @@ class FinanceController extends Controller
             'disbursement_notes'  => 'nullable|string|max:500',
         ]);
 
-        $account = Account::findOrFail($request->disburse_account_id);
+        $account = Account::where('id', $request->disburse_account_id)
+            ->where('organization_id', $fundRequest->organization_id)
+            ->firstOrFail();
         $user    = auth()->user();
+
+        $balance = $account->currentBalance();
+        $amount  = (float) $fundRequest->amount;
+        if ($balance < $amount) {
+            $message = 'Saldo rekening ' . $account->name . ' (Rp ' . number_format($balance, 0, ',', '.') .
+                ') tidak cukup untuk mencairkan Rp ' . number_format($amount, 0, ',', '.') . '.';
+            if ($fundRequest->organization?->parent_id) {
+                $message .= ' Ajukan saldo ke Yayasan lewat menu "Pengajuan Saldo".';
+            }
+            return back()->withErrors(['disburse_account_id' => $message]);
+        }
 
         $fundRequest->update([
             'disbursed_at'        => now(),

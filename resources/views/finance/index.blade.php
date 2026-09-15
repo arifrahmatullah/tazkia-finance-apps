@@ -282,7 +282,9 @@
                     class="btn-disburse inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 cursor-pointer hover:opacity-90 transition-opacity shadow-sm"
                     data-disburse-url="{{ route('finance.disburse', $fr) }}"
                     data-ref="{{ $fr->reference }}"
-                    data-amount="Rp {{ number_format($fr->amount, 0, ',', '.') }}">
+                    data-amount="Rp {{ number_format($fr->amount, 0, ',', '.') }}"
+                    data-amount-raw="{{ $fr->amount }}"
+                    data-organization-id="{{ $fr->organization_id }}">
                     <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
                     Cairkan
                 </button>
@@ -391,16 +393,28 @@
                     <select name="disburse_account_id" id="disburse-account-select" required
                         class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-colors">
                         <option value="">— Pilih Rekening Bank —</option>
-                        @foreach($bankAccounts as $acc)
-                        <option value="{{ $acc->id }}" data-code="{{ $acc->code }}">{{ $acc->name }}</option>
-                        @endforeach
                     </select>
+                    <script id="disburse-account-data" type="application/json">
+                        {{ $bankAccounts->map(fn($a) => ['id' => $a->id, 'code' => $a->code, 'name' => $a->name, 'balance' => $a->balance, 'organization_id' => $a->organization_id])->values()->toJson() }}
+                    </script>
                     {{-- Info akun terpilih --}}
                     <div id="disburse-account-info" class="mt-2 hidden">
                         <div class="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-100 rounded-lg text-xs text-blue-700">
                             <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
                             <span id="disburse-account-code" class="font-mono font-semibold"></span>
                             <span id="disburse-account-name" class="font-medium"></span>
+                        </div>
+                    </div>
+                    {{-- Peringatan saldo kurang --}}
+                    <div id="disburse-balance-warning" class="mt-2 hidden">
+                        <div class="flex items-start gap-2 px-3 py-2.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
+                            <svg width="14" height="14" class="flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+                            <div>
+                                Saldo rekening ini tidak cukup untuk pencairan ini.
+                                @if($canRequestTopup ?? false)
+                                <a href="{{ route('cash-topup-requests.create') }}" class="font-semibold underline">Ajukan saldo ke Yayasan &rarr;</a>
+                                @endif
+                            </div>
                         </div>
                     </div>
                     @endif
@@ -429,23 +443,55 @@
 <script>
 (function () {
     // Disburse modal
-    var overlay = document.getElementById('disburse-overlay');
-    var form    = document.getElementById('disburse-form');
-    var accSel  = document.getElementById('disburse-account-select');
-    var accInfo = document.getElementById('disburse-account-info');
+    var overlay  = document.getElementById('disburse-overlay');
+    var form     = document.getElementById('disburse-form');
+    var accSel   = document.getElementById('disburse-account-select');
+    var accInfo  = document.getElementById('disburse-account-info');
+    var accWarn  = document.getElementById('disburse-balance-warning');
+    var submitBtn = form.querySelector('button[type="submit"]');
+    var currentAmount = 0;
+    var allAccounts = [];
+    try {
+        allAccounts = JSON.parse(document.getElementById('disburse-account-data').textContent || '[]');
+    } catch (e) { allAccounts = []; }
+
+    function populateAccounts(organizationId) {
+        if (!accSel) return;
+        accSel.innerHTML = '<option value="">— Pilih Rekening Bank —</option>';
+        allAccounts.filter(function (a) { return a.organization_id === organizationId; }).forEach(function (a) {
+            var opt = document.createElement('option');
+            opt.value = a.id;
+            opt.dataset.code = a.code;
+            opt.dataset.balance = a.balance;
+            opt.textContent = a.name + ' (Rp ' + Number(a.balance).toLocaleString('id-ID') + ')';
+            accSel.appendChild(opt);
+        });
+    }
 
     function closeDisburse() {
         overlay.style.display = 'none';
         form.querySelector('textarea').value = '';
-        if (accSel) { accSel.value = ''; if (accInfo) accInfo.classList.add('hidden'); }
+        if (accSel) { accSel.value = ''; if (accInfo) accInfo.classList.add('hidden'); if (accWarn) accWarn.classList.add('hidden'); }
+    }
+
+    function checkBalance() {
+        if (!accSel || !accSel.value) { if (accWarn) accWarn.classList.add('hidden'); if (submitBtn) submitBtn.disabled = false; return; }
+        var opt = accSel.options[accSel.selectedIndex];
+        var balance = parseFloat(opt.dataset.balance || '0');
+        var insufficient = balance < currentAmount;
+        if (accWarn) accWarn.classList.toggle('hidden', !insufficient);
+        if (submitBtn) submitBtn.disabled = insufficient;
     }
 
     document.querySelectorAll('.btn-disburse').forEach(function (btn) {
         btn.addEventListener('click', function () {
             form.action = btn.dataset.disburseUrl;
+            currentAmount = parseFloat(btn.dataset.amountRaw || '0');
             document.getElementById('disburse-ref').textContent    = btn.dataset.ref;
             document.getElementById('disburse-amount').textContent = btn.dataset.amount;
+            populateAccounts(btn.dataset.organizationId);
             overlay.style.display = 'flex';
+            checkBalance();
         });
     });
 
@@ -459,6 +505,7 @@
             } else if (accInfo) {
                 accInfo.classList.add('hidden');
             }
+            checkBalance();
         });
     }
 
