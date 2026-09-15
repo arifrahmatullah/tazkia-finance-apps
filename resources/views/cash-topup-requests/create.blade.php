@@ -86,9 +86,10 @@
                 <label class="text-xs font-semibold text-slate-600 block mb-1.5">Jumlah Saldo Diajukan <span class="text-red-500">*</span></label>
                 <div class="relative">
                     <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">Rp</span>
-                    <input type="number" name="amount" id="amount-input" min="1" step="1" required
+                    <input type="text" id="amount-display" inputmode="numeric" required
                         class="w-full pl-9 pr-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-colors font-mono"
-                        placeholder="0" value="{{ old('amount') }}">
+                        placeholder="0" value="{{ old('amount') ? number_format(old('amount'), 0, ',', '.') : '' }}">
+                    <input type="hidden" name="amount" id="amount-input" value="{{ old('amount') }}">
                 </div>
             </div>
         </div>
@@ -177,15 +178,27 @@ document.getElementById('organization-select').addEventListener('change', functi
 
 <script>
 (function () {
-    var amountInput  = document.getElementById('amount-input');
-    var footerAmount = document.getElementById('footer-total-amount');
+    var amountInput   = document.getElementById('amount-input');
+    var amountDisplay = document.getElementById('amount-display');
+    var footerAmount  = document.getElementById('footer-total-amount');
 
     function syncFooter() {
         var val = parseFloat(amountInput.value || '0');
         footerAmount.textContent = 'Rp ' + (isNaN(val) ? 0 : val).toLocaleString('id-ID');
     }
 
-    amountInput.addEventListener('input', syncFooter);
+    // Field nominal ditampilkan berformat "1.000.000" (id-ID) -- nilai mentahnya
+    // (tanpa titik) disimpan di input hidden #amount-input yang dikirim ke server.
+    function setAmount(raw) {
+        amountInput.value = raw || '';
+        amountDisplay.value = raw ? parseInt(raw, 10).toLocaleString('id-ID') : '';
+        syncFooter();
+    }
+
+    amountDisplay.addEventListener('input', function () {
+        setAmount(this.value.replace(/[^\d]/g, ''));
+    });
+
     syncFooter();
 
     @if($candidateFundRequests->isNotEmpty())
@@ -210,8 +223,7 @@ document.getElementById('organization-select').addEventListener('change', functi
         selectedHint.classList.toggle('hidden', checked.length === 0);
         selectedCount.textContent = checked.length;
 
-        amountInput.value = total || '';
-        syncFooter();
+        setAmount(total || '');
     }
 
     function updateSelectAllState() {
