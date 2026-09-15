@@ -108,10 +108,16 @@
         @if($candidateFundRequests->isEmpty())
         <div class="text-xs text-slate-400 italic">Tidak ada pengajuan dana berstatus disetujui & belum cair pada organisasi ini.</div>
         @else
-        <div class="relative mb-3">
-            <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-            <input type="text" id="fund-request-search" placeholder="Cari referensi, judul, departemen, atau program kerja..."
-                class="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-400 transition-colors">
+        <div class="flex items-center gap-2 mb-3 flex-wrap">
+            <div class="relative flex-1 min-w-[200px]">
+                <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                <input type="text" id="fund-request-search" placeholder="Cari referensi, judul, departemen, atau program kerja..."
+                    class="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-400 transition-colors">
+            </div>
+            <label class="flex items-center gap-1.5 px-3 py-2 border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 cursor-pointer hover:bg-slate-50 transition-colors whitespace-nowrap">
+                <input type="checkbox" id="fund-request-select-all">
+                Pilih Semua
+            </label>
         </div>
         <div class="flex flex-col gap-2 max-h-72 overflow-y-auto" id="fund-request-checklist">
             @foreach($candidateFundRequests as $fr)
@@ -170,8 +176,41 @@ document.getElementById('organization-select').addEventListener('change', functi
 <script>
 (function () {
     var searchInput = document.getElementById('fund-request-search');
-    var rows        = document.querySelectorAll('.fund-request-row');
+    var rows        = Array.prototype.slice.call(document.querySelectorAll('.fund-request-row'));
     var noMatch     = document.getElementById('fund-request-no-match');
+    var selectAll   = document.getElementById('fund-request-select-all');
+    var checkboxes  = Array.prototype.slice.call(document.querySelectorAll('.fund-request-checkbox'));
+    var totalBar    = document.getElementById('fund-request-total-bar');
+    var totalCount  = document.getElementById('fund-request-total-count');
+    var totalAmount = document.getElementById('fund-request-total-amount');
+    var fillBtn     = document.getElementById('fund-request-fill-amount');
+    var amountInput = document.getElementById('amount-input');
+
+    function visibleCheckboxes() {
+        return checkboxes.filter(function (cb) { return !cb.closest('.fund-request-row').classList.contains('hidden'); });
+    }
+
+    function updateTotal() {
+        var checked = checkboxes.filter(function (cb) { return cb.checked; });
+        var total = checked.reduce(function (sum, cb) { return sum + parseFloat(cb.dataset.amount || '0'); }, 0);
+
+        if (checked.length === 0) {
+            totalBar.classList.add('hidden');
+        } else {
+            totalBar.classList.remove('hidden');
+            totalCount.textContent = checked.length;
+            totalAmount.textContent = 'Rp ' + total.toLocaleString('id-ID');
+            fillBtn.dataset.total = total;
+        }
+    }
+
+    function updateSelectAllState() {
+        var visible = visibleCheckboxes();
+        var checkedVisible = visible.filter(function (cb) { return cb.checked; });
+        selectAll.disabled = visible.length === 0;
+        selectAll.checked = visible.length > 0 && checkedVisible.length === visible.length;
+        selectAll.indeterminate = checkedVisible.length > 0 && checkedVisible.length < visible.length;
+    }
 
     if (searchInput) {
         searchInput.addEventListener('input', function () {
@@ -183,37 +222,29 @@ document.getElementById('organization-select').addEventListener('change', functi
                 if (match) visibleCount++;
             });
             noMatch.classList.toggle('hidden', visibleCount > 0);
+            updateSelectAllState();
         });
     }
 
-    var checkboxes = document.querySelectorAll('.fund-request-checkbox');
-    var totalBar    = document.getElementById('fund-request-total-bar');
-    var totalCount  = document.getElementById('fund-request-total-count');
-    var totalAmount = document.getElementById('fund-request-total-amount');
-    var fillBtn     = document.getElementById('fund-request-fill-amount');
-    var amountInput = document.getElementById('amount-input');
+    selectAll.addEventListener('change', function () {
+        visibleCheckboxes().forEach(function (cb) { cb.checked = selectAll.checked; });
+        updateTotal();
+        updateSelectAllState();
+    });
 
-    function updateTotal() {
-        var checked = Array.prototype.filter.call(checkboxes, function (cb) { return cb.checked; });
-        var total = checked.reduce(function (sum, cb) { return sum + parseFloat(cb.dataset.amount || '0'); }, 0);
-
-        if (checked.length === 0) {
-            totalBar.classList.add('hidden');
-            return;
-        }
-        totalBar.classList.remove('hidden');
-        totalCount.textContent = checked.length;
-        totalAmount.textContent = 'Rp ' + total.toLocaleString('id-ID');
-        fillBtn.dataset.total = total;
-    }
-
-    checkboxes.forEach(function (cb) { cb.addEventListener('change', updateTotal); });
+    checkboxes.forEach(function (cb) {
+        cb.addEventListener('change', function () {
+            updateTotal();
+            updateSelectAllState();
+        });
+    });
 
     fillBtn.addEventListener('click', function () {
         amountInput.value = this.dataset.total || 0;
     });
 
     updateTotal();
+    updateSelectAllState();
 })();
 </script>
 @endif
