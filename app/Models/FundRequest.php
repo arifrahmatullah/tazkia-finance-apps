@@ -123,6 +123,12 @@ class FundRequest extends Model
         return $this->hasMany(FundRefund::class)->latest();
     }
 
+    public function cashTopupRequests()
+    {
+        return $this->belongsToMany(CashTopupRequest::class, 'cash_topup_request_fund_requests')
+            ->withTimestamps();
+    }
+
     // Jenis "pembayaran" langsung ditransfer ke tujuan (vendor/tagihan),
     // bukan ke rekening pengaju, sehingga tidak perlu laporan penggunaan dana.
     public function needsReport(): bool

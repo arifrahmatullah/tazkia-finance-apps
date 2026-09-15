@@ -6,8 +6,14 @@ use App\Models\Account;
 use App\Models\CashTopupRequest;
 use App\Models\FundRequest;
 use App\Models\Organization;
+use App\Models\Role;
+use App\Models\User;
+use App\Models\UserOrganizationRole;
+use App\Notifications\CashTopupRequestStatusChanged;
+use App\Notifications\CashTopupRequestSubmitted;
 use App\Services\FundJournalService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class CashTopupRequestController extends Controller
@@ -47,7 +53,9 @@ class CashTopupRequestController extends Controller
             ->where('is_active', true)->where('is_header', false)
             ->orderBy('code')->get(['id', 'code', 'name']);
 
-        $candidateFundRequests = FundRequest::with(['department', 'budgetProgram'])
+        $candidateFundRequests = FundRequest::with(['department', 'budgetProgram', 'cashTopupRequests' => function ($q) {
+                $q->orderByDesc('created_at');
+            }])
             ->where('organization_id', $organizationId)
             ->where('status', 'approved')
             ->whereNull('disbursed_at')
@@ -77,6 +85,25 @@ class CashTopupRequestController extends Controller
             ->get();
 
         return $matches->count() === 1 ? $matches->first() : null;
+    }
+
+    // User yang perlu dinotifikasi sebagai "approver" pengajuan saldo di organisasi induk:
+    // superadmin, atau siapapun yang punya permission menu.pencairan-dana lewat role yang
+    // di-assign ke organisasi induk tsb (atau role tanpa organisasi = akses semua organisasi).
+    private function notifiableApprovers(string $parentOrganizationId): Collection
+    {
+        $roleIds = Role::where('slug', 'superadmin')
+            ->orWhereHas('permissions', fn($q) => $q->where('slug', 'menu.pencairan-dana'))
+            ->pluck('id');
+
+        $userIds = UserOrganizationRole::whereIn('role_id', $roleIds)
+            ->where(function ($q) use ($parentOrganizationId) {
+                $q->where('organization_id', $parentOrganizationId)->orWhereNull('organization_id');
+            })
+            ->pluck('user_id')
+            ->unique();
+
+        return User::whereIn('id', $userIds)->where('is_active', true)->get();
     }
 
     public function store(Request $request)
@@ -139,6 +166,9 @@ class CashTopupRequestController extends Controller
 
             return $topup;
         });
+
+        $this->notifiableApprovers($organization->parent_id)
+            ->each(fn($approver) => $approver->notify(new CashTopupRequestSubmitted($topup)));
 
         return redirect()->route('cash-topup-requests.show', $topup)
             ->with('success', 'Pengajuan saldo ' . $topup->reference . ' berhasil dikirim ke Yayasan.');
@@ -247,6 +277,11 @@ class CashTopupRequestController extends Controller
 
         [$childEntry, $yayasanEntry, $warning] = $this->journal->postCashTopupApproval($cashTopupRequest, $user);
 
+        $requesterUser = $cashTopupRequest->requestedBy?->user;
+        if ($requesterUser) {
+            $requesterUser->notify(new CashTopupRequestStatusChanged($cashTopupRequest->fresh()));
+        }
+
         $message = 'Pengajuan saldo ' . $cashTopupRequest->reference . ' disetujui.';
         if ($childEntry && $yayasanEntry) {
             $message .= ' Jurnal ' . $childEntry->reference . ' & ' . $yayasanEntry->reference . ' diposting.';
@@ -276,6 +311,11 @@ class CashTopupRequestController extends Controller
             'reviewed_at'  => now(),
             'review_notes' => $data['review_notes'],
         ]);
+
+        $requesterUser = $cashTopupRequest->requestedBy?->user;
+        if ($requesterUser) {
+            $requesterUser->notify(new CashTopupRequestStatusChanged($cashTopupRequest->fresh(), $data['review_notes']));
+        }
 
         return redirect()->route('cash-topup-requests.show', $cashTopupRequest)
             ->with('success', 'Pengajuan saldo ditolak.');

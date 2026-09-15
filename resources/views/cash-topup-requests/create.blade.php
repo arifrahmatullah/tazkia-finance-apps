@@ -124,6 +124,12 @@
             @foreach($candidateFundRequests as $fr)
             @php
                 $searchText = strtolower($fr->reference . ' ' . $fr->title . ' ' . ($fr->department->name ?? '') . ' ' . ($fr->budgetProgram->name ?? ''));
+                $lastTopup  = $fr->cashTopupRequests->first();
+                $topupBadge = [
+                    'pending'  => ['bg' => 'bg-orange-100', 'text' => 'text-orange-700', 'label' => 'menunggu approval'],
+                    'approved' => ['bg' => 'bg-green-100',  'text' => 'text-green-700',  'label' => 'disetujui'],
+                    'rejected' => ['bg' => 'bg-slate-100',  'text' => 'text-slate-500',  'label' => 'ditolak'],
+                ][$lastTopup->status ?? ''] ?? null;
             @endphp
             <label class="fund-request-row flex items-start gap-3 px-3 py-2.5 border border-slate-100 rounded-xl hover:bg-slate-50 cursor-pointer" data-search="{{ $searchText }}">
                 <input type="checkbox" name="fund_request_ids[]" value="{{ $fr->id }}" data-amount="{{ $fr->amount }}" class="mt-0.5 fund-request-checkbox">
@@ -134,6 +140,13 @@
                     </div>
                     <div class="text-xs text-slate-700 font-medium">{{ $fr->title }}</div>
                     <div class="text-[11px] text-slate-400">{{ $fr->department->name ?? '-' }} · {{ $fr->budgetProgram->name ?? '-' }}</div>
+                    @if($lastTopup && $topupBadge)
+                    <div class="mt-1">
+                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold {{ $topupBadge['bg'] }} {{ $topupBadge['text'] }}">
+                            Sudah dilampirkan ke {{ $lastTopup->reference }} ({{ $topupBadge['label'] }})
+                        </span>
+                    </div>
+                    @endif
                 </div>
             </label>
             @endforeach
