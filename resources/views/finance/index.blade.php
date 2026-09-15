@@ -395,7 +395,7 @@
                         <option value="">— Pilih Rekening Bank —</option>
                     </select>
                     <script id="disburse-account-data" type="application/json">
-                        {{ $bankAccounts->map(fn($a) => ['id' => $a->id, 'code' => $a->code, 'name' => $a->name, 'balance' => $a->balance, 'organization_id' => $a->organization_id])->values()->toJson() }}
+                        {!! $bankAccounts->map(fn($a) => ['id' => $a->id, 'code' => $a->code, 'name' => $a->name, 'balance' => $a->balance, 'organization_id' => $a->organization_id])->values()->toJson() !!}
                     </script>
                     {{-- Info akun terpilih --}}
                     <div id="disburse-account-info" class="mt-2 hidden">
