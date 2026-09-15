@@ -86,7 +86,7 @@
                 <label class="text-xs font-semibold text-slate-600 block mb-1.5">Jumlah Saldo Diajukan <span class="text-red-500">*</span></label>
                 <div class="relative">
                     <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">Rp</span>
-                    <input type="number" name="amount" min="1" step="1" required
+                    <input type="number" name="amount" id="amount-input" min="1" step="1" required
                         class="w-full pl-9 pr-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-colors font-mono"
                         placeholder="0" value="{{ old('amount') }}">
                 </div>
@@ -108,10 +108,10 @@
         @if($candidateFundRequests->isEmpty())
         <div class="text-xs text-slate-400 italic">Tidak ada pengajuan dana berstatus disetujui & belum cair pada organisasi ini.</div>
         @else
-        <div class="flex flex-col gap-2 max-h-72 overflow-y-auto">
+        <div class="flex flex-col gap-2 max-h-72 overflow-y-auto" id="fund-request-checklist">
             @foreach($candidateFundRequests as $fr)
             <label class="flex items-start gap-3 px-3 py-2.5 border border-slate-100 rounded-xl hover:bg-slate-50 cursor-pointer">
-                <input type="checkbox" name="fund_request_ids[]" value="{{ $fr->id }}" class="mt-0.5">
+                <input type="checkbox" name="fund_request_ids[]" value="{{ $fr->id }}" data-amount="{{ $fr->amount }}" class="mt-0.5 fund-request-checkbox">
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center justify-between gap-2 flex-wrap">
                         <span class="font-mono text-xs font-bold text-orange-500">{{ $fr->reference }}</span>
@@ -122,6 +122,17 @@
                 </div>
             </label>
             @endforeach
+        </div>
+
+        <div id="fund-request-total-bar" class="hidden mt-3 flex items-center justify-between gap-3 px-3 py-2.5 bg-blue-50 border border-blue-100 rounded-xl flex-wrap">
+            <div class="text-xs text-blue-700">
+                <span id="fund-request-total-count" class="font-bold">0</span> pengajuan dipilih ·
+                Total <span id="fund-request-total-amount" class="font-mono font-bold">Rp 0</span>
+            </div>
+            <button type="button" id="fund-request-fill-amount"
+                class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white border-0 cursor-pointer hover:bg-blue-700 transition-colors">
+                Isi ke Jumlah Saldo Diajukan
+            </button>
         </div>
         @endif
     </div>
@@ -143,6 +154,41 @@
 document.getElementById('organization-select').addEventListener('change', function () {
     window.location.href = '{{ route('cash-topup-requests.create') }}?organization_id=' + this.value;
 });
+</script>
+@endif
+
+@if($candidateFundRequests->isNotEmpty())
+<script>
+(function () {
+    var checkboxes = document.querySelectorAll('.fund-request-checkbox');
+    var totalBar    = document.getElementById('fund-request-total-bar');
+    var totalCount  = document.getElementById('fund-request-total-count');
+    var totalAmount = document.getElementById('fund-request-total-amount');
+    var fillBtn     = document.getElementById('fund-request-fill-amount');
+    var amountInput = document.getElementById('amount-input');
+
+    function updateTotal() {
+        var checked = Array.prototype.filter.call(checkboxes, function (cb) { return cb.checked; });
+        var total = checked.reduce(function (sum, cb) { return sum + parseFloat(cb.dataset.amount || '0'); }, 0);
+
+        if (checked.length === 0) {
+            totalBar.classList.add('hidden');
+            return;
+        }
+        totalBar.classList.remove('hidden');
+        totalCount.textContent = checked.length;
+        totalAmount.textContent = 'Rp ' + total.toLocaleString('id-ID');
+        fillBtn.dataset.total = total;
+    }
+
+    checkboxes.forEach(function (cb) { cb.addEventListener('change', updateTotal); });
+
+    fillBtn.addEventListener('click', function () {
+        amountInput.value = this.dataset.total || 0;
+    });
+
+    updateTotal();
+})();
 </script>
 @endif
 
