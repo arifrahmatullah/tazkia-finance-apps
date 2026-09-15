@@ -59,7 +59,16 @@
                 @endif
             </div>
             <div>
-                <label class="text-xs font-semibold text-slate-600 block mb-1.5">Akun Lawan (sisi organisasi Anda) <span class="text-red-500">*</span></label>
+                <label class="text-xs font-semibold text-slate-600 block mb-1.5">Akun Lawan (sisi organisasi Anda)</label>
+                @if($autoContraAccount)
+                <div class="flex items-center gap-2 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700">
+                    <svg width="14" height="14" class="text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+                    <span class="font-mono font-semibold text-slate-500">{{ $autoContraAccount->code }}</span>
+                    <span>{{ $autoContraAccount->name }}</span>
+                </div>
+                <input type="hidden" name="source_credit_account_id" value="{{ $autoContraAccount->id }}">
+                <p class="text-[11px] text-slate-400 mt-1">Terisi otomatis dari akun Hutang Antar Entitas yang sudah ada di Bagan Akun -- tidak perlu diubah.</p>
+                @else
                 <select name="source_credit_account_id" required
                     class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-colors">
                     <option value="">— Pilih Akun —</option>
@@ -67,7 +76,8 @@
                     <option value="{{ $acc->id }}">{{ $acc->code }} — {{ $acc->name }}</option>
                     @endforeach
                 </select>
-                <p class="text-[11px] text-slate-400 mt-1">Contoh: akun "Utang ke Yayasan" atau akun antar-unit lain sesuai kebijakan organisasi Anda.</p>
+                <p class="text-[11px] text-slate-400 mt-1">Sistem tidak menemukan akun Hutang Antar Entitas yang cocok otomatis -- pilih akun kewajiban yang sesuai, atau hubungi Akunting kalau ragu.</p>
+                @endif
             </div>
         </div>
 

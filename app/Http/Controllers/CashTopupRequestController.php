@@ -21,14 +21,15 @@ class CashTopupRequestController extends Controller
         $user   = auth()->user();
         $orgIds = $user->organizationIds();
 
-        $organizations = Organization::whereNotNull('parent_id')
+        $organizations = Organization::whereNotNull('parent_id')->with('parent')
             ->when($orgIds !== null, fn($q) => $q->whereIn('id', $orgIds))
             ->orderBy('name')->get();
 
         abort_if($organizations->isEmpty(), 403, 'Organisasi Anda tidak memiliki organisasi induk (Yayasan), tidak bisa mengajukan saldo.');
 
         $organizationId = $request->get('organization_id', $organizations->first()->id);
-        abort_unless($organizations->pluck('id')->contains($organizationId), 403);
+        $organization   = $organizations->firstWhere('id', $organizationId);
+        abort_unless($organization, 403);
 
         $targetAccounts = Account::where('organization_id', $organizationId)
             ->where('code', 'LIKE', '1.1.01.01.%')
@@ -36,9 +37,15 @@ class CashTopupRequestController extends Controller
             ->orderBy('code')->get(['id', 'code', 'name'])
             ->each(fn($a) => $a->balance = $a->currentBalance());
 
-        $ledgerAccounts = Account::where('organization_id', $organizationId)
+        $autoContraAccount = $this->detectContraAccount($organization);
+
+        // Kalau tidak ketemu akun hutang antar-entitas yang jelas, tampilkan pilihan
+        // manual -- dipersempit ke akun KEWAJIBAN saja (bukan seluruh COA) supaya
+        // Keuangan yang bukan latar belakang akunting tidak bingung pilih dari semua tipe akun.
+        $ledgerAccounts = $autoContraAccount ? collect() : Account::where('organization_id', $organizationId)
+            ->where('account_type', 'kewajiban')
             ->where('is_active', true)->where('is_header', false)
-            ->orderBy('code')->get(['id', 'code', 'name', 'account_type']);
+            ->orderBy('code')->get(['id', 'code', 'name']);
 
         $candidateFundRequests = FundRequest::with(['department', 'budgetProgram'])
             ->where('organization_id', $organizationId)
@@ -48,8 +55,28 @@ class CashTopupRequestController extends Controller
             ->get();
 
         return view('cash-topup-requests.create', compact(
-            'organizations', 'organizationId', 'targetAccounts', 'ledgerAccounts', 'candidateFundRequests'
+            'organizations', 'organizationId', 'targetAccounts', 'ledgerAccounts', 'autoContraAccount', 'candidateFundRequests'
         ));
+    }
+
+    // Cari otomatis akun kewajiban "Hutang Antar Entitas" milik organisasi yang namanya
+    // menyebut organisasi induknya (mis. "Hutang ke Yayasan Tazkia Cendekia" untuk Kampus
+    // yang induknya "Yayasan Tazkia") -- supaya Keuangan tidak perlu pilih akun akunting
+    // sendiri. Kalau ketemu tidak persis satu, biarkan caller jatuh balik ke dropdown manual.
+    private function detectContraAccount(Organization $organization): ?Account
+    {
+        if (!$organization->parent) {
+            return null;
+        }
+
+        $matches = Account::where('organization_id', $organization->id)
+            ->where('account_type', 'kewajiban')
+            ->where('is_header', false)
+            ->where('is_active', true)
+            ->where('name', 'LIKE', '%' . $organization->parent->name . '%')
+            ->get();
+
+        return $matches->count() === 1 ? $matches->first() : null;
     }
 
     public function store(Request $request)
@@ -59,7 +86,7 @@ class CashTopupRequestController extends Controller
         $data = $request->validate([
             'organization_id'          => 'required|exists:organizations,id',
             'target_account_id'        => 'required|exists:accounts,id',
-            'source_credit_account_id' => 'required|exists:accounts,id|different:target_account_id',
+            'source_credit_account_id' => 'nullable|exists:accounts,id|different:target_account_id',
             'amount'                   => 'required|numeric|min:1',
             'notes'                    => 'nullable|string|max:1000',
             'fund_request_ids'         => 'nullable|array',
@@ -68,13 +95,22 @@ class CashTopupRequestController extends Controller
 
         abort_unless($user->canAccessOrganization($data['organization_id']), 403);
 
-        $organization = Organization::findOrFail($data['organization_id']);
+        $organization = Organization::with('parent')->findOrFail($data['organization_id']);
         abort_unless($organization->parent_id, 422, 'Organisasi ini tidak memiliki organisasi induk (Yayasan).');
 
         $targetAccount = Account::where('id', $data['target_account_id'])
             ->where('organization_id', $organization->id)->firstOrFail();
-        $creditAccount = Account::where('id', $data['source_credit_account_id'])
-            ->where('organization_id', $organization->id)->firstOrFail();
+
+        // Utamakan hasil auto-detect server-side (bukan percaya input client) -- kalau tidak
+        // ketemu, baru pakai akun yang dipilih manual dari dropdown (fallback).
+        $creditAccount = $this->detectContraAccount($organization);
+        if (!$creditAccount) {
+            abort_unless(!empty($data['source_credit_account_id']), 422, 'Akun lawan wajib dipilih.');
+            $creditAccount = Account::where('id', $data['source_credit_account_id'])
+                ->where('organization_id', $organization->id)
+                ->where('account_type', 'kewajiban')
+                ->firstOrFail();
+        }
 
         $employee = $user->employee;
         abort_unless($employee, 403, 'Akun ini belum terhubung dengan data karyawan.');
