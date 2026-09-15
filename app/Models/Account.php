@@ -53,4 +53,20 @@ class Account extends Model
     {
         return self::TYPES[$this->account_type]['color'] ?? '#64748b';
     }
+
+    // Saldo berjalan akun ini dari SEMUA jurnal yang sudah posted (termasuk saldo awal, yang
+    // disimpan sebagai jurnal biasa dengan source_type 'beginning_balance') -- sama seperti
+    // logic Buku Besar di FinanceReportController, cuma dijadikan satu method yang bisa dipakai
+    // ulang (mis. buat cek saldo rekening sebelum pencairan).
+    public function currentBalance(): float
+    {
+        $sign = $this->normal_balance === 'kredit' ? -1 : 1;
+
+        $totals = JournalEntryLine::where('account_id', $this->id)
+            ->whereHas('journalEntry', fn($q) => $q->where('status', 'posted'))
+            ->selectRaw('COALESCE(SUM(debit), 0) as d, COALESCE(SUM(credit), 0) as c')
+            ->first();
+
+        return $sign * ((float) $totals->d - (float) $totals->c);
+    }
 }
