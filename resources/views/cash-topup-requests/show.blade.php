@@ -279,6 +279,11 @@
     document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') { closeApprove(); closeReject(); }
     });
+
+    // Deep-link dari list (?action=approve / ?action=reject) -- buka modal terkait otomatis
+    var action = new URLSearchParams(window.location.search).get('action');
+    if (action === 'approve') openApprove();
+    if (action === 'reject') openReject();
 })();
 </script>
 @endif
