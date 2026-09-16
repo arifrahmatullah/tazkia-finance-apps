@@ -256,9 +256,11 @@ class CashTopupRequestController extends Controller
 
         $balance = $sourceAccount->currentBalance();
         $amount  = (float) $data['amount'];
-        abort_if($balance < $amount, 422,
-            'Saldo rekening sumber Yayasan (Rp ' . number_format($balance, 0, ',', '.') .
-            ') tidak cukup untuk mengisi Rp ' . number_format($amount, 0, ',', '.') . '.');
+        if ($balance < $amount) {
+            return back()->withErrors(['yayasan_source_account_id' =>
+                'Saldo rekening ' . $sourceAccount->name . ' (Rp ' . number_format($balance, 0, ',', '.') .
+                ') tidak cukup untuk mengisi Rp ' . number_format($amount, 0, ',', '.') . '.']);
+        }
 
         $employee = $user->employee;
         abort_unless($employee, 403, 'Akun ini belum terhubung dengan data karyawan.');
@@ -365,7 +367,10 @@ class CashTopupRequestController extends Controller
 
     public function approve(Request $request, CashTopupRequest $cashTopupRequest)
     {
-        abort_unless($cashTopupRequest->isPending(), 422, 'Pengajuan ini sudah diproses sebelumnya.');
+        if (!$cashTopupRequest->isPending()) {
+            return redirect()->route('cash-topup-requests.show', $cashTopupRequest)
+                ->withErrors(['general' => 'Pengajuan ini sudah diproses sebelumnya.']);
+        }
 
         $user = auth()->user();
         $cashTopupRequest->loadMissing('requestingOrganization');
@@ -387,9 +392,11 @@ class CashTopupRequestController extends Controller
 
         $balance = $sourceAccount->currentBalance();
         $amount  = (float) $cashTopupRequest->amount;
-        abort_if($balance < $amount, 422,
-            'Saldo rekening sumber Yayasan (Rp ' . number_format($balance, 0, ',', '.') .
-            ') tidak cukup untuk menyetujui Rp ' . number_format($amount, 0, ',', '.') . '.');
+        if ($balance < $amount) {
+            return back()->withErrors(['yayasan_source_account_id' =>
+                'Saldo rekening ' . $sourceAccount->name . ' (Rp ' . number_format($balance, 0, ',', '.') .
+                ') tidak cukup untuk menyetujui Rp ' . number_format($amount, 0, ',', '.') . '.']);
+        }
 
         $proof = $request->file('proof');
         $path  = $proof->store('cash-topup-requests/' . $cashTopupRequest->id, 'public');
@@ -423,7 +430,10 @@ class CashTopupRequestController extends Controller
 
     public function reject(Request $request, CashTopupRequest $cashTopupRequest)
     {
-        abort_unless($cashTopupRequest->isPending(), 422, 'Pengajuan ini sudah diproses sebelumnya.');
+        if (!$cashTopupRequest->isPending()) {
+            return redirect()->route('cash-topup-requests.show', $cashTopupRequest)
+                ->withErrors(['general' => 'Pengajuan ini sudah diproses sebelumnya.']);
+        }
 
         $user = auth()->user();
         $cashTopupRequest->loadMissing('requestingOrganization');
