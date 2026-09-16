@@ -145,66 +145,138 @@
 
 @if($canApprove)
 <div class="bg-white rounded-xl shadow-sm p-5">
-    <div class="text-sm font-bold text-slate-900 mb-3">Approval Yayasan</div>
-
-    <form method="POST" action="{{ route('cash-topup-requests.approve', $cashTopupRequest) }}" enctype="multipart/form-data" class="flex flex-col gap-4 mb-5">
-        @csrf
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-                <label class="text-xs font-semibold text-slate-600 block mb-1.5">Rekening Sumber Yayasan <span class="text-red-500">*</span></label>
-                <select name="yayasan_source_account_id" required
-                    class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-colors">
-                    <option value="">— Pilih Rekening —</option>
-                    @foreach($yayasanAccounts as $acc)
-                    <option value="{{ $acc->id }}">{{ $acc->name }} (saldo: Rp {{ number_format($acc->balance, 0, ',', '.') }})</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="text-xs font-semibold text-slate-600 block mb-1.5">Akun Lawan Yayasan <span class="text-red-500">*</span></label>
-                <select name="yayasan_debit_account_id" required
-                    class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-colors">
-                    <option value="">— Pilih Akun —</option>
-                    @foreach($yayasanAccounts as $acc)
-                    <option value="{{ $acc->id }}">{{ $acc->code }} — {{ $acc->name }}</option>
-                    @endforeach
-                </select>
-                <p class="text-[11px] text-slate-400 mt-1">Contoh: akun "Piutang ke {{ $cashTopupRequest->requestingOrganization->name }}".</p>
-            </div>
-        </div>
+    <div class="flex items-center justify-between gap-3 flex-wrap">
         <div>
-            <label class="text-xs font-semibold text-slate-600 block mb-1.5">Bukti Transfer <span class="text-red-500">*</span></label>
-            <input type="file" name="proof" required accept=".pdf,.jpg,.jpeg,.png"
-                class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-colors">
+            <div class="text-sm font-bold text-slate-900">Approval Yayasan</div>
+            <p class="text-xs text-slate-400 mt-0.5">Pengajuan ini menunggu keputusan Anda.</p>
         </div>
-        <div>
-            <label class="text-xs font-semibold text-slate-600 block mb-1.5">Catatan <span class="text-slate-400 font-normal">(opsional)</span></label>
-            <textarea name="review_notes" rows="2"
-                class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-colors resize-none"></textarea>
-        </div>
-        <div class="flex justify-end">
-            <button type="submit"
-                class="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-br from-green-500 to-green-600 text-white border-0 cursor-pointer hover:opacity-90 transition-opacity shadow-sm">
-                Setujui & Transfer
+        <div class="flex gap-2">
+            <button type="button" id="btn-open-reject"
+                class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-gradient-to-br from-red-500 to-red-600 text-white border-0 cursor-pointer hover:opacity-90 transition-opacity shadow-sm">
+                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                Tolak
+            </button>
+            <button type="button" id="btn-open-approve"
+                class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-gradient-to-br from-green-500 to-green-600 text-white border-0 cursor-pointer hover:opacity-90 transition-opacity shadow-sm">
+                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+                Setujui
             </button>
         </div>
-    </form>
-
-    <form method="POST" action="{{ route('cash-topup-requests.reject', $cashTopupRequest) }}" class="flex flex-col gap-3 pt-4 border-t border-slate-100">
-        @csrf
-        <div>
-            <label class="text-xs font-semibold text-slate-600 block mb-1.5">Alasan Penolakan <span class="text-red-500">*</span></label>
-            <textarea name="review_notes" rows="2" required
-                class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100 transition-colors resize-none"></textarea>
-        </div>
-        <div class="flex justify-end">
-            <button type="submit"
-                class="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-semibold bg-red-50 text-red-600 border-0 cursor-pointer hover:bg-red-100 transition-colors">
-                Tolak Pengajuan
-            </button>
-        </div>
-    </form>
+    </div>
 </div>
+
+{{-- Approve Modal --}}
+<div class="fixed inset-0 z-[999] bg-slate-900/50 backdrop-blur-sm items-center justify-center" id="approve-overlay" style="display:none;">
+    <div class="bg-white rounded-2xl w-[460px] max-w-[92vw] shadow-2xl overflow-hidden">
+        <div class="px-6 py-5 border-b border-slate-100 flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-green-100 flex items-center justify-center flex-shrink-0">
+                <svg width="18" height="18" fill="none" stroke="#16a34a" stroke-width="2.5" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+            </div>
+            <div>
+                <div class="text-sm font-bold text-green-700">Setujui & Transfer Saldo</div>
+                <div class="text-[11px] text-slate-500 mt-0.5">{{ $cashTopupRequest->reference }} · Rp {{ number_format($cashTopupRequest->amount, 0, ',', '.') }}</div>
+            </div>
+        </div>
+        <form method="POST" action="{{ route('cash-topup-requests.approve', $cashTopupRequest) }}" enctype="multipart/form-data">
+            @csrf
+            <div class="px-6 py-5 flex flex-col gap-4 max-h-[65vh] overflow-y-auto">
+                <div>
+                    <label class="text-xs font-semibold text-slate-600 block mb-1.5">Rekening Sumber Yayasan <span class="text-red-500">*</span></label>
+                    <select name="yayasan_source_account_id" required
+                        class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100 transition-colors">
+                        <option value="">— Pilih Rekening —</option>
+                        @foreach($yayasanAccounts as $acc)
+                        <option value="{{ $acc->id }}">{{ $acc->name }} (saldo: Rp {{ number_format($acc->balance, 0, ',', '.') }})</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-slate-600 block mb-1.5">Akun Lawan Yayasan <span class="text-red-500">*</span></label>
+                    <select name="yayasan_debit_account_id" required
+                        class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100 transition-colors">
+                        <option value="">— Pilih Akun —</option>
+                        @foreach($yayasanAccounts as $acc)
+                        <option value="{{ $acc->id }}">{{ $acc->code }} — {{ $acc->name }}</option>
+                        @endforeach
+                    </select>
+                    <p class="text-[11px] text-slate-400 mt-1">Contoh: akun "Piutang ke {{ $cashTopupRequest->requestingOrganization->name }}".</p>
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-slate-600 block mb-1.5">Bukti Transfer <span class="text-red-500">*</span></label>
+                    <input type="file" name="proof" required accept=".pdf,.jpg,.jpeg,.png"
+                        class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100 transition-colors">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-slate-600 block mb-1.5">Catatan <span class="text-slate-400 font-normal">(opsional)</span></label>
+                    <textarea name="review_notes" rows="2"
+                        class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100 transition-colors resize-none"></textarea>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-slate-100 flex gap-2 justify-end">
+                <button type="button" id="approve-cancel" class="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 border border-slate-200 text-sm font-medium cursor-pointer hover:bg-slate-200 transition-colors">Batal</button>
+                <button type="submit" class="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-br from-green-500 to-green-600 text-white border-0 cursor-pointer hover:opacity-90 transition-opacity shadow-sm">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+                    Ya, Setujui & Transfer
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{{-- Reject Modal --}}
+<div class="fixed inset-0 z-[999] bg-slate-900/50 backdrop-blur-sm items-center justify-center" id="reject-overlay" style="display:none;">
+    <div class="bg-white rounded-2xl w-[420px] max-w-[92vw] shadow-2xl overflow-hidden">
+        <div class="px-6 py-5 border-b border-slate-100 flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-red-100 flex items-center justify-center flex-shrink-0">
+                <svg width="18" height="18" fill="none" stroke="#dc2626" stroke-width="2.5" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </div>
+            <div>
+                <div class="text-sm font-bold text-red-600">Tolak Pengajuan Saldo</div>
+                <div class="text-[11px] text-slate-500 mt-0.5">{{ $cashTopupRequest->reference }} · Rp {{ number_format($cashTopupRequest->amount, 0, ',', '.') }}</div>
+            </div>
+        </div>
+        <form method="POST" action="{{ route('cash-topup-requests.reject', $cashTopupRequest) }}">
+            @csrf
+            <div class="px-6 py-5">
+                <label class="text-xs font-semibold text-slate-600 block mb-1.5">Alasan Penolakan <span class="text-red-500">*</span></label>
+                <textarea name="review_notes" rows="3" required placeholder="Jelaskan alasan penolakan..."
+                    class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100 transition-colors resize-none"></textarea>
+                <div class="text-[11px] text-slate-400 mt-1.5">Catatan wajib diisi untuk penolakan.</div>
+            </div>
+            <div class="px-6 py-4 border-t border-slate-100 flex gap-2 justify-end">
+                <button type="button" id="reject-cancel" class="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 border border-slate-200 text-sm font-medium cursor-pointer hover:bg-slate-200 transition-colors">Batal</button>
+                <button type="submit" class="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-br from-red-500 to-red-600 text-white border-0 cursor-pointer hover:opacity-90 transition-opacity shadow-sm">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                    Ya, Tolak
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+(function () {
+    var approveOverlay = document.getElementById('approve-overlay');
+    var rejectOverlay  = document.getElementById('reject-overlay');
+
+    function openApprove() { approveOverlay.style.display = 'flex'; }
+    function closeApprove() { approveOverlay.style.display = 'none'; }
+    function openReject() { rejectOverlay.style.display = 'flex'; }
+    function closeReject() { rejectOverlay.style.display = 'none'; }
+
+    document.getElementById('btn-open-approve').addEventListener('click', openApprove);
+    document.getElementById('btn-open-reject').addEventListener('click', openReject);
+    document.getElementById('approve-cancel').addEventListener('click', closeApprove);
+    document.getElementById('reject-cancel').addEventListener('click', closeReject);
+
+    approveOverlay.addEventListener('click', function (e) { if (e.target === e.currentTarget) closeApprove(); });
+    rejectOverlay.addEventListener('click', function (e) { if (e.target === e.currentTarget) closeReject(); });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') { closeApprove(); closeReject(); }
+    });
+})();
+</script>
 @endif
 
 </x-layouts.app>
