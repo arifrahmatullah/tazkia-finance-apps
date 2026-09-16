@@ -259,7 +259,8 @@ class CashTopupRequestController extends Controller
         if ($balance < $amount) {
             return back()->withErrors(['yayasan_source_account_id' =>
                 'Saldo rekening ' . $sourceAccount->name . ' (Rp ' . number_format($balance, 0, ',', '.') .
-                ') tidak cukup untuk mengisi Rp ' . number_format($amount, 0, ',', '.') . '.']);
+                ') tidak cukup untuk mengisi Rp ' . number_format($amount, 0, ',', '.') . '.'])
+                ->with('insufficientBalanceOrgId', $organization->parent_id);
         }
 
         $employee = $user->employee;
@@ -395,7 +396,8 @@ class CashTopupRequestController extends Controller
         if ($balance < $amount) {
             return back()->withErrors(['yayasan_source_account_id' =>
                 'Saldo rekening ' . $sourceAccount->name . ' (Rp ' . number_format($balance, 0, ',', '.') .
-                ') tidak cukup untuk menyetujui Rp ' . number_format($amount, 0, ',', '.') . '.']);
+                ') tidak cukup untuk menyetujui Rp ' . number_format($amount, 0, ',', '.') . '.'])
+                ->with('insufficientBalanceOrgId', $parentId);
         }
 
         $proof = $request->file('proof');

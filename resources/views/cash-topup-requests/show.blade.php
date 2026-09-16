@@ -15,6 +15,10 @@
     @foreach($errors->all() as $error)
         <div>{{ $error }}</div>
     @endforeach
+    @if(session('insufficientBalanceOrgId'))
+    <a href="{{ route('beginning-balances.index', ['organization_id' => session('insufficientBalanceOrgId')]) }}"
+        class="inline-block mt-1 font-semibold underline">Isi Saldo Awal rekening ini &rarr;</a>
+    @endif
 </div>
 @endif
 
