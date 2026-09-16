@@ -33,8 +33,16 @@
             <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold {{ $statusStyle['bg'] }} {{ $statusStyle['text'] }}">
                 {{ $statusStyle['label'] }}
             </span>
+            @if($cashTopupRequest->isYayasanInitiated())
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-700">
+                Diisi Langsung oleh Yayasan
+            </span>
+            @endif
         </div>
-        <p class="text-xs text-slate-400 m-0">Pengajuan saldo dari {{ $cashTopupRequest->requestingOrganization->name }}</p>
+        <p class="text-xs text-slate-400 m-0">
+            {{ $cashTopupRequest->isYayasanInitiated() ? 'Saldo diisi langsung ke' : 'Pengajuan saldo dari' }}
+            {{ $cashTopupRequest->requestingOrganization->name }}
+        </p>
     </div>
     <a href="{{ route('cash-topup-requests.index') }}"
         class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-slate-100 text-slate-600 no-underline hover:bg-slate-200 transition-colors">
@@ -57,11 +65,11 @@
             <div class="text-sm font-semibold text-slate-800">{{ $cashTopupRequest->sourceCreditAccount->name ?? '-' }}</div>
         </div>
         <div>
-            <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-0.5">Diajukan Oleh</div>
+            <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-0.5">{{ $cashTopupRequest->isYayasanInitiated() ? 'Diisi Oleh' : 'Diajukan Oleh' }}</div>
             <div class="text-sm font-semibold text-slate-800">{{ $cashTopupRequest->requestedBy->name ?? '-' }}</div>
         </div>
         <div>
-            <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-0.5">Tanggal Diajukan</div>
+            <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-0.5">{{ $cashTopupRequest->isYayasanInitiated() ? 'Tanggal Diisi' : 'Tanggal Diajukan' }}</div>
             <div class="text-sm font-semibold text-slate-800">{{ $cashTopupRequest->created_at->format('d/m/Y H:i') }}</div>
         </div>
         @if($cashTopupRequest->notes)

@@ -17,7 +17,7 @@ class CashTopupRequest extends Model
     use HasUuids, SoftDeletes, Auditable;
 
     protected $fillable = [
-        'requesting_organization_id', 'target_account_id', 'source_credit_account_id',
+        'requesting_organization_id', 'origin', 'target_account_id', 'source_credit_account_id',
         'requested_by', 'reference', 'amount', 'notes', 'status',
         'reviewed_by', 'reviewed_at', 'review_notes',
         'yayasan_source_account_id', 'yayasan_debit_account_id',
@@ -73,6 +73,7 @@ class CashTopupRequest extends Model
     public function isPending(): bool  { return $this->status === 'pending'; }
     public function isApproved(): bool { return $this->status === 'approved'; }
     public function isRejected(): bool { return $this->status === 'rejected'; }
+    public function isYayasanInitiated(): bool { return $this->origin === 'yayasan_initiated'; }
 
     public function getProofUrlAttribute(): ?string
     {

@@ -18,12 +18,20 @@
         <h2 class="text-lg font-bold text-slate-900 m-0 mb-1">Pengajuan Saldo</h2>
         <p class="text-xs text-slate-400 m-0">Pengajuan tambahan saldo rekening antar organisasi (Kampus/STMIK &rarr; Yayasan).</p>
     </div>
-    @if($canRequest)
-    <a href="{{ route('cash-topup-requests.create') }}"
-        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-gradient-to-br from-blue-500 to-blue-600 text-white no-underline hover:opacity-90 transition-opacity shadow-sm">
-        + Ajukan Saldo
-    </a>
-    @endif
+    <div class="flex gap-2">
+        @if($canRequest)
+        <a href="{{ route('cash-topup-requests.create') }}"
+            class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-gradient-to-br from-blue-500 to-blue-600 text-white no-underline hover:opacity-90 transition-opacity shadow-sm">
+            + Ajukan Saldo
+        </a>
+        @endif
+        @if($canApprove)
+        <a href="{{ route('cash-topup-requests.direct-create') }}"
+            class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-gradient-to-br from-green-500 to-green-600 text-white no-underline hover:opacity-90 transition-opacity shadow-sm">
+            + Isi Saldo Langsung
+        </a>
+        @endif
+    </div>
 </div>
 
 <form method="GET" action="{{ route('cash-topup-requests.index') }}" class="bg-white rounded-xl shadow-sm p-4 mb-4 flex flex-wrap gap-3 items-end">
@@ -75,16 +83,21 @@
                     <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold {{ $statusStyle['bg'] }} {{ $statusStyle['text'] }}">
                         {{ $statusStyle['label'] }}
                     </span>
+                    @if($topup->isYayasanInitiated())
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-700">
+                        Diisi Langsung oleh Yayasan
+                    </span>
+                    @endif
                 </div>
                 <div class="text-right">
                     <div class="text-xl font-extrabold text-slate-900 font-mono">Rp {{ number_format($topup->amount, 0, ',', '.') }}</div>
-                    <div class="text-[11px] text-slate-400 mt-0.5">Diajukan {{ $topup->created_at->format('d/m/Y H:i') }}</div>
+                    <div class="text-[11px] text-slate-400 mt-0.5">{{ $topup->isYayasanInitiated() ? 'Diisi' : 'Diajukan' }} {{ $topup->created_at->format('d/m/Y H:i') }}</div>
                 </div>
             </div>
 
             <div class="grid grid-cols-2 gap-x-6 gap-y-2.5 sm:grid-cols-3 mb-3">
                 <div>
-                    <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-0.5">Organisasi Pengaju</div>
+                    <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-0.5">Organisasi Tujuan</div>
                     <div class="text-xs font-semibold text-slate-800">{{ $topup->requestingOrganization->name }}</div>
                 </div>
                 <div>
@@ -92,7 +105,7 @@
                     <div class="text-xs font-semibold text-slate-800">{{ $topup->targetAccount->name ?? '-' }}</div>
                 </div>
                 <div>
-                    <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-0.5">Diajukan Oleh</div>
+                    <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-0.5">{{ $topup->isYayasanInitiated() ? 'Diisi Oleh' : 'Diajukan Oleh' }}</div>
                     <div class="text-xs font-semibold text-slate-800">{{ $topup->requestedBy->name ?? '-' }}</div>
                 </div>
             </div>

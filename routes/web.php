@@ -170,6 +170,9 @@ Route::middleware(['auth', 'role.selected'])->group(function () {
         // Pengajuan Saldo ke Yayasan (top-up rekening ke organisasi induk)
         Route::get('cash-topup-requests/create', [CashTopupRequestController::class, 'create'])->name('cash-topup-requests.create');
         Route::post('cash-topup-requests', [CashTopupRequestController::class, 'store'])->name('cash-topup-requests.store');
+        // Yayasan mengisi saldo langsung tanpa menunggu pengajuan Kampus/STMIK
+        Route::get('cash-topup-requests/direct/create', [CashTopupRequestController::class, 'directCreate'])->name('cash-topup-requests.direct-create');
+        Route::post('cash-topup-requests/direct', [CashTopupRequestController::class, 'directStore'])->name('cash-topup-requests.direct-store');
         Route::get('cash-topup-requests', [CashTopupRequestController::class, 'index'])->name('cash-topup-requests.index');
         Route::get('cash-topup-requests/{cashTopupRequest}', [CashTopupRequestController::class, 'show'])->name('cash-topup-requests.show');
         Route::post('cash-topup-requests/{cashTopupRequest}/approve', [CashTopupRequestController::class, 'approve'])->name('cash-topup-requests.approve');
