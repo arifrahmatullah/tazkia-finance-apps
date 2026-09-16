@@ -29,9 +29,15 @@ class BeginningBalanceController extends Controller
         $entry = $this->findEntry($orgId, $year);
         $existing = $entry ? $entry->lines->keyBy('account_id') : collect();
 
+        // Pendapatan & Beban tidak ditampilkan -- akun ini akun sementara (nominal) yang
+        // seharusnya mulai dari nol di periode berjalan, bukan dibawa dari saldo awal. Baris
+        // yang kebetulan sudah tersimpan sebelumnya tetap ditampilkan supaya tidak hilang diam-diam.
         $accounts = Account::where('organization_id', $orgId)
             ->where('is_header', false)
-            ->where(fn($q) => $q->where('is_active', true)->orWhereIn('id', $existing->keys()))
+            ->where(function ($q) use ($existing) {
+                $q->where(fn($sq) => $sq->whereNotIn('account_type', ['pendapatan', 'beban'])->where('is_active', true))
+                  ->orWhereIn('id', $existing->keys());
+            })
             ->orderBy('code')
             ->get();
 
@@ -59,11 +65,17 @@ class BeginningBalanceController extends Controller
         $orgId = $request->organization_id;
         $year  = (int) $request->year;
 
-        // Kumpulkan baris yang terisi, urut sesuai kode akun
+        // Kumpulkan baris yang terisi, urut sesuai kode akun. Pendapatan & Beban ditolak
+        // kecuali sudah ada barisnya sebelumnya (lihat catatan di index()).
+        $existingIds = $this->findEntry($orgId, $year)?->lines->pluck('account_id') ?? collect();
         $balances = $request->input('balances', []);
         $accounts = Account::whereIn('id', array_keys($balances))
             ->where('organization_id', $orgId)
             ->where('is_header', false)
+            ->where(function ($q) use ($existingIds) {
+                $q->whereNotIn('account_type', ['pendapatan', 'beban'])
+                  ->orWhereIn('id', $existingIds);
+            })
             ->orderBy('code')
             ->get();
 

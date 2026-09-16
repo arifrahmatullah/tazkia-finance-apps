@@ -5,7 +5,8 @@
     <div>
         <h2 class="text-lg font-bold text-slate-900 m-0 mb-1">Saldo Awal</h2>
         <p class="text-xs text-slate-400 m-0">
-            Input saldo awal per akun per 1 Januari — total debit dan kredit harus balance
+            Input saldo awal per akun per 1 Januari — total debit dan kredit harus balance.
+            Akun Pendapatan & Beban tidak ditampilkan (mulai dari nol di periode berjalan).
         </p>
     </div>
 </div>
