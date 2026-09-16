@@ -129,7 +129,7 @@
                     Lihat Detail
                 </a>
                 @if($rowCanApprove)
-                <span @if(!$tourActionsMarked) id="tour-actions" @endif class="contents">
+                <span @if(!$tourActionsMarked) id="tour-actions" @endif class="inline-flex items-center gap-2">
                     <a href="{{ route('cash-topup-requests.show', $topup) }}?action=reject"
                         class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-br from-red-500 to-red-600 text-white hover:opacity-90 transition-opacity no-underline">
                         Tolak
@@ -257,6 +257,9 @@
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         setTimeout(function () {
             var r = el.getBoundingClientRect();
+            // Elemen dengan display:contents (atau yang belum ke-render) balikin rect
+            // 0x0 -- jangan sorot ke pojok layar, perlakukan seperti tidak ada target.
+            if (r.width === 0 && r.height === 0) { positionOverlay(''); return; }
             var pad = 8;
             var top = r.top - pad, left = r.left - pad, width = r.width + pad * 2, height = r.height + pad * 2;
 
