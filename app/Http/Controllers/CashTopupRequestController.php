@@ -328,8 +328,12 @@ class CashTopupRequestController extends Controller
             || $user->isSuperAdmin()
             || Organization::whereIn('parent_id', $orgIds)->exists();
 
-        $canRequest = $orgIds === null
-            || Organization::whereNotNull('parent_id')->whereIn('id', $orgIds)->exists();
+        // Beda dari $canApprove: superadmin TIDAK otomatis dianggap "punya" organisasi anak
+        // -- tombol "Ajukan Saldo" cuma relevan buat user yang benar-benar berperan di
+        // Kampus/STMIK (role di-assign ke organisasi anak tertentu), bukan siapapun yang
+        // kebetulan bisa akses semua organisasi.
+        $canRequest = $orgIds !== null
+            && Organization::whereNotNull('parent_id')->whereIn('id', $orgIds)->exists();
 
         $filterStatus = $request->get('status', '');
 
