@@ -404,6 +404,11 @@
                 ->whereNull('disbursed_at')
                 ->when($financeOrgIds !== null, fn($q) => $q->whereIn('organization_id', $financeOrgIds))
                 ->count();
+            // "Pengajuan Saldo" di sini cuma buat user yang benar-benar berperan di organisasi
+            // anak (Kampus/STMIK) -- Yayasan/superadmin sudah punya "Approval Saldo" di menu
+            // Approval, supaya tidak dua menu berbeda sama-sama aktif untuk halaman yang sama.
+            $canRequestTopupNav = $financeOrgIds !== null
+                && \App\Models\Organization::whereNotNull('parent_id')->whereIn('id', $financeOrgIds)->exists();
         @endphp
         <div>
             <div class="nav-item flex items-center gap-2.5 px-5 py-[9px] mx-2.5 rounded-lg cursor-pointer text-[0.835rem] transition-all relative
@@ -435,9 +440,11 @@
                 <a href="{{ route('finance.pengembalian') }}"
                    class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
                           {{ request()->routeIs('finance.pengembalian*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Pengembalian Dana</a>
+                @if($canRequestTopupNav)
                 <a href="{{ route('cash-topup-requests.index') }}"
                    class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
                           {{ request()->routeIs('cash-topup-requests.*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Pengajuan Saldo</a>
+                @endif
             </div>
         </div>
         @endif
