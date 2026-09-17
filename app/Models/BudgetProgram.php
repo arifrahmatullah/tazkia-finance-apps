@@ -67,6 +67,56 @@ class BudgetProgram extends Model
         return $freq > 0 ? round($this->total_amount / $freq, 2) : 0;
     }
 
+    // Tambah total program (via rincian, karena total_amount itu SUM rincian, bukan kolom
+    // sendiri) sebesar $excess -- dipakai saat satu termin butuh lebih dari sisa yang ada,
+    // dan sisa alokasi anggaran departemen masih cukup menampungnya (lihat
+    // BudgetProgramScheduleController::update()). Kenaikan dibagi proporsional ke semua
+    // rincian sesuai porsinya saat ini; baris terakhir menyerap sisa pembulatan.
+    public function growTotalAmountBy(float $excess): void
+    {
+        if ($excess <= 0) {
+            return;
+        }
+
+        $details = $this->details;
+        if ($details->isEmpty()) {
+            return;
+        }
+
+        $currentTotal = (float) $details->sum('total_amount');
+        $lastIndex    = $details->count() - 1;
+        $allocated    = 0.0;
+
+        foreach ($details as $i => $detail) {
+            if ($i === $lastIndex) {
+                $lineIncrease = round($excess - $allocated, 2);
+            } else {
+                $share = $currentTotal > 0 ? ((float) $detail->total_amount / $currentTotal) : (1 / $details->count());
+                $lineIncrease = round($excess * $share, 2);
+                $allocated += $lineIncrease;
+            }
+
+            $quantity = (float) $detail->quantity;
+            $newTotal = (float) $detail->total_amount + $lineIncrease;
+            $detail->update([
+                'unit_price' => $quantity > 0 ? round($newTotal / $quantity, 2) : $detail->unit_price,
+            ]);
+        }
+    }
+
+    // "Kunci" termin yang amount-nya masih NULL (masih ikut nominal_per_termin secara implisit)
+    // ke nilai efektifnya SAAT INI, kecuali termin yang sedang diedit. Dipanggil SEBELUM
+    // growTotalAmountBy() supaya termin lain tidak ikut bergeser diam-diam gara-gara
+    // nominal_per_termin (rata-rata) berubah akibat total program bertambah -- cuma termin
+    // yang sedang diedit yang sengaja naik, yang lain tetap seperti semula.
+    public function lockImplicitScheduleAmounts(?string $exceptScheduleId, float $lockValue): void
+    {
+        $this->schedules()
+            ->whereNull('amount')
+            ->when($exceptScheduleId, fn($q) => $q->where('id', '!=', $exceptScheduleId))
+            ->update(['amount' => $lockValue]);
+    }
+
     public function regenerateSchedules(): void
     {
         $freq = max(1, (int) $this->frequency);

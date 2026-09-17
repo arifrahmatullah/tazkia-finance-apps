@@ -596,6 +596,8 @@ function saveEdit() {
             closeEdit();
             if (data.pending) {
                 alert('Periode perencanaan sudah lewat. Perubahan nominal disimpan sebagai permintaan dan menunggu approval Keuangan.');
+            } else if (data.new_program_total) {
+                alert('Total program otomatis bertambah jadi Rp ' + Number(data.new_program_total).toLocaleString('id-ID') + ' untuk menampung kenaikan termin ini.');
             }
             window.location.reload();
         } else if (!ok) {

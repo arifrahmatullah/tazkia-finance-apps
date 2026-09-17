@@ -57,35 +57,73 @@ class BudgetProgramScheduleController extends Controller
             }
         }
 
+        // Dibekukan SEBELUM ada perubahan apapun -- total_amount & nominal_per_termin itu
+        // accessor (dihitung ulang tiap diakses dari SUM rincian), jadi begitu rincian mulai
+        // ditambah nilainya bisa langsung geser kalau tidak ditangkap duluan.
+        $currentNominalPerTermin = (float) $program->nominal_per_termin;
+        $currentProgramTotal     = (float) $program->total_amount;
+        $growExcess              = null;
+
         if ($amountChanged) {
             // Sum() SQL mentah mengabaikan termin yang 'amount'-nya masih NULL (belum pernah
             // disimpan eksplisit, masih pakai default nominal_per_termin) -- dianggap 0, padahal
-            // seharusnya tetap terhitung nominal_per_termin. Kalau tidak dikoreksi, total pagu
-            // bisa kelewatan tanpa ketahuan (mis. 11 termin NULL @101.500 dianggap 0 semua).
+            // seharusnya tetap terhitung nominal_per_termin.
             $otherTotal = $program->schedules()
                 ->where('id', '!=', $schedule->id)
                 ->get(['amount'])
-                ->sum(fn($s) => $s->amount !== null ? (float) $s->amount : (float) $program->nominal_per_termin);
+                ->sum(fn($s) => $s->amount !== null ? (float) $s->amount : $currentNominalPerTermin);
 
-            if (($otherTotal + (float) $validated['amount']) > $program->total_amount) {
-                $sisa = number_format(max($program->total_amount - $otherTotal, 0), 0, ',', '.');
-                return response()->json([
-                    'success' => false,
-                    'message' => "Total nominal per termin tidak boleh melebihi total pagu program. Sisa: Rp {$sisa}",
-                ], 422);
+            $requiredTotal = $otherTotal + (float) $validated['amount'];
+
+            if ($requiredTotal > $currentProgramTotal) {
+                // Termin ini butuh lebih dari total program SAAT INI -- bukan langsung ditolak,
+                // total program boleh IKUT BERTAMBAH menyesuaikan (lewat rincian, lihat
+                // BudgetProgram::growTotalAmountBy()), selama sisa alokasi anggaran departemen
+                // (dipakai bersama semua program dalam alokasi yang sama, lihat
+                // BudgetProgramController::show()'s $sisaAlokasi) masih cukup menampungnya.
+                // Termin LAIN yang masih ikut default tidak boleh diam-diam ikut naik gara-gara
+                // nominal_per_termin (rata-rata) bergeser -- makanya dikunci ke nilai sekarang.
+                $otherProgramsTotal = BudgetProgram::where('budget_allocation_id', $program->budget_allocation_id)
+                    ->where('id', '!=', $program->id)
+                    ->get()
+                    ->sum(fn($p) => (float) $p->total_amount);
+
+                $maxProgramTotal = (float) $program->budgetAllocation->amount - $otherProgramsTotal;
+
+                if ($requiredTotal > $maxProgramTotal) {
+                    $sisaAlokasi = number_format(max($maxProgramTotal - $otherTotal, 0), 0, ',', '.');
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Kenaikan ini butuh total program jadi Rp " . number_format($requiredTotal, 0, ',', '.') .
+                            ", tapi sisa alokasi anggaran departemen tidak cukup. Sisa yang bisa dipakai buat termin ini: Rp {$sisaAlokasi}",
+                    ], 422);
+                }
+
+                $growExcess = $requiredTotal - $currentProgramTotal;
             }
         }
 
         if (($amountChanged || $detailsProvided) && !$program->isWithinPlanningWindow()) {
+            $payload = $validated;
+            if ($growExcess !== null) {
+                $payload['_grow_excess'] = $growExcess;
+                $payload['_lock_nominal_per_termin'] = $currentNominalPerTermin;
+            }
+
             app(BudgetProgramChangeService::class)->requestChange(
-                $program, $request->user(), 'update_schedule', $schedule->id, $validated,
+                $program, $request->user(), 'update_schedule', $schedule->id, $payload,
                 "Ubah estimasi termin {$schedule->termin}: " . $program->name
             );
 
             return response()->json(['success' => true, 'pending' => true]);
         }
 
-        \DB::transaction(function () use ($schedule, $validated, $detailsProvided) {
+        \DB::transaction(function () use ($schedule, $validated, $detailsProvided, $program, $growExcess, $currentNominalPerTermin) {
+            if ($growExcess !== null) {
+                $program->lockImplicitScheduleAmounts($schedule->id, $currentNominalPerTermin);
+                $program->growTotalAmountBy($growExcess);
+            }
+
             $schedule->update($validated);
 
             if ($detailsProvided) {
@@ -101,7 +139,10 @@ class BudgetProgramScheduleController extends Controller
             }
         });
 
-        return response()->json(['success' => true]);
+        return response()->json([
+            'success'           => true,
+            'new_program_total' => $growExcess !== null ? $currentProgramTotal + $growExcess : null,
+        ]);
     }
 
     public function bulkUpdate(Request $request, BudgetProgram $budgetProgram)

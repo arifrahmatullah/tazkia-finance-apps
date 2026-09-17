@@ -148,12 +148,21 @@ class BudgetProgramChangeService
 
     private function applyUpdateSchedule(string $scheduleId, array $payload): void
     {
-        $schedule = BudgetProgramSchedule::find($scheduleId);
+        $schedule = BudgetProgramSchedule::with('budgetProgram')->find($scheduleId);
         if (!$schedule) {
             return;
         }
 
-        $schedule->update($payload);
+        // '_grow_excess'/'_lock_nominal_per_termin' cuma dititipkan waktu requestChange()
+        // dibuat (lihat BudgetProgramScheduleController::update()) supaya kenaikan total
+        // program (via rincian) ikut diterapkan begitu approval-nya disetujui -- bukan kolom
+        // schedule beneran, jangan ikut di-mass-assign.
+        if (isset($payload['_grow_excess'])) {
+            $schedule->budgetProgram->lockImplicitScheduleAmounts($schedule->id, (float) $payload['_lock_nominal_per_termin']);
+            $schedule->budgetProgram->growTotalAmountBy((float) $payload['_grow_excess']);
+        }
+
+        $schedule->update(collect($payload)->except(['_grow_excess', '_lock_nominal_per_termin'])->toArray());
 
         foreach ($payload['details'] ?? [] as $d) {
             \App\Models\BudgetProgramScheduleDetail::updateOrCreate(
