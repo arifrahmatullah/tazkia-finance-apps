@@ -82,6 +82,7 @@ class FinanceController extends Controller
         $request->validate([
             'disburse_account_id' => 'required|exists:accounts,id',
             'disbursement_notes'  => 'nullable|string|max:500',
+            'amount'              => 'nullable|numeric|min:1',
         ]);
 
         $account = Account::where('id', $request->disburse_account_id)
@@ -89,8 +90,28 @@ class FinanceController extends Controller
             ->firstOrFail();
         $user    = auth()->user();
 
+        // Keuangan boleh MENGOREKSI nominal pencairan ke bawah saat lampiran ternyata lebih
+        // kecil dari pengajuan (mis. kuitansi asli Rp1.400.000 padahal diajukan Rp1.500.000) --
+        // tidak boleh dinaikkan, karena menaikkan berarti melewati apa yang sudah disetujui di
+        // approval chain (kalau butuh lebih besar, itu pengajuan/revisi baru, bukan koreksi
+        // di titik pencairan).
+        $approvedAmount = (float) $fundRequest->amount;
+        $amount = $request->filled('amount') ? (float) $request->amount : $approvedAmount;
+        $amountCorrected = round($amount, 2) !== round($approvedAmount, 2);
+
+        if ($amountCorrected) {
+            if ($amount > $approvedAmount) {
+                return back()->withErrors(['amount' =>
+                    'Jumlah pencairan cuma boleh dikurangi, tidak bisa dinaikkan dari Rp ' .
+                    number_format($approvedAmount, 0, ',', '.') . ' yang sudah disetujui.']);
+            }
+            if (!$request->filled('disbursement_notes')) {
+                return back()->withErrors(['disbursement_notes' =>
+                    'Catatan wajib diisi kalau jumlah pencairan dikoreksi dari nominal yang disetujui.']);
+            }
+        }
+
         $balance = $account->currentBalance();
-        $amount  = (float) $fundRequest->amount;
         if ($balance < $amount) {
             $message = 'Saldo rekening ' . $account->name . ' (Rp ' . number_format($balance, 0, ',', '.') .
                 ') tidak cukup untuk mencairkan Rp ' . number_format($amount, 0, ',', '.') . '.';
@@ -100,16 +121,26 @@ class FinanceController extends Controller
             return back()->withErrors(['disburse_account_id' => $message]);
         }
 
+        if ($amountCorrected) {
+            $this->adjustDetailAmounts($fundRequest, $amount);
+        }
+
         $fundRequest->update([
             'disbursed_at'        => now(),
             'disburse_account_id' => $account->id,
             'disbursement_notes'  => $request->disbursement_notes,
             'disbursed_by'        => $user->name ?? $user->email,
+            'amount'              => $amount,
+            'original_amount'     => $amountCorrected ? $approvedAmount : $fundRequest->original_amount,
         ]);
 
         [$entry, $warning] = $this->journal->postDisbursement($fundRequest, $user);
 
         $message = 'Pengajuan ' . $fundRequest->reference . ' berhasil dicairkan via ' . $account->name . '.';
+        if ($amountCorrected) {
+            $message .= ' Nominal dikoreksi dari Rp ' . number_format($approvedAmount, 0, ',', '.') .
+                ' menjadi Rp ' . number_format($amount, 0, ',', '.') . '.';
+        }
         if ($entry) {
             $message .= ' Jurnal ' . $entry->reference . ' diposting.';
         }
@@ -117,6 +148,37 @@ class FinanceController extends Controller
         return redirect()->route('finance.index')
             ->with('success', $message)
             ->with('warning', $warning);
+    }
+
+    // Turunkan proporsional total_amount tiap rincian (fund_request_details) supaya jumlahnya
+    // persis sama dengan nominal pencairan yang sudah dikoreksi -- baris terakhir menyerap sisa
+    // pembulatan. Dipanggil SEBELUM update() di atas supaya total_amount konsisten dengan amount
+    // baru buat perhitungan sisa plafon (BudgetProgram::detailRemainingCapacity()).
+    private function adjustDetailAmounts(FundRequest $fundRequest, float $newTotal): void
+    {
+        $details = $fundRequest->details;
+        $oldTotal = (float) $details->sum('total_amount');
+        if ($details->isEmpty() || $oldTotal <= 0) {
+            return;
+        }
+
+        $allocated = 0.0;
+        $lastIndex = $details->count() - 1;
+
+        foreach ($details as $i => $detail) {
+            if ($i === $lastIndex) {
+                $newLineTotal = round($newTotal - $allocated, 2);
+            } else {
+                $share = (float) $detail->total_amount / $oldTotal;
+                $newLineTotal = round($newTotal * $share, 2);
+                $allocated += $newLineTotal;
+            }
+
+            $quantity = (float) $detail->quantity;
+            $detail->update([
+                'unit_price' => $quantity > 0 ? round($newLineTotal / $quantity, 2) : $detail->unit_price,
+            ]);
+        }
     }
 
     public function uploadProof(Request $request, FundRequest $fundRequest)

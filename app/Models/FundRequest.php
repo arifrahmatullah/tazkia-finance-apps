@@ -21,7 +21,7 @@ class FundRequest extends Model
         'organization_id', 'department_id', 'budget_period_id', 'budget_program_id',
         'budget_program_schedule_id',
         'requester_id', 'requester_position_id', 'reference',
-        'title', 'purpose', 'amount',
+        'title', 'purpose', 'amount', 'original_amount',
         'bank_name', 'bank_account_number', 'bank_account_name',
         'status', 'current_step', 'total_steps', 'notes',
         'submitted_at', 'approved_at', 'rejected_at',
@@ -32,6 +32,7 @@ class FundRequest extends Model
 
     protected $casts = [
         'amount'               => 'decimal:2',
+        'original_amount'      => 'decimal:2',
         'submitted_at'         => 'datetime',
         'approved_at'          => 'datetime',
         'rejected_at'          => 'datetime',
@@ -138,6 +139,7 @@ class FundRequest extends Model
 
     public function isDraft(): bool      { return $this->status === 'draft'; }
     public function isDisbursed(): bool  { return !is_null($this->disbursed_at); }
+    public function isAmountCorrected(): bool { return !is_null($this->original_amount); }
     public function isPending(): bool  { return $this->status === 'pending'; }
     public function isApproved(): bool { return $this->status === 'approved'; }
     public function isRejected(): bool { return $this->status === 'rejected'; }

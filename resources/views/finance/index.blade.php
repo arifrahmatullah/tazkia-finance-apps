@@ -217,6 +217,12 @@
                     <span class="text-green-500 font-mono text-[10px]">({{ $fr->disburseAccount->code }})</span>
                 </div>
                 @endif
+                @if($fr->isAmountCorrected())
+                <div class="flex items-center gap-1.5 text-xs text-amber-700 mt-1">
+                    <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+                    Dikoreksi dari Rp {{ number_format($fr->original_amount, 0, ',', '.') }} menjadi Rp {{ number_format($fr->amount, 0, ',', '.') }}
+                </div>
+                @endif
                 @if($fr->disbursement_notes)
                 <div class="text-xs text-green-600 mt-1">{{ $fr->disbursement_notes }}</div>
                 @endif
@@ -376,7 +382,17 @@
                 {{-- Nominal --}}
                 <div>
                     <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Jumlah Pencairan</div>
-                    <div id="disburse-amount" class="text-2xl font-extrabold text-slate-900 font-mono"></div>
+                    <div class="relative">
+                        <span class="absolute left-0 top-1/2 -translate-y-1/2 text-slate-400 text-xl">Rp</span>
+                        <input type="text" id="disburse-amount-display" inputmode="numeric"
+                            class="w-full pl-8 py-0 border-0 border-b-2 border-transparent focus:border-blue-400 text-2xl font-extrabold text-slate-900 font-mono outline-none bg-transparent transition-colors">
+                        <input type="hidden" name="amount" id="disburse-amount-input">
+                    </div>
+                    <div class="flex items-center justify-between mt-1 gap-2">
+                        <div class="text-[11px] text-slate-400">Disetujui: <span id="disburse-approved-amount" class="font-mono font-semibold text-slate-500"></span></div>
+                        <div id="disburse-amount-error" class="text-[11px] text-red-500 font-semibold hidden">Tidak boleh melebihi nominal disetujui</div>
+                    </div>
+                    <p class="text-[11px] text-slate-400 mt-1">Boleh dikurangi kalau lampiran/kuitansi ternyata lebih kecil dari pengajuan -- tidak bisa dinaikkan.</p>
                 </div>
 
                 {{-- Pilih bank --}}
@@ -422,10 +438,11 @@
 
                 {{-- Catatan --}}
                 <div>
-                    <label class="text-xs font-semibold text-slate-600 block mb-1.5">Catatan Pencairan <span class="text-slate-400 font-normal">(opsional)</span></label>
-                    <textarea name="disbursement_notes" rows="2"
+                    <label class="text-xs font-semibold text-slate-600 block mb-1.5">Catatan Pencairan <span id="disburse-notes-optional" class="text-slate-400 font-normal">(opsional)</span></label>
+                    <textarea name="disbursement_notes" id="disburse-notes" rows="2"
                         class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-colors resize-none"
                         placeholder="Nomor bukti transfer, catatan tambahan..."></textarea>
+                    <p id="disburse-notes-required-hint" class="text-[11px] text-red-500 mt-1 hidden">Wajib diisi -- jelaskan alasan koreksi nominal.</p>
                 </div>
             </div>
 
@@ -449,16 +466,49 @@
     var accInfo  = document.getElementById('disburse-account-info');
     var accWarn  = document.getElementById('disburse-balance-warning');
     var submitBtn = form.querySelector('button[type="submit"]');
-    var currentAmount = 0;
+    var approvedAmount = 0; // nominal yang sudah disetujui -- batas atas, tidak boleh dilewati
+    var editedAmount   = 0; // nominal yang sedang diketik/dipakai buat cek saldo & submit
     var allAccounts = [];
     try {
         allAccounts = JSON.parse(document.getElementById('disburse-account-data').textContent || '[]');
     } catch (e) { allAccounts = []; }
 
-    var accWarnText = document.getElementById('disburse-balance-warning-text');
-    var orgAccounts = [];
+    var accWarnText  = document.getElementById('disburse-balance-warning-text');
+    var orgAccounts  = [];
+    var amountDisplay = document.getElementById('disburse-amount-display');
+    var amountInput   = document.getElementById('disburse-amount-input');
+    var amountError   = document.getElementById('disburse-amount-error');
+    var notesTextarea = document.getElementById('disburse-notes');
+    var notesOptional = document.getElementById('disburse-notes-optional');
+    var notesRequiredHint = document.getElementById('disburse-notes-required-hint');
 
     function fmtRupiah(n) { return 'Rp ' + Number(n).toLocaleString('id-ID'); }
+
+    function isAmountCorrected() { return Math.abs(editedAmount - approvedAmount) > 0.01; }
+
+    function updateNotesRequirement() {
+        var corrected = isAmountCorrected();
+        notesTextarea.required = corrected;
+        notesOptional.classList.toggle('hidden', corrected);
+        var notesFilled = notesTextarea.value.trim().length > 0;
+        notesRequiredHint.classList.toggle('hidden', !corrected || notesFilled);
+    }
+
+    function setAmount(raw) {
+        var val = parseInt(raw || '0', 10) || 0;
+        var overLimit = val > approvedAmount;
+        editedAmount = overLimit ? approvedAmount : val;
+
+        // Nilai yang di-clamp direfleksikan balik ke input supaya user lihat batasnya --
+        // submit tidak pernah digantung ke kondisi ini karena nilainya selalu sudah valid
+        // setelah di-clamp; checkBalance() di bawah yang jadi satu-satunya penentu disabled.
+        amountDisplay.value = editedAmount ? editedAmount.toLocaleString('id-ID') : '';
+        amountInput.value = editedAmount || '';
+        amountError.classList.toggle('hidden', !overLimit);
+
+        updateNotesRequirement();
+        checkBalance();
+    }
 
     function populateAccounts(organizationId) {
         if (!accSel) return;
@@ -476,7 +526,11 @@
 
     function closeDisburse() {
         overlay.style.display = 'none';
-        form.querySelector('textarea').value = '';
+        notesTextarea.value = '';
+        notesTextarea.required = false;
+        notesOptional.classList.remove('hidden');
+        notesRequiredHint.classList.add('hidden');
+        amountError.classList.add('hidden');
         if (accSel) { accSel.value = ''; if (accInfo) accInfo.classList.add('hidden'); if (accWarn) accWarn.classList.add('hidden'); }
     }
 
@@ -494,7 +548,7 @@
             // Rekening tertentu sudah dipilih -- cek saldo rekening itu saja.
             var opt = accSel.options[accSel.selectedIndex];
             var balance = parseFloat(opt.dataset.balance || '0');
-            var insufficient = balance < currentAmount;
+            var insufficient = balance < editedAmount;
             if (insufficient) {
                 showWarning(balance <= 0
                     ? 'Saldo rekening ini kosong.'
@@ -514,7 +568,7 @@
             return;
         }
         var maxBalance = Math.max.apply(null, orgAccounts.map(function (a) { return parseFloat(a.balance || 0); }));
-        if (maxBalance < currentAmount) {
+        if (maxBalance < editedAmount) {
             showWarning(maxBalance <= 0
                 ? 'Semua rekening organisasi ini saldonya kosong.'
                 : 'Saldo tertinggi di organisasi ini cuma ' + fmtRupiah(maxBalance) + ', belum cukup untuk pencairan ini.');
@@ -523,12 +577,22 @@
         }
     }
 
+    if (amountDisplay) {
+        amountDisplay.addEventListener('input', function () {
+            setAmount(this.value.replace(/[^\d]/g, ''));
+        });
+    }
+    if (notesTextarea) {
+        notesTextarea.addEventListener('input', updateNotesRequirement);
+    }
+
     document.querySelectorAll('.btn-disburse').forEach(function (btn) {
         btn.addEventListener('click', function () {
             form.action = btn.dataset.disburseUrl;
-            currentAmount = parseFloat(btn.dataset.amountRaw || '0');
-            document.getElementById('disburse-ref').textContent    = btn.dataset.ref;
-            document.getElementById('disburse-amount').textContent = btn.dataset.amount;
+            approvedAmount = parseFloat(btn.dataset.amountRaw || '0');
+            document.getElementById('disburse-ref').textContent = btn.dataset.ref;
+            document.getElementById('disburse-approved-amount').textContent = btn.dataset.amount;
+            setAmount(approvedAmount);
             populateAccounts(btn.dataset.organizationId);
             overlay.style.display = 'flex';
             checkBalance();
