@@ -144,13 +144,22 @@
 (function () {
     const maxAmount = {{ (float) $fundRequest->amount }};
 
+    // Format id-ID: '.' pemisah ribuan, ',' pemisah desimal -- kalau cuma di-strip semua
+    // karakter non-digit, koma desimal ikut kebuang dan angkanya jadi salah baca (mis.
+    // "77.833,33" jadi 7783333, bukan 77833.33).
+    function parseRupiah(str) {
+        if (!str) return 0;
+        const normalized = String(str).replace(/\./g, '').replace(',', '.').replace(/[^0-9.]/g, '');
+        return normalized ? parseFloat(normalized) : 0;
+    }
+
     function formatAmountUsed(el) {
-        const raw = el.value.replace(/\./g, '').replace(/[^0-9]/g, '');
-        el.value = raw ? Number(raw).toLocaleString('id-ID') : '';
-        document.getElementById('amount-used-input').value = raw;
+        const value = parseRupiah(el.value);
+        el.value = value ? value.toLocaleString('id-ID') : '';
+        document.getElementById('amount-used-input').value = value;
 
         const warning = document.getElementById('amount-used-warning');
-        const exceeds = raw && Number(raw) > maxAmount;
+        const exceeds = value && value > maxAmount;
         warning.style.display = exceeds ? 'block' : 'none';
         el.style.borderColor = exceeds ? '#ef4444' : '#e2e8f0';
     }

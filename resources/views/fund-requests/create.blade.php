@@ -248,6 +248,14 @@ const oldLines    = @json(collect(old('lines', []))->keyBy('budget_program_detai
 function fmt(n) {
     return 'Rp ' + Number(n).toLocaleString('id-ID');
 }
+// Format id-ID: '.' pemisah ribuan, ',' pemisah desimal -- kalau cuma di-strip semua
+// karakter non-digit, koma desimal ikut kebuang dan angkanya jadi salah baca (mis.
+// "77.833,33" jadi 7783333, bukan 77833.33).
+function parseRupiah(str) {
+    if (!str) return 0;
+    const normalized = String(str).replace(/\./g, '').replace(',', '.').replace(/[^0-9.]/g, '');
+    return normalized ? parseFloat(normalized) : 0;
+}
 function escHtml(str) {
     return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
@@ -517,9 +525,8 @@ function updateCheckAllLabel() {
 }
 
 function onLinePriceInput(el) {
-    const raw     = el.value.replace(/\./g, '').replace(/[^0-9]/g, '');
     const ceiling = parseFloat(el.dataset.ceiling) || 0;
-    let value = raw ? parseInt(raw, 10) : 0;
+    let value = parseRupiah(el.value);
     if (ceiling > 0 && value > ceiling) value = ceiling;
 
     el.value = value ? value.toLocaleString('id-ID') : '';
@@ -535,8 +542,7 @@ function recalcTotal() {
     let anyChecked = false;
     document.querySelectorAll('.line-price:not(:disabled)').forEach(input => {
         anyChecked = true;
-        const raw = input.value.replace(/\./g, '').replace(/[^0-9]/g, '');
-        total += raw ? parseInt(raw, 10) : 0;
+        total += parseRupiah(input.value);
     });
     document.getElementById('amount-total-label').textContent = Number(total).toLocaleString('id-ID');
     const grand = document.getElementById('rincian-grand-total');
