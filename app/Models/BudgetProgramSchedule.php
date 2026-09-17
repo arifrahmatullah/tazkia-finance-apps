@@ -43,7 +43,25 @@ class BudgetProgramSchedule extends Model
             ? $this->detailOverrides->firstWhere('budget_program_detail_id', $detail->id)
             : $this->detailOverrides()->where('budget_program_detail_id', $detail->id)->first();
 
-        return (float) ($override->unit_price ?? $detail->unit_price);
+        if ($override) {
+            return (float) $override->unit_price;
+        }
+
+        // Program dengan HANYA SATU rincian: total termin (amount) dan plafon rincian itu
+        // sama saja secara definisi, jadi kalau termin ini sudah di-set manual TANPA breakdown
+        // eksplisit, pakai amount termin itu sendiri -- bukan unit_price default rincian yang
+        // bisa jadi sudah basi (mis. abis nominal digeser antar-termin lewat Edit Termin).
+        if ($this->amount !== null) {
+            $detailCount = $this->relationLoaded('budgetProgram') && $this->budgetProgram->relationLoaded('details')
+                ? $this->budgetProgram->details->count()
+                : BudgetProgramDetail::where('budget_program_id', $detail->budget_program_id)->count();
+
+            if ($detailCount === 1) {
+                return (float) $this->amount;
+            }
+        }
+
+        return (float) $detail->unit_price;
     }
 
     // Termin dianggap "terpakai" kalau ada pengajuan dana yang menempel padanya dan masih
