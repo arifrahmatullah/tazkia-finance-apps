@@ -58,7 +58,15 @@ class BudgetProgramScheduleController extends Controller
         }
 
         if ($amountChanged) {
-            $otherTotal = $program->schedules()->where('id', '!=', $schedule->id)->sum('amount');
+            // Sum() SQL mentah mengabaikan termin yang 'amount'-nya masih NULL (belum pernah
+            // disimpan eksplisit, masih pakai default nominal_per_termin) -- dianggap 0, padahal
+            // seharusnya tetap terhitung nominal_per_termin. Kalau tidak dikoreksi, total pagu
+            // bisa kelewatan tanpa ketahuan (mis. 11 termin NULL @101.500 dianggap 0 semua).
+            $otherTotal = $program->schedules()
+                ->where('id', '!=', $schedule->id)
+                ->get(['amount'])
+                ->sum(fn($s) => $s->amount !== null ? (float) $s->amount : (float) $program->nominal_per_termin);
+
             if (($otherTotal + (float) $validated['amount']) > $program->total_amount) {
                 $sisa = number_format(max($program->total_amount - $otherTotal, 0), 0, ',', '.');
                 return response()->json([
