@@ -253,7 +253,7 @@
                             </button>
                             <div class="relative inline-flex group">
                                 <button type="button" onclick="openTransfer('{{ $sch->id }}')"
-                                    class="inline-flex items-center justify-center w-6 h-6 rounded-lg border border-purple-200 bg-purple-50 text-purple-500 hover:bg-purple-500 hover:text-white hover:border-purple-500 cursor-pointer transition-colors shrink-0">
+                                    class="inline-flex items-center justify-center w-6 h-6 rounded-lg border border-blue-200 bg-blue-50 text-blue-500 hover:bg-blue-100 cursor-pointer transition-colors shrink-0">
                                     <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M7 16V4m0 0L3 8m4-4l4 4m6 4v12m0 0l4-4m-4 4l-4-4"/></svg>
                                 </button>
                                 <div class="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:block whitespace-nowrap px-2.5 py-1.5 rounded-lg bg-slate-800 text-white text-[11px] font-medium shadow-lg z-20">
