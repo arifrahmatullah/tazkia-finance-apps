@@ -26,6 +26,7 @@ class JournalEntryApiController extends Controller
             'attachment_url'      => 'nullable|string|max:255',
             'amounts'             => 'required|array|min:1',
             'amounts.*'           => 'required|numeric|min:0',
+            'reverse'             => 'nullable|boolean',
         ]);
 
         if ($validator->fails()) {
@@ -48,25 +49,21 @@ class JournalEntryApiController extends Controller
             ], 404);
         }
 
+        // Kode template yang sama bisa ada di beberapa organisasi sekaligus (mis. SPMB-UPS1-01
+        // ada di TAZKIA, STMIK, DAN YAYASAN) -- wajib disaring by organization_id LANGSUNG di
+        // query, bukan diambil sembarang lalu dicek belakangan, supaya tidak ketuker.
         $template = JournalTemplate::with('details.account')
             ->where('code', $request->template_code)
+            ->where('organization_id', $organization->id)
             ->where('is_active', true)
             ->first();
 
         if (!$template) {
             return response()->json([
                 'response_code'    => '404',
-                'response_message' => "Template jurnal '{$request->template_code}' tidak ditemukan atau tidak aktif.",
+                'response_message' => "Template jurnal '{$request->template_code}' tidak ditemukan atau tidak aktif untuk organisasi ini.",
                 'data'             => null,
             ], 404);
-        }
-
-        if ($template->organization_id !== $organization->id) {
-            return response()->json([
-                'response_code'    => '403',
-                'response_message' => 'Template tidak berlaku untuk organisasi ini.',
-                'data'             => null,
-            ], 403);
         }
 
         // Idempotensi — kembalikan jurnal yang sudah ada bila kombinasi ini pernah sukses
@@ -125,14 +122,21 @@ class JournalEntryApiController extends Controller
             }
         }
 
+        // Kalau reverse=true, semua baris template ini dibalik posisi debit/kreditnya --
+        // dipakai buat koreksi turun nominal (mis. Daftar Ulang) tanpa perlu template terbalik
+        // terpisah untuk tiap template asal. Berlaku otomatis untuk template manapun.
+        $reverse = $request->boolean('reverse');
+
         $totalDebit  = 0.0;
         $totalCredit = 0.0;
         $lines = [];
 
         foreach ($details as $i => $detail) {
-            $amount = (float) $amounts[$i];
-            $debit  = $detail->isDebit() ? $amount : 0;
-            $credit = $detail->isCredit() ? $amount : 0;
+            $amount    = (float) $amounts[$i];
+            $isDebit   = $reverse ? $detail->isCredit() : $detail->isDebit();
+            $isCredit  = $reverse ? $detail->isDebit() : $detail->isCredit();
+            $debit     = $isDebit ? $amount : 0;
+            $credit    = $isCredit ? $amount : 0;
             $totalDebit  += $debit;
             $totalCredit += $credit;
 
