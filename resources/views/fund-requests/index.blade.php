@@ -66,34 +66,48 @@
     </div>
 </div>
 
+{{-- Tab status -- tiap kategori punya daftarnya sendiri, tidak dicampur jadi satu --}}
+@php
+    $statusTabs = [
+        'pending'    => ['Menunggu Approval', $stats['pending']],
+        'diproses'   => ['Diproses',          $stats['diproses']],
+        'sudah_cair' => ['Sudah Cair',        $stats['cair']],
+        'rejected'   => ['Ditolak',           $stats['rejected']],
+        'cancelled'  => ['Dibatalkan',        $stats['cancelled']],
+        'draft'      => ['Draft',             $stats['draft']],
+        ''           => ['Semua',             $stats['total']],
+    ];
+    $statusLink = fn($status) => route('fund-requests.index', array_merge(request()->except(['status', 'page']), ['status' => $status]));
+@endphp
+<div class="flex gap-2 mb-4 flex-wrap">
+    @foreach($statusTabs as $value => [$label, $count])
+    <a href="{{ $statusLink($value) }}"
+        class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[9px] text-sm font-semibold no-underline transition-colors {{ $filterStatus === $value ? 'bg-orange-500 text-white' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50' }}">
+        {{ $label }}
+        <span class="px-1.5 py-0.5 rounded-full text-[11px] font-bold {{ $filterStatus === $value ? 'bg-white/25 text-white' : 'bg-slate-100 text-slate-500' }}">{{ $count }}</span>
+    </a>
+    @endforeach
+</div>
+
 {{-- Filter --}}
 <form method="GET" action="{{ route('fund-requests.index') }}" class="bg-white rounded-[14px] p-4 border border-slate-100 flex gap-3 mb-5 flex-wrap items-center">
-    <select name="status" class="w-full sm:w-[220px] flex-shrink-0 px-3.5 py-2.5 border border-slate-200 rounded-[9px] text-sm font-medium text-slate-900 bg-white outline-none focus:border-orange-400 transition-colors cursor-pointer">
-        <option value="">Semua Status</option>
-        <option value="draft"               {{ request('status') === 'draft'               ? 'selected' : '' }}>Draft</option>
-        <option value="pending"             {{ request('status') === 'pending'             ? 'selected' : '' }}>Menunggu Approval</option>
-        <option value="diproses"            {{ request('status') === 'diproses'            ? 'selected' : '' }}>Diproses</option>
-        <option value="rejected"            {{ request('status') === 'rejected'            ? 'selected' : '' }}>Ditolak</option>
-        <option value="cancelled"           {{ request('status') === 'cancelled'           ? 'selected' : '' }}>Dibatalkan</option>
-        <option value="menunggu_konfirmasi" {{ request('status') === 'menunggu_konfirmasi' ? 'selected' : '' }}>Menunggu Konfirmasi</option>
-        <option value="sudah_cair"          {{ request('status') === 'sudah_cair'          ? 'selected' : '' }}>Sudah Cair</option>
-    </select>
+    <input type="hidden" name="status" value="{{ $filterStatus }}">
     <div class="relative flex-1 min-w-[200px] flex items-center">
         <svg width="16" height="16" fill="none" stroke="#94a3b8" stroke-width="2" viewBox="0 0 24 24" class="absolute left-3.5 pointer-events-none"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
         <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari no. pengajuan atau judul..."
             class="w-full pl-10 pr-3.5 py-2.5 border border-slate-200 rounded-[9px] text-sm text-slate-900 bg-white outline-none focus:border-orange-400 transition-colors">
     </div>
     <button type="submit" class="px-6 py-2.5 rounded-[9px] border-0 cursor-pointer text-sm font-semibold bg-orange-500 text-white hover:bg-orange-600 transition-colors">Cari</button>
-    @if(request()->hasAny(['search','status']))
-        <a href="{{ route('fund-requests.index') }}" class="px-3.5 py-2.5 rounded-[9px] border border-slate-200 text-sm text-slate-500 no-underline bg-white hover:bg-slate-50 transition-colors">Reset</a>
+    @if(request()->filled('search'))
+        <a href="{{ $statusLink($filterStatus) }}" class="px-3.5 py-2.5 rounded-[9px] border border-slate-200 text-sm text-slate-500 no-underline bg-white hover:bg-slate-50 transition-colors">Reset Pencarian</a>
     @endif
 </form>
 
 @if($fundRequests->isEmpty())
 <div class="bg-white rounded-[14px] py-14 px-6 text-center" style="border:1px dashed #dfe3ec;">
-    @if(request()->hasAny(['search','status']))
-    <div class="text-[15px] font-semibold text-slate-700">Tidak ada pengajuan yang cocok</div>
-    <div class="text-[13.5px] text-slate-400 mt-1.5">Coba ubah filter status atau kata kunci pencarian.</div>
+    @if(request()->filled('search') || $filterStatus !== 'pending')
+    <div class="text-[15px] font-semibold text-slate-700">Tidak ada pengajuan di kategori ini</div>
+    <div class="text-[13.5px] text-slate-400 mt-1.5">Coba pilih tab status lain atau ubah kata kunci pencarian.</div>
     @else
     <div class="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center mx-auto mb-4">
         <svg width="24" height="24" fill="none" stroke="#94a3b8" stroke-width="1.5" viewBox="0 0 24 24"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>

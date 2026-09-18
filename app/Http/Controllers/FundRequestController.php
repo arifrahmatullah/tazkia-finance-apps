@@ -38,18 +38,22 @@ class FundRequestController extends Controller
             $query->where('organization_id', $request->organization_id);
         }
 
-        if ($request->filled('status')) {
-            match ($request->status) {
-                'draft'               => $query->where('status', 'draft'),
-                'pending'             => $query->where('status', 'pending'),
-                'diproses'            => $query->where('status', 'approved')->whereNull('disbursed_at'),
-                'rejected'            => $query->where('status', 'rejected'),
-                'cancelled'           => $query->where('status', 'cancelled'),
-                'menunggu_konfirmasi' => $query->whereNotNull('disbursed_at')->whereNull('receipt_status'),
-                'sudah_cair'          => $query->whereNotNull('disbursed_at'),
-                default               => null,
-            };
-        }
+        // Defaultnya cuma nampilin yang masih menunggu approval -- biar status yang beda-beda
+        // (draft, diproses, sudah cair, ditolak, dibatalkan) tidak kecampur jadi satu daftar.
+        // $request->has() (bukan filled()) supaya milih "Semua Status" (value kosong) di tab
+        // beda dari belum pernah difilter sama sekali (buka halaman ini polos).
+        $filterStatus = $request->has('status') ? $request->get('status') : 'pending';
+
+        match ($filterStatus) {
+            'draft'               => $query->where('status', 'draft'),
+            'pending'             => $query->where('status', 'pending'),
+            'diproses'            => $query->where('status', 'approved')->whereNull('disbursed_at'),
+            'rejected'            => $query->where('status', 'rejected'),
+            'cancelled'           => $query->where('status', 'cancelled'),
+            'menunggu_konfirmasi' => $query->whereNotNull('disbursed_at')->whereNull('receipt_status'),
+            'sudah_cair'          => $query->whereNotNull('disbursed_at'),
+            default               => null,
+        };
 
         if ($request->filled('search')) {
             $s = '%' . $request->search . '%';
@@ -58,16 +62,22 @@ class FundRequestController extends Controller
 
         $fundRequests = $query->orderByDesc('created_at')->paginate(10)->withQueryString();
 
-        // Statistik ringkas (seluruh pengajuan milik pengaju, tanpa filter)
+        // Statistik ringkas (seluruh pengajuan milik pengaju, lepas dari filter status yang lagi
+        // aktif) -- dipakai juga buat tab filter di atas daftar, supaya tiap kategori kelihatan
+        // jelas jumlahnya dan bisa langsung diklik tanpa nyampur ke daftar lain.
         $statsBase = FundRequest::where('requester_id', $employee->id);
         $stats = [
             'total'        => (clone $statsBase)->count(),
             'total_amount' => (float) (clone $statsBase)->where('status', '!=', 'draft')->sum('amount'),
             'cair'         => (clone $statsBase)->whereNotNull('disbursed_at')->count(),
             'pending'      => (clone $statsBase)->where('status', 'pending')->count(),
+            'draft'        => (clone $statsBase)->where('status', 'draft')->count(),
+            'diproses'     => (clone $statsBase)->where('status', 'approved')->whereNull('disbursed_at')->count(),
+            'rejected'     => (clone $statsBase)->where('status', 'rejected')->count(),
+            'cancelled'    => (clone $statsBase)->where('status', 'cancelled')->count(),
         ];
 
-        return view('fund-requests.index', compact('fundRequests', 'organizations', 'stats'));
+        return view('fund-requests.index', compact('fundRequests', 'organizations', 'stats', 'filterStatus'));
     }
 
     public function create(Request $request)
