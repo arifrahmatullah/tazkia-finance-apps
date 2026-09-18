@@ -12,6 +12,7 @@ use App\Services\FundJournalService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rules\File;
 
 class FinanceController extends Controller
 {
@@ -48,6 +49,15 @@ class FinanceController extends Controller
             $q->where(fn($sq) => $sq->where('reference', 'like', $s)->orWhere('title', 'like', $s));
         });
 
+        // Ringkasan dihitung dari SEMUA baris yang cocok filter -- bukan cuma 10 yang tampil di
+        // halaman aktif -- supaya angkanya tetap benar walau lagi buka page 2, 3, dst.
+        $summaryBase   = clone $query;
+        $belumCair     = (clone $summaryBase)->whereNull('disbursed_at')->count();
+        $totalBelum    = (float) (clone $summaryBase)->whereNull('disbursed_at')->sum('amount');
+        $sudahCair     = (clone $summaryBase)->whereNotNull('disbursed_at')->count();
+        $totalSemua    = (float) (clone $summaryBase)->sum('amount');
+        $totalCount    = (clone $summaryBase)->count();
+
         $fundRequests = $query->orderByDesc('approved_at')->paginate(10)->withQueryString();
 
         // Pencairan yang sudah cair tapi belum ada bukti transfer (pengingat untuk keuangan)
@@ -73,7 +83,10 @@ class FinanceController extends Controller
         $canRequestTopup = $orgIds === null
             || Organization::whereNotNull('parent_id')->whereIn('id', $orgIds)->exists();
 
-        return view('finance.index', compact('fundRequests', 'organizations', 'filterStatus', 'bankAccounts', 'missingProofCount', 'canRequestTopup'));
+        return view('finance.index', compact(
+            'fundRequests', 'organizations', 'filterStatus', 'bankAccounts', 'missingProofCount', 'canRequestTopup',
+            'belumCair', 'totalBelum', 'sudahCair', 'totalSemua', 'totalCount'
+        ));
     }
 
     public function disburse(Request $request, FundRequest $fundRequest)
@@ -85,7 +98,7 @@ class FinanceController extends Controller
             'disburse_account_id' => 'required|exists:accounts,id',
             'disbursement_notes'  => 'nullable|string|max:500',
             'amount'              => 'nullable|numeric|min:1',
-            'proof_file'          => 'nullable|file|max:10240|mimes:pdf,jpg,jpeg,png',
+            'proof_file'          => ['nullable', (new File())->extensions(['pdf', 'jpg', 'jpeg', 'png'])->max(10240)],
         ]);
 
         $account = Account::where('id', $request->disburse_account_id)
@@ -196,7 +209,7 @@ class FinanceController extends Controller
         abort_unless($fundRequest->isDisbursed(), 422, 'Pengajuan belum dicairkan.');
 
         $request->validate([
-            'file' => 'required|file|max:10240|mimes:pdf,jpg,jpeg,png',
+            'file' => ['required', (new File())->extensions(['pdf', 'jpg', 'jpeg', 'png'])->max(10240)],
         ]);
 
         $this->storeProof($fundRequest, $request->file('file'), auth()->user());

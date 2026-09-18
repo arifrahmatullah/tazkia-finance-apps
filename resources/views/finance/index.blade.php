@@ -87,12 +87,7 @@
 </form>
 
 {{-- Summary --}}
-@if($fundRequests->total() > 0)
-@php
-    $belumCair  = $fundRequests->getCollection()->filter(fn($fr) => is_null($fr->disbursed_at))->count();
-    $sudahCair  = $fundRequests->getCollection()->filter(fn($fr) => !is_null($fr->disbursed_at))->count();
-    $totalBelum = $fundRequests->getCollection()->filter(fn($fr) => is_null($fr->disbursed_at))->sum('amount');
-@endphp
+@if($totalCount > 0)
 <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
     <div class="bg-white rounded-xl shadow-sm px-4 py-3.5">
         <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Belum Cair</div>
@@ -102,7 +97,7 @@
     <div class="bg-white rounded-xl shadow-sm px-4 py-3.5">
         <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Sudah Cair</div>
         <div class="text-2xl font-extrabold text-green-500">{{ $sudahCair }}</div>
-        <div class="text-xs text-slate-400 mt-0.5">halaman ini</div>
+        <div class="text-xs text-slate-400 mt-0.5">semua data</div>
     </div>
     <a href="{{ route('finance.index', array_merge(request()->except(['status', 'page']), ['status' => 'belum_bukti'])) }}"
         class="rounded-xl shadow-sm px-4 py-3.5 no-underline block transition-colors {{ $missingProofCount > 0 ? 'bg-red-50 border border-red-200 hover:bg-red-100' : 'bg-white hover:bg-slate-50' }}">
@@ -111,11 +106,11 @@
         <div class="text-xs {{ $missingProofCount > 0 ? 'text-red-400' : 'text-slate-400' }} mt-0.5">{{ $missingProofCount > 0 ? 'perlu upload bukti transfer' : 'semua bukti lengkap' }}</div>
     </a>
     <div class="bg-white rounded-xl shadow-sm px-4 py-3.5 col-span-2 sm:col-span-1">
-        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Total Halaman Ini</div>
+        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Total Semua</div>
         <div class="text-lg font-extrabold text-slate-800 font-mono leading-tight">
-            Rp {{ number_format($fundRequests->getCollection()->sum('amount'), 0, ',', '.') }}
+            Rp {{ number_format($totalSemua, 0, ',', '.') }}
         </div>
-        <div class="text-xs text-slate-400 mt-0.5">{{ $fundRequests->total() }} pengajuan</div>
+        <div class="text-xs text-slate-400 mt-0.5">{{ $totalCount }} pengajuan</div>
     </div>
 </div>
 @endif
