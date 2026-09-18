@@ -13,6 +13,13 @@
 </div>
 @endif
 
+@if($errors->any())
+<div class="flex items-center gap-2.5 px-4 py-3 bg-red-50 border border-red-200 rounded-xl mb-4 text-sm text-red-700">
+    <svg width="16" height="16" fill="none" stroke="#dc2626" stroke-width="2" viewBox="0 0 24 24" class="shrink-0"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+    <span>{{ $errors->first() }}</span>
+</div>
+@endif
+
 @if($missingProofCount > 0)
 <div class="flex items-center gap-2.5 px-4 py-3 bg-red-50 border border-red-200 rounded-xl mb-4 text-sm text-red-700">
     <svg width="16" height="16" fill="none" stroke="#dc2626" stroke-width="2" viewBox="0 0 24 24" class="shrink-0"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
@@ -377,7 +384,7 @@
                 <div id="disburse-ref" class="text-[11px] text-slate-500 mt-0.5"></div>
             </div>
         </div>
-        <form id="disburse-form" method="POST" action="">
+        <form id="disburse-form" method="POST" action="" enctype="multipart/form-data">
             @csrf
             <div class="px-6 py-5 flex flex-col gap-4">
 
@@ -445,6 +452,14 @@
                         class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-colors resize-none"
                         placeholder="Nomor bukti transfer, catatan tambahan..."></textarea>
                     <p id="disburse-notes-required-hint" class="text-[11px] text-red-500 mt-1 hidden">Wajib diisi -- jelaskan alasan koreksi nominal.</p>
+                </div>
+
+                {{-- Upload bukti transfer (opsional, sekalian pas cairkan) --}}
+                <div>
+                    <label class="text-xs font-semibold text-slate-600 block mb-1.5">Bukti Transfer <span class="text-slate-400 font-normal">(opsional, bisa diupload belakangan)</span></label>
+                    <input type="file" name="proof_file" id="disburse-proof-input" accept=".pdf,.jpg,.jpeg,.png"
+                        class="w-full text-sm text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100 cursor-pointer">
+                    <div class="text-[10px] text-slate-400 mt-1.5">Kalau bukti sudah ada saat ini, langsung upload sekalian. Format: PDF, JPG, PNG · Maks. 10 MB</div>
                 </div>
             </div>
 
@@ -533,6 +548,8 @@
         notesOptional.classList.remove('hidden');
         notesRequiredHint.classList.add('hidden');
         amountError.classList.add('hidden');
+        var proofInput = document.getElementById('disburse-proof-input');
+        if (proofInput) proofInput.value = '';
         if (accSel) { accSel.value = ''; if (accInfo) accInfo.classList.add('hidden'); if (accWarn) accWarn.classList.add('hidden'); }
     }
 

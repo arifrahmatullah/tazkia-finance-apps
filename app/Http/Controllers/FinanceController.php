@@ -85,6 +85,7 @@ class FinanceController extends Controller
             'disburse_account_id' => 'required|exists:accounts,id',
             'disbursement_notes'  => 'nullable|string|max:500',
             'amount'              => 'nullable|numeric|min:1',
+            'proof_file'          => 'nullable|file|max:10240|mimes:pdf,jpg,jpeg,png',
         ]);
 
         $account = Account::where('id', $request->disburse_account_id)
@@ -138,6 +139,10 @@ class FinanceController extends Controller
 
         [$entry, $warning] = $this->journal->postDisbursement($fundRequest, $user);
 
+        if ($request->hasFile('proof_file')) {
+            $this->storeProof($fundRequest, $request->file('proof_file'), $user);
+        }
+
         $message = 'Pengajuan ' . $fundRequest->reference . ' berhasil dicairkan via ' . $account->name . '.';
         if ($amountCorrected) {
             $message .= ' Nominal dikoreksi dari Rp ' . number_format($approvedAmount, 0, ',', '.') .
@@ -145,6 +150,9 @@ class FinanceController extends Controller
         }
         if ($entry) {
             $message .= ' Jurnal ' . $entry->reference . ' diposting.';
+        }
+        if ($request->hasFile('proof_file')) {
+            $message .= ' Bukti transfer ikut terupload.';
         }
 
         return redirect()->route('finance.index')
@@ -191,8 +199,15 @@ class FinanceController extends Controller
             'file' => 'required|file|max:10240|mimes:pdf,jpg,jpeg,png',
         ]);
 
-        $user = auth()->user();
-        $file = $request->file('file');
+        $this->storeProof($fundRequest, $request->file('file'), auth()->user());
+
+        return back()->with('success', 'Bukti pencairan berhasil diunggah.');
+    }
+
+    // Dipakai dari dua tempat: upload terpisah (uploadProof) dan upload sekalian pas pencairan
+    // (disburse) -- disatukan supaya perilakunya (nama file, tipe, dsb) selalu konsisten.
+    private function storeProof(FundRequest $fundRequest, $file, $user): void
+    {
         $path = $file->store('fund-requests/' . $fundRequest->id . '/proofs', 'public');
 
         $fundRequest->files()->create([
@@ -203,8 +218,6 @@ class FinanceController extends Controller
             'mime_type'   => $file->getMimeType(),
             'file_size'   => $file->getSize(),
         ]);
-
-        return back()->with('success', 'Bukti pencairan berhasil diunggah.');
     }
 
     public function deleteProof(FundRequestFile $fundRequestFile)
