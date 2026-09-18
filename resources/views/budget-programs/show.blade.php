@@ -251,10 +251,16 @@
                                 Rp {{ number_format($schAmount, 0, ',', '.') }}
                                 <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                             </button>
-                            <button type="button" onclick="openTransfer('{{ $sch->id }}')" title="Pindahkan saldo ke/dari termin lain"
-                                class="inline-flex items-center justify-center w-6 h-6 rounded-lg border-0 bg-slate-50 text-slate-400 hover:bg-purple-50 hover:text-purple-500 cursor-pointer transition-colors shrink-0">
-                                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M7 16V4m0 0L3 8m4-4l4 4m6 4v12m0 0l4-4m-4 4l-4-4"/></svg>
-                            </button>
+                            <div class="relative inline-flex group">
+                                <button type="button" onclick="openTransfer('{{ $sch->id }}')"
+                                    class="inline-flex items-center justify-center w-6 h-6 rounded-lg border border-purple-200 bg-purple-50 text-purple-500 hover:bg-purple-500 hover:text-white hover:border-purple-500 cursor-pointer transition-colors shrink-0">
+                                    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M7 16V4m0 0L3 8m4-4l4 4m6 4v12m0 0l4-4m-4 4l-4-4"/></svg>
+                                </button>
+                                <div class="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:block whitespace-nowrap px-2.5 py-1.5 rounded-lg bg-slate-800 text-white text-[11px] font-medium shadow-lg z-20">
+                                    Pindahkan sisa nominal ke/dari termin lain
+                                    <div class="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-slate-800"></div>
+                                </div>
+                            </div>
                         </div>
                     </td>
                     <td class="px-4 py-3 align-middle text-sm text-slate-500">{{ $sch->notes ?? '—' }}</td>
