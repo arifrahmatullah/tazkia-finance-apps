@@ -39,6 +39,8 @@ class FinanceController extends Controller
                 $q->whereNotNull('disbursed_at');
             } elseif ($request->status === 'approved') {
                 $q->where('status', 'approved')->whereNull('disbursed_at');
+            } elseif ($request->status === 'belum_bukti') {
+                $q->whereNotNull('disbursed_at')->whereDoesntHave('disbursementProofs');
             }
         })
         ->when($request->filled('search'), function ($q) use ($request) {

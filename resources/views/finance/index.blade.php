@@ -49,6 +49,7 @@
             <option value="" {{ $filterStatus === '' ? 'selected' : '' }}>Semua</option>
             <option value="approved" {{ $filterStatus === 'approved' ? 'selected' : '' }}>Belum Cair</option>
             <option value="disbursed" {{ $filterStatus === 'disbursed' ? 'selected' : '' }}>Sudah Cair</option>
+            <option value="belum_bukti" {{ $filterStatus === 'belum_bukti' ? 'selected' : '' }}>Sudah Cair, Belum Ada Bukti</option>
         </select>
     </div>
 
@@ -96,11 +97,12 @@
         <div class="text-2xl font-extrabold text-green-500">{{ $sudahCair }}</div>
         <div class="text-xs text-slate-400 mt-0.5">halaman ini</div>
     </div>
-    <div class="rounded-xl shadow-sm px-4 py-3.5 {{ $missingProofCount > 0 ? 'bg-red-50 border border-red-200' : 'bg-white' }}">
+    <a href="{{ route('finance.index', array_merge(request()->except(['status', 'page']), ['status' => 'belum_bukti'])) }}"
+        class="rounded-xl shadow-sm px-4 py-3.5 no-underline block transition-colors {{ $missingProofCount > 0 ? 'bg-red-50 border border-red-200 hover:bg-red-100' : 'bg-white hover:bg-slate-50' }}">
         <div class="text-[10px] font-bold {{ $missingProofCount > 0 ? 'text-red-400' : 'text-slate-400' }} uppercase tracking-widest mb-0.5">Belum Ada Bukti</div>
         <div class="text-2xl font-extrabold {{ $missingProofCount > 0 ? 'text-red-500' : 'text-slate-300' }}">{{ $missingProofCount }}</div>
         <div class="text-xs {{ $missingProofCount > 0 ? 'text-red-400' : 'text-slate-400' }} mt-0.5">{{ $missingProofCount > 0 ? 'perlu upload bukti transfer' : 'semua bukti lengkap' }}</div>
-    </div>
+    </a>
     <div class="bg-white rounded-xl shadow-sm px-4 py-3.5 col-span-2 sm:col-span-1">
         <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Total Halaman Ini</div>
         <div class="text-lg font-extrabold text-slate-800 font-mono leading-tight">
