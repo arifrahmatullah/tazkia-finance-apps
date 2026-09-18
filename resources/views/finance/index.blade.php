@@ -31,7 +31,17 @@
 <div class="flex items-start justify-between gap-4 mb-5 flex-wrap">
     <div>
         <h2 class="text-lg font-bold text-slate-900 m-0 mb-1">Pencairan Dana</h2>
-        <p class="text-xs text-slate-400 m-0">Pengajuan yang telah disetujui dan siap dicairkan</p>
+        <p class="text-xs text-slate-400 m-0">
+            @if($filterStatus === 'approved')
+                Menampilkan pengajuan yang belum cair
+            @elseif($filterStatus === 'disbursed')
+                Menampilkan pengajuan yang sudah cair
+            @elseif($filterStatus === 'belum_bukti')
+                Menampilkan yang sudah cair tapi belum ada bukti transfer
+            @else
+                Menampilkan semua pengajuan yang disetujui
+            @endif
+        </p>
     </div>
 </div>
 
@@ -44,7 +54,7 @@
         <div class="relative">
             <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
             <input type="text" name="search" value="{{ request('search') }}"
-                placeholder="Referensi atau judul pengajuan..."
+                placeholder="Referensi, judul, atau nama pengaju..."
                 class="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-400 transition-colors">
         </div>
     </div>
@@ -53,10 +63,10 @@
     <div class="min-w-[160px]">
         <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">Status</label>
         <select name="status" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 bg-white outline-none focus:border-blue-400 transition-colors">
-            <option value="" {{ $filterStatus === '' ? 'selected' : '' }}>Semua</option>
             <option value="approved" {{ $filterStatus === 'approved' ? 'selected' : '' }}>Belum Cair</option>
             <option value="disbursed" {{ $filterStatus === 'disbursed' ? 'selected' : '' }}>Sudah Cair</option>
             <option value="belum_bukti" {{ $filterStatus === 'belum_bukti' ? 'selected' : '' }}>Sudah Cair, Belum Ada Bukti</option>
+            <option value="" {{ $filterStatus === '' ? 'selected' : '' }}>Semua</option>
         </select>
     </div>
 
@@ -73,12 +83,34 @@
     </div>
     @endif
 
+    {{-- Departemen filter --}}
+    <div class="min-w-[200px]">
+        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">Departemen</label>
+        <select name="department_id" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 bg-white outline-none focus:border-blue-400 transition-colors">
+            <option value="">Semua Departemen</option>
+            @foreach($departments as $dept)
+                <option value="{{ $dept->id }}" {{ request('department_id') == $dept->id ? 'selected' : '' }}>{{ $dept->name }}</option>
+            @endforeach
+        </select>
+    </div>
+
+    {{-- Program Kerja filter --}}
+    <div class="min-w-[220px]">
+        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">Program Kerja</label>
+        <select name="budget_program_id" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 bg-white outline-none focus:border-blue-400 transition-colors">
+            <option value="">Semua Program Kerja</option>
+            @foreach($budgetPrograms as $program)
+                <option value="{{ $program->id }}" {{ request('budget_program_id') == $program->id ? 'selected' : '' }}>{{ $program->name }} — {{ $program->budgetAllocation->department->name ?? '-' }}</option>
+            @endforeach
+        </select>
+    </div>
+
     <div class="flex gap-2">
         <button type="submit" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-blue-600 text-white border-0 cursor-pointer hover:bg-blue-700 transition-colors">
             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
             Cari
         </button>
-        @if(request('search') || request('organization_id') || request('status'))
+        @if(request('search') || request('organization_id') || request('status') || request('department_id') || request('budget_program_id'))
         <a href="{{ route('finance.index') }}" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-slate-100 text-slate-600 no-underline hover:bg-slate-200 transition-colors">
             Reset
         </a>
@@ -88,30 +120,36 @@
 
 {{-- Summary --}}
 @if($totalCount > 0)
+@php
+    $statusLink = fn($status) => route('finance.index', array_merge(request()->except(['status', 'page']), ['status' => $status]));
+@endphp
 <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-    <div class="bg-white rounded-xl shadow-sm px-4 py-3.5">
+    <a href="{{ $statusLink('approved') }}"
+        class="rounded-xl shadow-sm px-4 py-3.5 no-underline block transition-colors {{ $filterStatus === 'approved' ? 'bg-orange-50 border border-orange-200' : 'bg-white hover:bg-slate-50' }}">
         <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Belum Cair</div>
         <div class="text-2xl font-extrabold text-orange-500">{{ $belumCair }}</div>
         <div class="text-xs text-slate-400 mt-0.5 font-mono">Rp {{ number_format($totalBelum, 0, ',', '.') }}</div>
-    </div>
-    <div class="bg-white rounded-xl shadow-sm px-4 py-3.5">
+    </a>
+    <a href="{{ $statusLink('disbursed') }}"
+        class="rounded-xl shadow-sm px-4 py-3.5 no-underline block transition-colors {{ $filterStatus === 'disbursed' ? 'bg-green-50 border border-green-200' : 'bg-white hover:bg-slate-50' }}">
         <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Sudah Cair</div>
         <div class="text-2xl font-extrabold text-green-500">{{ $sudahCair }}</div>
-        <div class="text-xs text-slate-400 mt-0.5">semua data</div>
-    </div>
-    <a href="{{ route('finance.index', array_merge(request()->except(['status', 'page']), ['status' => 'belum_bukti'])) }}"
+        <div class="text-xs text-slate-400 mt-0.5">klik untuk lihat</div>
+    </a>
+    <a href="{{ $statusLink('belum_bukti') }}"
         class="rounded-xl shadow-sm px-4 py-3.5 no-underline block transition-colors {{ $missingProofCount > 0 ? 'bg-red-50 border border-red-200 hover:bg-red-100' : 'bg-white hover:bg-slate-50' }}">
         <div class="text-[10px] font-bold {{ $missingProofCount > 0 ? 'text-red-400' : 'text-slate-400' }} uppercase tracking-widest mb-0.5">Belum Ada Bukti</div>
         <div class="text-2xl font-extrabold {{ $missingProofCount > 0 ? 'text-red-500' : 'text-slate-300' }}">{{ $missingProofCount }}</div>
         <div class="text-xs {{ $missingProofCount > 0 ? 'text-red-400' : 'text-slate-400' }} mt-0.5">{{ $missingProofCount > 0 ? 'perlu upload bukti transfer' : 'semua bukti lengkap' }}</div>
     </a>
-    <div class="bg-white rounded-xl shadow-sm px-4 py-3.5 col-span-2 sm:col-span-1">
+    <a href="{{ $statusLink('') }}"
+        class="rounded-xl shadow-sm px-4 py-3.5 col-span-2 sm:col-span-1 no-underline block transition-colors {{ $filterStatus === '' ? 'bg-slate-100 border border-slate-300' : 'bg-white hover:bg-slate-50' }}">
         <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Total Semua</div>
         <div class="text-lg font-extrabold text-slate-800 font-mono leading-tight">
             Rp {{ number_format($totalSemua, 0, ',', '.') }}
         </div>
         <div class="text-xs text-slate-400 mt-0.5">{{ $totalCount }} pengajuan</div>
-    </div>
+    </a>
 </div>
 @endif
 

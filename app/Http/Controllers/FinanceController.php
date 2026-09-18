@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Account;
+use App\Models\BudgetProgram;
+use App\Models\Department;
 use App\Models\FundRefund;
 use App\Models\FundReport;
 use App\Models\FundRequest;
@@ -28,35 +30,61 @@ class FinanceController extends Controller
         $organizations = Organization::when($orgIds !== null, fn($q) => $q->whereIn('id', $orgIds))
             ->orderBy('name')->get();
 
-        $query = FundRequest::with([
+        $departments = Department::when($orgIds !== null, fn($q) => $q->whereIn('organization_id', $orgIds))
+            ->orderBy('name')->get();
+
+        $budgetPrograms = BudgetProgram::whereHas('budgetAllocation.department', fn($q) =>
+                $q->when($orgIds !== null, fn($qq) => $qq->whereIn('organization_id', $orgIds))
+            )
+            ->with('budgetAllocation.department')
+            ->orderBy('name')->get();
+
+        // Filter lain (organisasi/departemen/program/pencarian) dipisah dari filter status --
+        // supaya kartu ringkasan di bawah selalu nunjukin angka yang benar apapun status yang
+        // lagi aktif dipilih (mis. tetap kelihatan ada berapa yang "Sudah Cair" walau yang
+        // ditampilkan di daftar cuma yang "Belum Cair").
+        $baseQuery = FundRequest::with([
             'organization', 'department', 'requester', 'requesterPosition',
             'budgetProgram', 'disburseAccount', 'disbursementProofs',
         ])
         ->when($orgIds !== null, fn($q) => $q->whereIn('organization_id', $orgIds))
         ->whereIn('status', ['approved', 'disbursed'])
         ->when($request->filled('organization_id'), fn($q) => $q->where('organization_id', $request->organization_id))
-        ->when($request->filled('status'), function ($q) use ($request) {
-            if ($request->status === 'disbursed') {
-                $q->whereNotNull('disbursed_at');
-            } elseif ($request->status === 'approved') {
-                $q->where('status', 'approved')->whereNull('disbursed_at');
-            } elseif ($request->status === 'belum_bukti') {
-                $q->whereNotNull('disbursed_at')->whereDoesntHave('disbursementProofs');
-            }
-        })
+        ->when($request->filled('department_id'), fn($q) => $q->where('department_id', $request->department_id))
+        ->when($request->filled('budget_program_id'), fn($q) => $q->where('budget_program_id', $request->budget_program_id))
         ->when($request->filled('search'), function ($q) use ($request) {
             $s = '%' . $request->search . '%';
-            $q->where(fn($sq) => $sq->where('reference', 'like', $s)->orWhere('title', 'like', $s));
+            $q->where(function ($sq) use ($s) {
+                $sq->where('reference', 'like', $s)
+                    ->orWhere('title', 'like', $s)
+                    ->orWhereHas('requester', fn($rq) => $rq->where('name', 'like', $s));
+            });
         });
 
-        // Ringkasan dihitung dari SEMUA baris yang cocok filter -- bukan cuma 10 yang tampil di
-        // halaman aktif -- supaya angkanya tetap benar walau lagi buka page 2, 3, dst.
-        $summaryBase   = clone $query;
-        $belumCair     = (clone $summaryBase)->whereNull('disbursed_at')->count();
-        $totalBelum    = (float) (clone $summaryBase)->whereNull('disbursed_at')->sum('amount');
-        $sudahCair     = (clone $summaryBase)->whereNotNull('disbursed_at')->count();
-        $totalSemua    = (float) (clone $summaryBase)->sum('amount');
-        $totalCount    = (clone $summaryBase)->count();
+        // Ringkasan dihitung dari SEMUA baris yang cocok filter (selain status) -- bukan cuma
+        // 10 yang tampil di halaman aktif -- supaya angkanya tetap benar walau lagi buka page
+        // 2, 3, dst, dan tetap muncul walau daftar yang ditampilkan lagi difilter status lain.
+        $belumCair  = (clone $baseQuery)->whereNull('disbursed_at')->count();
+        $totalBelum = (float) (clone $baseQuery)->whereNull('disbursed_at')->sum('amount');
+        $sudahCair  = (clone $baseQuery)->whereNotNull('disbursed_at')->count();
+        $totalSemua = (float) (clone $baseQuery)->sum('amount');
+        $totalCount = (clone $baseQuery)->count();
+
+        // Defaultnya cuma nampilin yang belum cair -- "Sudah Cair" diakses lewat filter Status
+        // atau klik kartu ringkasan, bukan halaman terpisah. $request->has() (bukan filled())
+        // supaya milih "Semua" (value kosong) di dropdown beda dari belum pernah difilter sama
+        // sekali (buka /finance polos).
+        $statusParam = $request->has('status') ? $request->get('status') : 'approved';
+
+        $query = (clone $baseQuery)->when($statusParam !== '', function ($q) use ($statusParam) {
+            if ($statusParam === 'disbursed') {
+                $q->whereNotNull('disbursed_at');
+            } elseif ($statusParam === 'approved') {
+                $q->where('status', 'approved')->whereNull('disbursed_at');
+            } elseif ($statusParam === 'belum_bukti') {
+                $q->whereNotNull('disbursed_at')->whereDoesntHave('disbursementProofs');
+            }
+        });
 
         $fundRequests = $query->orderByDesc('approved_at')->paginate(10)->withQueryString();
 
@@ -76,7 +104,7 @@ class FinanceController extends Controller
             ->get(['id', 'organization_id', 'code', 'name'])
             ->each(fn($a) => $a->balance = $a->currentBalance());
 
-        $filterStatus = $request->get('status', '');
+        $filterStatus = $statusParam;
 
         // Dipakai untuk menampilkan link "Ajukan saldo ke Yayasan" saat saldo kurang --
         // hanya relevan buat organisasi yang punya induk (Kampus/STMIK), bukan Yayasan sendiri.
@@ -84,8 +112,8 @@ class FinanceController extends Controller
             || Organization::whereNotNull('parent_id')->whereIn('id', $orgIds)->exists();
 
         return view('finance.index', compact(
-            'fundRequests', 'organizations', 'filterStatus', 'bankAccounts', 'missingProofCount', 'canRequestTopup',
-            'belumCair', 'totalBelum', 'sudahCair', 'totalSemua', 'totalCount'
+            'fundRequests', 'organizations', 'departments', 'budgetPrograms', 'filterStatus', 'bankAccounts',
+            'missingProofCount', 'canRequestTopup', 'belumCair', 'totalBelum', 'sudahCair', 'totalSemua', 'totalCount'
         ));
     }
 
