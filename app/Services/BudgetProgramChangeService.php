@@ -127,7 +127,8 @@ class BudgetProgramChangeService
             'add_detail'  => $program->details()->create(array_merge($payload, ['quantity' => $program->frequency])),
             'update_detail' => BudgetProgramDetail::find($request->subject_id)?->update($payload),
             'delete_detail' => BudgetProgramDetail::find($request->subject_id)?->delete(),
-            'update_schedule' => $this->applyUpdateSchedule($request->subject_id, $payload),
+            'update_schedule'   => $this->applyUpdateSchedule($request->subject_id, $payload),
+            'transfer_schedule' => $this->applyTransferSchedule($request->subject_id, $payload),
             default => null,
         };
 
@@ -173,5 +174,19 @@ class BudgetProgramChangeService
                 ['unit_price' => $d['unit_price']]
             );
         }
+    }
+
+    // Terapkan pindahan saldo antar termin yang sempat ditunda approval (di luar periode
+    // perencanaan) -- $subjectId di sini adalah termin SUMBER, tujuannya dititipkan di payload.
+    private function applyTransferSchedule(string $subjectId, array $payload): void
+    {
+        $from = BudgetProgramSchedule::find($subjectId);
+        $to   = isset($payload['to_schedule_id']) ? BudgetProgramSchedule::find($payload['to_schedule_id']) : null;
+        if (!$from || !$to) {
+            return;
+        }
+
+        $from->update(['amount' => $payload['from_amount']]);
+        $to->update(['amount' => $payload['to_amount']]);
     }
 }

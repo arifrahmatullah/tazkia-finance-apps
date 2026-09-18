@@ -145,6 +145,63 @@ class BudgetProgramScheduleController extends Controller
         ]);
     }
 
+    // Geser saldo antar termin DALAM program yang sama -- total program tidak berubah sama
+    // sekali, jadi tidak perlu cek sisa alokasi anggaran departemen (beda dari update() di atas
+    // yang bisa menambah total). Dipakai buat mindahin sisa termin yang sudah lewat/tidak
+    // terpakai ke termin lain yang butuh lebih, tanpa keliru dianggap "kebutuhan baru".
+    public function transfer(Request $request, BudgetProgram $budgetProgram)
+    {
+        $budgetProgram->load('budgetAllocation.department', 'budgetAllocation.budgetPeriod');
+
+        abort_unless(
+            auth()->user()->canAccessOrganization($budgetProgram->budgetAllocation->department->organization_id),
+            403
+        );
+
+        $validated = $request->validate([
+            'from_schedule_id' => 'required|exists:budget_program_schedules,id',
+            'to_schedule_id'   => 'required|different:from_schedule_id|exists:budget_program_schedules,id',
+            'amount'           => 'required|numeric|min:0.01',
+        ]);
+
+        $from = $budgetProgram->schedules()->findOrFail($validated['from_schedule_id']);
+        $to   = $budgetProgram->schedules()->findOrFail($validated['to_schedule_id']);
+
+        $nominalPerTermin = (float) $budgetProgram->nominal_per_termin;
+        $fromCeiling = $from->amount !== null ? (float) $from->amount : $nominalPerTermin;
+        $toCeiling   = $to->amount !== null ? (float) $to->amount : $nominalPerTermin;
+
+        $fromUsed = (float) $from->fundRequests()->whereNotIn('status', \App\Models\FundRequest::VOID_STATUSES)->sum('amount');
+        $available = $fromCeiling - $fromUsed;
+
+        if ((float) $validated['amount'] > $available + 0.01) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Termin sumber cuma punya sisa Rp ' . number_format(max($available, 0), 0, ',', '.') . ' yang bisa dipindah.',
+            ], 422);
+        }
+
+        $newFromAmount = round($fromCeiling - $validated['amount'], 2);
+        $newToAmount   = round($toCeiling + $validated['amount'], 2);
+
+        if (!$budgetProgram->isWithinPlanningWindow()) {
+            app(BudgetProgramChangeService::class)->requestChange(
+                $budgetProgram, $request->user(), 'transfer_schedule', $from->id,
+                ['to_schedule_id' => $to->id, 'from_amount' => $newFromAmount, 'to_amount' => $newToAmount],
+                'Pindahkan Rp ' . number_format($validated['amount'], 0, ',', '.') . " dari Termin {$from->termin} ke Termin {$to->termin}: {$budgetProgram->name}"
+            );
+
+            return response()->json(['success' => true, 'pending' => true]);
+        }
+
+        \DB::transaction(function () use ($from, $to, $newFromAmount, $newToAmount) {
+            $from->update(['amount' => $newFromAmount]);
+            $to->update(['amount' => $newToAmount]);
+        });
+
+        return response()->json(['success' => true]);
+    }
+
     public function bulkUpdate(Request $request, BudgetProgram $budgetProgram)
     {
         $budgetProgram->load('budgetAllocation.department');

@@ -23,6 +23,17 @@
             'unit_price'  => $sch->effectiveUnitPriceFor($d),
         ])->values()];
     });
+
+    // Data termin buat modal "Pindahkan Saldo Antar Termin" -- nominal & terpakai per termin,
+    // supaya JS bisa hitung sisa yang boleh dipindah tanpa round-trip ke server tiap ganti pilihan.
+    $nominalPerTerminForTransfer = $freq > 0 ? $totalUsed / $freq : 0;
+    $schedulesForTransfer = $schedules->map(fn($sch) => [
+        'id'     => $sch->id,
+        'termin' => $sch->termin,
+        'label'  => $sch->monthLabel() ?? "Termin {$sch->termin}",
+        'amount' => (float) ($sch->amount ?? $nominalPerTerminForTransfer),
+        'used'   => (float) $sch->fundRequests->filter(fn($fr) => !$fr->isVoid())->sum('amount'),
+    ])->values();
 @endphp
 
 <div class="flex items-center justify-between mb-5">
@@ -234,11 +245,17 @@
                         @endif
                     </td>
                     <td class="px-4 py-3 text-right font-mono text-sm text-slate-700 align-middle">
-                        <button type="button" onclick="openEdit('{{ $sch->id }}', '{{ $sch->estimated_date?->format('Y-m-d') ?? '' }}', '{{ addslashes($sch->notes ?? '') }}', {{ $sch->termin }}, {{ $schAmount }})"
-                            class="inline-flex items-center gap-1 border-0 bg-transparent cursor-pointer text-slate-700 hover:text-orange-500 transition-colors" id="amount-label-{{ $sch->id }}">
-                            Rp {{ number_format($schAmount, 0, ',', '.') }}
-                            <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                        </button>
+                        <div class="inline-flex items-center gap-1.5">
+                            <button type="button" onclick="openEdit('{{ $sch->id }}', '{{ $sch->estimated_date?->format('Y-m-d') ?? '' }}', '{{ addslashes($sch->notes ?? '') }}', {{ $sch->termin }}, {{ $schAmount }})"
+                                class="inline-flex items-center gap-1 border-0 bg-transparent cursor-pointer text-slate-700 hover:text-orange-500 transition-colors" id="amount-label-{{ $sch->id }}">
+                                Rp {{ number_format($schAmount, 0, ',', '.') }}
+                                <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                            </button>
+                            <button type="button" onclick="openTransfer('{{ $sch->id }}')" title="Pindahkan saldo ke/dari termin lain"
+                                class="inline-flex items-center justify-center w-6 h-6 rounded-lg border-0 bg-slate-50 text-slate-400 hover:bg-purple-50 hover:text-purple-500 cursor-pointer transition-colors shrink-0">
+                                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M7 16V4m0 0L3 8m4-4l4 4m6 4v12m0 0l4-4m-4 4l-4-4"/></svg>
+                            </button>
+                        </div>
                     </td>
                     <td class="px-4 py-3 align-middle text-sm text-slate-500">{{ $sch->notes ?? '—' }}</td>
                     <td class="px-4 py-3 align-middle">
@@ -411,6 +428,45 @@
                 Simpan
             </button>
             <button type="button" onclick="closeEdit()"
+                class="px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-600 bg-white cursor-pointer hover:bg-slate-50 transition-colors">
+                Batal
+            </button>
+        </div>
+    </div>
+</div>
+
+{{-- Modal: Pindahkan Saldo Antar Termin --}}
+<div id="modal-transfer" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4" style="background:rgba(0,0,0,.35)">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md flex flex-col" style="max-height:88vh;">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
+            <h3 class="text-sm font-bold text-slate-900">Pindahkan Saldo Antar Termin</h3>
+            <button type="button" onclick="closeTransfer()" class="text-slate-400 hover:text-slate-600 border-0 bg-transparent cursor-pointer text-lg leading-none">×</button>
+        </div>
+        <div class="flex flex-col gap-3 px-6 py-4 overflow-y-auto" style="min-height:0;">
+            <p class="text-xs text-slate-400 -mt-1">Geser sisa nominal dari satu termin ke termin lain. Total program tidak berubah, jadi tidak memotong sisa alokasi anggaran departemen.</p>
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1.5">Dari Termin</label>
+                <select id="transfer-from" onchange="onTransferChange()" class="no-select2 w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-700 bg-white outline-none focus:border-purple-400 transition-colors"></select>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1.5">Ke Termin</label>
+                <select id="transfer-to" onchange="onTransferChange()" class="no-select2 w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-700 bg-white outline-none focus:border-purple-400 transition-colors"></select>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1.5">Nominal Dipindah (Rp)</label>
+                <input type="text" id="transfer-amount-display" inputmode="numeric" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:border-purple-400 transition-colors font-mono" oninput="onTransferAmountInput(this)">
+                <input type="hidden" id="transfer-amount">
+                <div id="transfer-max-hint" class="text-[11px] text-slate-400 mt-1"></div>
+            </div>
+            <div id="transfer-preview" class="border-t border-slate-100 pt-3 text-xs text-slate-600 flex flex-col gap-1"></div>
+            <div id="transfer-error" class="text-[11px] text-red-500" style="display:none"></div>
+        </div>
+        <div class="flex gap-2.5 px-6 py-4 border-t border-slate-100 shrink-0">
+            <button type="button" id="transfer-save-btn" onclick="saveTransfer()"
+                class="flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-br from-purple-400 to-purple-500 text-white text-sm font-semibold border-0 cursor-pointer hover:-translate-y-px transition-all disabled:opacity-40 disabled:cursor-not-allowed">
+                Pindahkan
+            </button>
+            <button type="button" onclick="closeTransfer()"
                 class="px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-600 bg-white cursor-pointer hover:bg-slate-50 transition-colors">
                 Batal
             </button>
@@ -611,6 +667,123 @@ function saveEdit() {
 
 document.getElementById('modal-edit').addEventListener('click', function(e) {
     if (e.target === this) closeEdit();
+});
+
+// ----- Transfer modal -----
+const schedulesForTransfer = @json($schedulesForTransfer);
+
+function transferOptionsHtml(excludeId) {
+    return schedulesForTransfer
+        .filter(s => s.id !== excludeId)
+        .map(s => `<option value="${s.id}">${escHtmlEdit(s.label)} (Rp ${Math.round(s.amount).toLocaleString('id-ID')})</option>`)
+        .join('');
+}
+
+function openTransfer(fromId) {
+    const fromSelect = document.getElementById('transfer-from');
+    const toSelect   = document.getElementById('transfer-to');
+
+    fromSelect.innerHTML = schedulesForTransfer.map(s => `<option value="${s.id}">${escHtmlEdit(s.label)} (Rp ${Math.round(s.amount).toLocaleString('id-ID')})</option>`).join('');
+    fromSelect.value = fromId;
+    toSelect.innerHTML = transferOptionsHtml(fromId);
+
+    document.getElementById('transfer-amount-display').value = '';
+    document.getElementById('transfer-amount').value = '0';
+    document.getElementById('transfer-error').style.display = 'none';
+
+    onTransferChange();
+    document.getElementById('modal-transfer').classList.remove('hidden');
+}
+
+function closeTransfer() {
+    document.getElementById('modal-transfer').classList.add('hidden');
+}
+
+function findSchedule(id) {
+    return schedulesForTransfer.find(s => s.id === id);
+}
+
+function onTransferChange() {
+    const fromId = document.getElementById('transfer-from').value;
+    const toSelect = document.getElementById('transfer-to');
+    const currentTo = toSelect.value;
+    toSelect.innerHTML = transferOptionsHtml(fromId);
+    if (currentTo && currentTo !== fromId) toSelect.value = currentTo;
+
+    updateTransferPreview();
+}
+
+function onTransferAmountInput(input) {
+    const raw = input.value.replace(/[^\d]/g, '');
+    const value = raw ? parseInt(raw, 10) : 0;
+    document.getElementById('transfer-amount').value = value;
+    input.value = value ? value.toLocaleString('id-ID') : '';
+    updateTransferPreview();
+}
+
+function updateTransferPreview() {
+    const from = findSchedule(document.getElementById('transfer-from').value);
+    const to   = findSchedule(document.getElementById('transfer-to').value);
+    const amount = parseInt(document.getElementById('transfer-amount').value) || 0;
+    const saveBtn = document.getElementById('transfer-save-btn');
+    const hint = document.getElementById('transfer-max-hint');
+    const preview = document.getElementById('transfer-preview');
+
+    if (!from || !to) {
+        hint.textContent = '';
+        preview.innerHTML = '';
+        saveBtn.disabled = true;
+        return;
+    }
+
+    const available = Math.max(0, from.amount - from.used);
+    hint.textContent = `Sisa yang bisa dipindah dari ${from.label}: Rp ${Math.round(available).toLocaleString('id-ID')}`;
+
+    const fromAfter = from.amount - amount;
+    const toAfter   = to.amount + amount;
+
+    preview.innerHTML = `
+        <div class="flex justify-between"><span>${escHtmlEdit(from.label)} jadi</span><span class="font-mono font-semibold ${fromAfter < from.used ? 'text-red-500' : 'text-slate-700'}">Rp ${Math.round(fromAfter).toLocaleString('id-ID')}</span></div>
+        <div class="flex justify-between"><span>${escHtmlEdit(to.label)} jadi</span><span class="font-mono font-semibold text-slate-700">Rp ${Math.round(toAfter).toLocaleString('id-ID')}</span></div>
+        <div class="text-slate-400">Total program tetap tidak berubah.</div>
+    `;
+
+    saveBtn.disabled = !(amount > 0 && amount <= available + 0.01);
+}
+
+function saveTransfer() {
+    const fromId = document.getElementById('transfer-from').value;
+    const toId   = document.getElementById('transfer-to').value;
+    const amount = document.getElementById('transfer-amount').value;
+
+    fetch(`{{ route('budget-program-schedules.transfer', $budgetProgram) }}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
+                         || '{{ csrf_token() }}',
+        },
+        body: JSON.stringify({ from_schedule_id: fromId, to_schedule_id: toId, amount: amount }),
+    })
+    .then(async r => ({ ok: r.ok, data: await r.json() }))
+    .then(({ ok, data }) => {
+        if (data.success) {
+            closeTransfer();
+            if (data.pending) {
+                alert('Periode perencanaan sudah lewat. Pemindahan saldo disimpan sebagai permintaan dan menunggu approval Keuangan.');
+            }
+            window.location.reload();
+        } else if (!ok) {
+            const err = document.getElementById('transfer-error');
+            err.textContent = data.message || 'Gagal memindahkan saldo.';
+            err.style.display = 'block';
+        }
+    })
+    .catch(() => alert('Gagal memindahkan saldo. Coba lagi.'));
+}
+
+document.getElementById('modal-transfer').addEventListener('click', function(e) {
+    if (e.target === this) closeTransfer();
 });
 
 // ----- Auto-fill modal -----

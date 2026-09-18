@@ -63,6 +63,7 @@ Route::middleware(['auth', 'role.selected'])->group(function () {
     Route::resource('budget-programs', BudgetProgramController::class)->middleware('permission:menu.program-kerja');
     Route::patch('budget-program-schedules/{schedule}', [BudgetProgramScheduleController::class, 'update'])->name('budget-program-schedules.update')->middleware('permission:menu.program-kerja');
     Route::post('budget-programs/{budgetProgram}/bulk-schedule', [BudgetProgramScheduleController::class, 'bulkUpdate'])->name('budget-program-schedules.bulk')->middleware('permission:menu.program-kerja');
+    Route::post('budget-programs/{budgetProgram}/schedules/transfer', [BudgetProgramScheduleController::class, 'transfer'])->name('budget-program-schedules.transfer')->middleware('permission:menu.program-kerja');
     Route::post('budget-program-details', [BudgetProgramDetailController::class, 'store'])->name('budget-program-details.store')->middleware('permission:menu.program-kerja');
     Route::get('budget-program-details/{budgetProgramDetail}/edit', [BudgetProgramDetailController::class, 'edit'])->name('budget-program-details.edit')->middleware('permission:menu.program-kerja');
     Route::put('budget-program-details/{budgetProgramDetail}', [BudgetProgramDetailController::class, 'update'])->name('budget-program-details.update')->middleware('permission:menu.program-kerja');
