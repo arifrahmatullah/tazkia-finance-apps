@@ -98,6 +98,7 @@ class FinanceController extends Controller
             'disburse_account_id' => 'required|exists:accounts,id',
             'disbursement_notes'  => 'nullable|string|max:500',
             'amount'              => 'nullable|numeric|min:1',
+            'disbursed_at'        => 'required|date',
             'proof_file'          => ['nullable', (new File())->extensions(['pdf', 'jpg', 'jpeg', 'png'])->max(10240)],
         ]);
 
@@ -141,8 +142,13 @@ class FinanceController extends Controller
             $this->adjustDetailAmounts($fundRequest, $amount);
         }
 
+        // Tanggal cair diisi manual (bisa beda dari hari ini -- transfer kadang baru
+        // dicatat belakangan), jam-nya tetap ikut waktu sekarang biar urutan antar
+        // pencairan di tanggal yang sama tetap masuk akal.
+        $disbursedAt = \Carbon\Carbon::parse($request->disbursed_at)->setTimeFrom(now());
+
         $fundRequest->update([
-            'disbursed_at'        => now(),
+            'disbursed_at'        => $disbursedAt,
             'disburse_account_id' => $account->id,
             'disbursement_notes'  => $request->disbursement_notes,
             'disbursed_by'        => $user->name ?? $user->email,

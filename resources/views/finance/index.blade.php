@@ -369,8 +369,8 @@
 
 {{-- Disburse Modal --}}
 <div class="fixed inset-0 z-[999] bg-slate-900/50 backdrop-blur-sm items-center justify-center" id="disburse-overlay" style="display:none;">
-    <div class="bg-white rounded-2xl w-[480px] max-w-[90vw] shadow-2xl overflow-hidden">
-        <div class="px-6 py-5 border-b border-slate-100 flex items-center gap-3">
+    <div class="bg-white rounded-2xl w-[480px] max-w-[90vw] shadow-2xl flex flex-col" style="max-height:88vh;">
+        <div class="px-6 py-5 border-b border-slate-100 flex items-center gap-3 shrink-0">
             <div class="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
                 <svg width="18" height="18" fill="none" stroke="#2563eb" stroke-width="2.5" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
             </div>
@@ -379,9 +379,16 @@
                 <div id="disburse-ref" class="text-[11px] text-slate-500 mt-0.5"></div>
             </div>
         </div>
-        <form id="disburse-form" method="POST" action="" enctype="multipart/form-data">
+        <form id="disburse-form" method="POST" action="" enctype="multipart/form-data" class="flex flex-col overflow-hidden" style="min-height:0;">
             @csrf
-            <div class="px-6 py-5 flex flex-col gap-4">
+            <div class="px-6 py-5 flex flex-col gap-4 overflow-y-auto" style="min-height:0;">
+
+                {{-- Tanggal Pencairan --}}
+                <div>
+                    <label class="text-xs font-semibold text-slate-600 block mb-1.5">Tanggal Pencairan <span class="text-red-500">*</span></label>
+                    <input type="date" name="disbursed_at" id="disburse-date-input" required
+                        class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-colors">
+                </div>
 
                 {{-- Nominal --}}
                 <div>
@@ -458,7 +465,7 @@
                 </div>
             </div>
 
-            <div class="px-6 py-4 border-t border-slate-100 flex gap-2 justify-end">
+            <div class="px-6 py-4 border-t border-slate-100 flex gap-2 justify-end shrink-0">
                 <button type="button" id="disburse-cancel" class="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 border border-slate-200 text-sm font-medium cursor-pointer hover:bg-slate-200 transition-colors">Batal</button>
                 <button type="submit" class="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 cursor-pointer hover:opacity-90 transition-opacity shadow-sm">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
@@ -606,6 +613,8 @@
             approvedAmount = parseFloat(btn.dataset.amountRaw || '0');
             document.getElementById('disburse-ref').textContent = btn.dataset.ref;
             document.getElementById('disburse-approved-amount').textContent = btn.dataset.amount;
+            var dateInput = document.getElementById('disburse-date-input');
+            if (dateInput) dateInput.value = new Date().toLocaleDateString('sv-SE');
             setAmount(approvedAmount);
             populateAccounts(btn.dataset.organizationId);
             overlay.style.display = 'flex';
