@@ -453,10 +453,16 @@
                 <div class="text-xs font-medium text-slate-700 truncate">{{ $file->file_name }}</div>
                 <div class="text-[10px] text-slate-400">{{ $file->file_size_label }} · {{ $file->created_at->format('d/m/Y H:i') }} · {{ $file->uploader?->name ?? '-' }}</div>
             </div>
-            <a href="{{ $file->url }}" target="_blank" class="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-semibold bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors no-underline flex-shrink-0">
-                <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Unduh
-            </a>
+            <div class="flex items-center gap-1.5 flex-shrink-0">
+                <a href="{{ $file->url }}" target="_blank" class="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-semibold bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors no-underline">
+                    <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 9a3 3 0 116 0c0 2-3 3-3 3m0 4h.01"/></svg>
+                    Lihat
+                </a>
+                <a href="{{ $file->url }}" download="{{ $file->file_name }}" class="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors no-underline">
+                    <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Unduh
+                </a>
+            </div>
             @if($isRequester)
             <form method="POST" action="{{ route('fund-requests.files.delete', $file) }}" class="inline-block">
                 @csrf @method('DELETE')
@@ -544,10 +550,16 @@
                     <div class="text-xs font-medium text-slate-700 truncate">{{ $proof->file_name }}</div>
                     <div class="text-[10px] text-slate-400">{{ $proof->file_size_label }} · {{ $proof->created_at->format('d/m/Y H:i') }}</div>
                 </div>
-                <a href="{{ $proof->url }}" target="_blank" class="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-semibold bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors no-underline flex-shrink-0">
-                    <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                    Lihat
-                </a>
+                <div class="flex items-center gap-1.5 flex-shrink-0">
+                    <a href="{{ $proof->url }}" target="_blank" class="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-semibold bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors no-underline">
+                        <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 9a3 3 0 116 0c0 2-3 3-3 3m0 4h.01"/></svg>
+                        Lihat
+                    </a>
+                    <a href="{{ $proof->url }}" download="{{ $proof->file_name }}" class="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors no-underline">
+                        <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        Unduh
+                    </a>
+                </div>
             </div>
             @endforeach
         </div>

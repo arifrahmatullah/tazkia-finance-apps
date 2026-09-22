@@ -304,6 +304,10 @@
                             <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                             {{ $proof->file_name }}
                         </a>
+                        <a href="{{ $proof->url }}" download="{{ $proof->file_name }}"
+                            class="inline-flex items-center justify-center w-5 h-5 rounded text-slate-500 bg-slate-100 hover:bg-slate-200 no-underline" title="Unduh">
+                            <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        </a>
                         <form method="POST" action="{{ route('finance.delete-proof', $proof) }}" class="inline-block">
                             @csrf @method('DELETE')
                             <button type="submit" onclick="return confirm('Hapus bukti ini?')"
