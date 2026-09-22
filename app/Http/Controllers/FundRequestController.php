@@ -16,6 +16,8 @@ use App\Models\Organization;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rules\File;
 
 class FundRequestController extends Controller
 {
@@ -142,7 +144,7 @@ class FundRequestController extends Controller
             'bank_account_number'=> ['required', 'regex:/^[0-9]{1,50}$/'],
             'bank_account_name'  => 'required|string|max:150',
             'attachments'        => 'required|array|min:1',
-            'attachments.*'      => 'file|max:10240|mimes:pdf,jpg,jpeg,png,doc,docx,xls,xlsx',
+            'attachments.*'      => ['file', (new File())->extensions(['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx', 'xls', 'xlsx'])->max(10240)],
         ], [
             'bank_account_number.regex' => 'Nomor rekening hanya boleh berisi angka.',
             'purpose.required'          => 'Tujuan / keterangan wajib diisi.',
@@ -233,7 +235,7 @@ class FundRequestController extends Controller
 
         if ($request->hasFile('attachments')) {
             foreach ($request->file('attachments') as $file) {
-                $path = $file->store('fund-requests/' . $fundRequest->id . '/attachments', 'public');
+                $path = $file->storeAs('fund-requests/' . $fundRequest->id . '/attachments', Str::random(40) . '.' . $file->getClientOriginalExtension(), 'public');
                 $fundRequest->files()->create([
                     'uploaded_by' => $user->id,
                     'type'        => 'attachment',
@@ -556,11 +558,11 @@ class FundRequestController extends Controller
         abort_unless($fundRequest->requester->user_id === $user->id, 403);
 
         $request->validate([
-            'file' => 'required|file|max:10240|mimes:pdf,jpg,jpeg,png,doc,docx,xls,xlsx',
+            'file' => ['required', (new File())->extensions(['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx', 'xls', 'xlsx'])->max(10240)],
         ]);
 
         $file = $request->file('file');
-        $path = $file->store('fund-requests/' . $fundRequest->id . '/attachments', 'public');
+        $path = $file->storeAs('fund-requests/' . $fundRequest->id . '/attachments', Str::random(40) . '.' . $file->getClientOriginalExtension(), 'public');
 
         $fundRequest->files()->create([
             'uploaded_by' => $user->id,

@@ -6,6 +6,8 @@ use App\Models\IncomeEstimate;
 use App\Models\IncomeReceipt;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rules\File;
 
 class IncomeReceiptController extends Controller
 {
@@ -27,7 +29,7 @@ class IncomeReceiptController extends Controller
             'receipt_date'       => 'required|date',
             'description'        => 'required|string|max:255',
             'qty'                => 'required|numeric|min:0.01',
-            'proof'              => 'nullable|file|max:10240|mimes:pdf,jpg,jpeg,png',
+            'proof'              => ['nullable', (new File())->extensions(['pdf', 'jpg', 'jpeg', 'png'])->max(10240)],
         ], [
             'proof.max' => 'Ukuran file maksimal 10 MB.',
         ]);
@@ -42,7 +44,7 @@ class IncomeReceiptController extends Controller
             if ($request->hasFile('proof')) {
                 $file = $request->file('proof');
                 $receipt->update([
-                    'proof_path' => $file->store("income-receipts/{$receipt->id}", 'public'),
+                    'proof_path' => $file->storeAs("income-receipts/{$receipt->id}", Str::random(40) . '.' . $file->getClientOriginalExtension(), 'public'),
                     'proof_name' => $file->getClientOriginalName(),
                 ]);
             }
@@ -69,7 +71,7 @@ class IncomeReceiptController extends Controller
             'receipt_date' => 'required|date',
             'description'  => 'required|string|max:255',
             'qty'          => 'required|numeric|min:0.01',
-            'proof'        => 'nullable|file|max:10240|mimes:pdf,jpg,jpeg,png',
+            'proof'        => ['nullable', (new File())->extensions(['pdf', 'jpg', 'jpeg', 'png'])->max(10240)],
         ], [
             'proof.max' => 'Ukuran file maksimal 10 MB.',
         ]);
@@ -83,7 +85,7 @@ class IncomeReceiptController extends Controller
                     Storage::disk('public')->delete($incomeReceipt->proof_path);
                 }
                 $file = $request->file('proof');
-                $data['proof_path'] = $file->store("income-receipts/{$incomeReceipt->id}", 'public');
+                $data['proof_path'] = $file->storeAs("income-receipts/{$incomeReceipt->id}", Str::random(40) . '.' . $file->getClientOriginalExtension(), 'public');
                 $data['proof_name'] = $file->getClientOriginalName();
             }
 

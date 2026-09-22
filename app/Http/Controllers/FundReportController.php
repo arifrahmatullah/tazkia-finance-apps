@@ -9,6 +9,8 @@ use App\Models\FundRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rules\File;
 
 class FundReportController extends Controller
 {
@@ -82,7 +84,7 @@ class FundReportController extends Controller
             'description'     => 'required|string|max:2000',
             'amount_used'     => 'required|numeric|min:0',
             'files'           => 'required|array|min:1',
-            'files.*'         => 'file|max:10240|mimes:pdf,jpg,jpeg,png,doc,docx,xls,xlsx',
+            'files.*'         => ['file', (new File())->extensions(['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx', 'xls', 'xlsx'])->max(10240)],
         ], [
             'files.required'  => 'Minimal 1 file bukti pengeluaran wajib dilampirkan.',
             'files.*.max'     => 'Ukuran file maksimal 10 MB.',
@@ -120,7 +122,7 @@ class FundReportController extends Controller
         ]);
 
         foreach ($request->file('files', []) as $file) {
-            $path = $file->store("fund-reports/{$report->id}", 'public');
+            $path = $file->storeAs("fund-reports/{$report->id}", Str::random(40) . '.' . $file->getClientOriginalExtension(), 'public');
             FundReportFile::create([
                 'fund_report_id' => $report->id,
                 'uploaded_by'    => $user->id,

@@ -14,6 +14,7 @@ use App\Services\FundJournalService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\File;
 
 class FinanceController extends Controller
@@ -255,7 +256,12 @@ class FinanceController extends Controller
     // (disburse) -- disatukan supaya perilakunya (nama file, tipe, dsb) selalu konsisten.
     private function storeProof(FundRequest $fundRequest, $file, $user): void
     {
-        $path = $file->store('fund-requests/' . $fundRequest->id . '/proofs', 'public');
+        // storeAs() + ekstensi dari nama file asli (bukan store() polos) -- store() nebak
+        // ekstensi dari isi konten file (fileinfo), yang kadang gagal utk PDF/gambar tertentu
+        // dan bikin file kesimpan TANPA ekstensi sama sekali (unduhannya jadi .bin, tidak
+        // bisa dibuka).
+        $filename = Str::random(40) . '.' . $file->getClientOriginalExtension();
+        $path = $file->storeAs('fund-requests/' . $fundRequest->id . '/proofs', $filename, 'public');
 
         $fundRequest->files()->create([
             'uploaded_by' => $user->id,

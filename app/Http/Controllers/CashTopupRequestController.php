@@ -16,6 +16,8 @@ use App\Services\FundJournalService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rules\File;
 
 class CashTopupRequestController extends Controller
 {
@@ -230,7 +232,7 @@ class CashTopupRequestController extends Controller
             'notes'                     => 'nullable|string|max:1000',
             'yayasan_source_account_id' => 'required|exists:accounts,id',
             'yayasan_debit_account_id'  => 'required|exists:accounts,id|different:yayasan_source_account_id',
-            'proof'                     => 'required|file|max:10240|mimes:pdf,jpg,jpeg,png',
+            'proof'                     => ['required', (new File())->extensions(['pdf', 'jpg', 'jpeg', 'png'])->max(10240)],
         ]);
 
         $organization = Organization::with('parent')->findOrFail($data['organization_id']);
@@ -287,7 +289,7 @@ class CashTopupRequestController extends Controller
                 'yayasan_debit_account_id'   => $debitAccount->id,
             ]);
 
-            $path = $proof->store('cash-topup-requests/' . $topup->id, 'public');
+            $path = $proof->storeAs('cash-topup-requests/' . $topup->id, Str::random(40) . '.' . $proof->getClientOriginalExtension(), 'public');
             $topup->update(['proof_path' => $path, 'proof_name' => $proof->getClientOriginalName()]);
 
             return $topup;
@@ -387,7 +389,7 @@ class CashTopupRequestController extends Controller
             'yayasan_source_account_id' => 'required|exists:accounts,id',
             'yayasan_debit_account_id'  => 'required|exists:accounts,id|different:yayasan_source_account_id',
             'review_notes'              => 'nullable|string|max:1000',
-            'proof'                     => 'required|file|max:10240|mimes:pdf,jpg,jpeg,png',
+            'proof'                     => ['required', (new File())->extensions(['pdf', 'jpg', 'jpeg', 'png'])->max(10240)],
         ]);
 
         $sourceAccount = Account::where('id', $data['yayasan_source_account_id'])
@@ -405,7 +407,7 @@ class CashTopupRequestController extends Controller
         }
 
         $proof = $request->file('proof');
-        $path  = $proof->store('cash-topup-requests/' . $cashTopupRequest->id, 'public');
+        $path  = $proof->storeAs('cash-topup-requests/' . $cashTopupRequest->id, Str::random(40) . '.' . $proof->getClientOriginalExtension(), 'public');
 
         $cashTopupRequest->update([
             'status'                    => 'approved',

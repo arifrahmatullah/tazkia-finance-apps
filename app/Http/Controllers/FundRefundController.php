@@ -8,6 +8,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rules\File;
 
 class FundRefundController extends Controller
 {
@@ -83,7 +85,7 @@ class FundRefundController extends Controller
         $validated = $request->validate([
             'refund_account_id' => 'required|exists:accounts,id',
             'payment_notes'     => 'nullable|string|max:1000',
-            'proof'             => 'required|file|max:10240|mimes:pdf,jpg,jpeg,png',
+            'proof'             => ['required', (new File())->extensions(['pdf', 'jpg', 'jpeg', 'png'])->max(10240)],
         ], [
             'proof.required' => 'Bukti transfer pengembalian wajib dilampirkan.',
             'proof.max'      => 'Ukuran file maksimal 10 MB.',
@@ -95,7 +97,7 @@ class FundRefundController extends Controller
         }
 
         $file = $request->file('proof');
-        $path = $file->store("fund-refunds/{$fundRefund->id}", 'public');
+        $path = $file->storeAs("fund-refunds/{$fundRefund->id}", Str::random(40) . '.' . $file->getClientOriginalExtension(), 'public');
 
         $fundRefund->update([
             'status'            => 'waiting',
@@ -120,7 +122,7 @@ class FundRefundController extends Controller
             'refund_ids.*'      => 'exists:fund_refunds,id',
             'refund_account_id' => 'required|exists:accounts,id',
             'payment_notes'     => 'nullable|string|max:1000',
-            'proof'             => 'required|file|max:10240|mimes:pdf,jpg,jpeg,png',
+            'proof'             => ['required', (new File())->extensions(['pdf', 'jpg', 'jpeg', 'png'])->max(10240)],
         ], [
             'refund_ids.required' => 'Pilih minimal satu pengembalian dana.',
             'proof.required'      => 'Bukti transfer pengembalian wajib dilampirkan.',
@@ -151,7 +153,7 @@ class FundRefundController extends Controller
                 }
 
                 // Simpan salinan bukti per pengembalian agar aman dihapus/dikirim ulang satu per satu
-                $path = $file->store("fund-refunds/{$refund->id}", 'public');
+                $path = $file->storeAs("fund-refunds/{$refund->id}", Str::random(40) . '.' . $file->getClientOriginalExtension(), 'public');
 
                 $refund->update([
                     'status'            => 'waiting',
