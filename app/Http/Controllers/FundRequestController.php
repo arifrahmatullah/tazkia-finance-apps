@@ -32,7 +32,7 @@ class FundRequestController extends Controller
         $organizations = Organization::when($orgIds !== null, fn($q) => $q->whereIn('id', $orgIds))
             ->orderBy('name')->get();
 
-        $query = FundRequest::with(['organization', 'department', 'budgetProgram', 'requester', 'requesterPosition', 'approvals.approverPosition.activeHolder', 'approvals.approverUser'])
+        $query = FundRequest::with(['organization', 'department', 'budgetProgram', 'requester', 'requesterPosition', 'approvals.approverPosition.activeHolder', 'approvals.approverUser', 'disbursementProofs'])
             ->where('requester_id', $employee->id);
 
         if ($request->filled('organization_id')) {

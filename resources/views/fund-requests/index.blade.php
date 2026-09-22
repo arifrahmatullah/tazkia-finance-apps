@@ -307,6 +307,33 @@
             @endif
             @endif
 
+            {{-- Bukti Pencairan -- tampil langsung di list, tidak perlu buka detail --}}
+            @if($isDisbursed && $fr->disbursementProofs->isNotEmpty())
+            <div class="mt-3">
+                <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Bukti Pencairan</div>
+                <div class="flex flex-col gap-1.5">
+                    @foreach($fr->disbursementProofs as $proof)
+                    <div class="flex items-center gap-3 px-3 py-2 bg-slate-50 rounded-lg border border-slate-100">
+                        <svg width="14" height="14" fill="none" stroke="#64748b" stroke-width="1.5" viewBox="0 0 24 24" class="flex-shrink-0"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-xs font-medium text-slate-700 truncate">{{ $proof->file_name }}</div>
+                        </div>
+                        <div class="flex items-center gap-1.5 flex-shrink-0">
+                            <a href="{{ $proof->url }}" target="_blank" class="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-semibold bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors no-underline">
+                                <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 9a3 3 0 116 0c0 2-3 3-3 3m0 4h.01"/></svg>
+                                Lihat
+                            </a>
+                            <a href="{{ $proof->url }}" download="{{ $proof->file_name }}" class="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors no-underline">
+                                <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                Unduh
+                            </a>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+            @endif
+
             {{-- Actions --}}
             <div class="flex items-center gap-2.5 mt-[18px] flex-wrap">
                 <a href="{{ route('fund-requests.show', $fr) }}"
