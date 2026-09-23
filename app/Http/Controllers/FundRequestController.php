@@ -70,7 +70,10 @@ class FundRequestController extends Controller
         $statsBase = FundRequest::where('requester_id', $employee->id);
         $stats = [
             'total'        => (clone $statsBase)->count(),
-            'total_amount' => (float) (clone $statsBase)->where('status', '!=', 'draft')->sum('amount'),
+            // Ditolak/dibatalkan tidak lagi "aktif" (sama seperti FundRequest::VOID_STATUSES yang
+            // dipakai di seluruh perhitungan sisa pagu program) -- jangan ikut dijumlah di sini,
+            // biar "Total Dana Diajukan" tidak menampilkan nominal yang sudah batal.
+            'total_amount' => (float) (clone $statsBase)->whereNotIn('status', ['draft', ...FundRequest::VOID_STATUSES])->sum('amount'),
             'cair'         => (clone $statsBase)->whereNotNull('disbursed_at')->count(),
             'pending'      => (clone $statsBase)->where('status', 'pending')->count(),
             'draft'        => (clone $statsBase)->where('status', 'draft')->count(),

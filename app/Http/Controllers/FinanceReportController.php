@@ -267,10 +267,12 @@ class FinanceReportController extends Controller
             $pagu = (float) BudgetAllocation::where('budget_period_id', $period->id)
                 ->where('department_id', $department->id)->sum('amount');
 
+            // Ditolak/dibatalkan (FundRequest::VOID_STATUSES) tidak lagi "aktif" -- jangan ikut
+            // dihitung sebagai dana diajukan, sama seperti perhitungan sisa pagu program kerja.
             $rows = FundRequest::with(['requester', 'budgetProgram'])
                 ->where('budget_period_id', $period->id)
                 ->where('department_id', $department->id)
-                ->where('status', '!=', 'draft')
+                ->whereNotIn('status', ['draft', ...FundRequest::VOID_STATUSES])
                 ->orderBy('submitted_at')
                 ->get();
 
@@ -330,7 +332,7 @@ class FinanceReportController extends Controller
                 ->sum('amount');
 
             $rows = FundRequest::where('budget_period_id', $period->id)
-                ->where('status', '!=', 'draft')
+                ->whereNotIn('status', ['draft', ...FundRequest::VOID_STATUSES])
                 ->when($department, fn($q) => $q->where('department_id', $department->id))
                 ->get(['id', 'amount', 'submitted_at', 'disbursed_at']);
 
