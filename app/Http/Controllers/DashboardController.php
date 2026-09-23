@@ -78,8 +78,26 @@ class DashboardController extends Controller
                 'laba'       => $pendapatan - $beban,
                 'tahun'      => now()->year,
             ];
+
+            // Beban per bulan (Jan s.d. bulan berjalan) buat grafik tren -- pola query sama
+            // dengan $lines di atas, tinggal disaring per bulan satu-satu.
+            $monthlyBeban = [];
+            for ($m = 1; $m <= now()->month; $m++) {
+                $monthlyBeban[$m] = (float) JournalEntryLine::whereHas('account', fn ($q) => $q->where('account_type', 'beban'))
+                    ->whereHas('journalEntry', function ($q) use ($orgIds, $m) {
+                        $q->where('status', 'posted')
+                            ->whereYear('entry_date', now()->year)
+                            ->whereMonth('entry_date', $m)
+                            ->when($orgIds !== null, fn ($qq) => $qq->whereIn('organization_id', $orgIds));
+                    })
+                    ->sum('debit');
+            }
+            $labaRugi['monthlyBeban'] = $monthlyBeban;
         }
 
-        return view('dashboard', compact('stafStats', 'labaRugi'));
+        $hour     = now()->hour;
+        $greeting = $hour < 11 ? 'Selamat pagi' : ($hour < 15 ? 'Selamat siang' : ($hour < 19 ? 'Selamat sore' : 'Selamat malam'));
+
+        return view('dashboard', compact('stafStats', 'labaRugi', 'greeting'));
     }
 }

@@ -1,184 +1,214 @@
 <x-layouts.app title="Dashboard" breadcrumb="Tazkia Finance / Dashboard">
 
-    {{-- Ringkasan personal staf pengaju --}}
-    @if($stafStats)
-    <div class="mb-6">
-        <div class="flex items-center gap-2.5 mb-3.5">
-            <h3 class="text-[0.9rem] font-bold text-slate-900 m-0">Ringkasan Pengajuan Saya</h3>
-            <span class="text-[0.72rem] text-slate-400">{{ auth()->user()->name }}</span>
+    {{-- Greeting + aksi cepat --}}
+    <div class="flex items-end gap-4 flex-wrap mb-5">
+        <div class="flex flex-col gap-1 mr-auto">
+            <span class="text-[0.8rem] text-slate-400">{{ now()->locale('id')->translatedFormat('l, d F Y') }}</span>
+            <h1 class="m-0 text-[1.6rem] font-bold tracking-tight text-slate-900">{{ $greeting }}, {{ explode(' ', auth()->user()->name)[0] }}</h1>
         </div>
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-
-            {{-- Total pengajuan --}}
-            <a href="{{ route('fund-requests.index') }}" class="bg-white rounded-xl p-5 border border-slate-100 shadow-sm no-underline hover:shadow-md transition-shadow">
-                <div class="flex items-center justify-between mb-3.5">
-                    <span class="text-[0.78rem] font-medium text-slate-500">Pengajuan Saya</span>
-                    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:#dbeafe">
-                        <svg width="17" height="17" fill="none" stroke="#1d4ed8" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    </div>
-                </div>
-                <div class="text-[1.9rem] font-bold text-slate-900 leading-none">{{ $stafStats['total_pengajuan'] }}</div>
-                <div class="text-[0.7rem] text-slate-400 mt-2">{{ $stafStats['sedang_proses'] }} sedang proses approval</div>
-            </a>
-
-            {{-- Sudah laporan --}}
-            <a href="{{ route('fund-reports.index') }}" class="bg-white rounded-xl p-5 border border-slate-100 shadow-sm no-underline hover:shadow-md transition-shadow">
-                <div class="flex items-center justify-between mb-3.5">
-                    <span class="text-[0.78rem] font-medium text-slate-500">Sudah Laporan</span>
-                    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:#d1fae5">
-                        <svg width="17" height="17" fill="none" stroke="#065f46" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    </div>
-                </div>
-                <div class="text-[1.9rem] font-bold text-slate-900 leading-none">{{ $stafStats['sudah_laporan'] }}</div>
-                <div class="text-[0.7rem] text-slate-400 mt-2">laporan terkirim / disetujui</div>
-            </a>
-
-            {{-- Belum laporan --}}
-            <a href="{{ route('fund-reports.index') }}" class="rounded-xl p-5 border shadow-sm no-underline hover:shadow-md transition-shadow {{ $stafStats['belum_laporan'] > 0 ? 'bg-amber-50 border-amber-200' : 'bg-white border-slate-100' }}">
-                <div class="flex items-center justify-between mb-3.5">
-                    <span class="text-[0.78rem] font-medium {{ $stafStats['belum_laporan'] > 0 ? 'text-amber-700' : 'text-slate-500' }}">Belum Laporan</span>
-                    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:#fde68a">
-                        <svg width="17" height="17" fill="none" stroke="#92400e" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    </div>
-                </div>
-                <div class="text-[1.9rem] font-bold leading-none {{ $stafStats['belum_laporan'] > 0 ? 'text-amber-600' : 'text-slate-900' }}">{{ $stafStats['belum_laporan'] }}</div>
-                <div class="text-[0.7rem] mt-2 {{ $stafStats['belum_laporan'] > 0 ? 'text-amber-600 font-semibold' : 'text-slate-400' }}">
-                    {{ $stafStats['belum_laporan'] > 0 ? 'segera buat laporannya!' : 'semua sudah dilaporkan' }}
-                </div>
-            </a>
-
-            {{-- Pengembalian dana --}}
-            <a href="{{ route('fund-refunds.index') }}" class="rounded-xl p-5 border shadow-sm no-underline hover:shadow-md transition-shadow {{ $stafStats['refund_pending'] > 0 ? 'bg-red-50 border-red-200' : 'bg-white border-slate-100' }}">
-                <div class="flex items-center justify-between mb-3.5">
-                    <span class="text-[0.78rem] font-medium {{ $stafStats['refund_pending'] > 0 ? 'text-red-700' : 'text-slate-500' }}">Pengembalian Dana</span>
-                    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:#fecaca">
-                        <svg width="17" height="17" fill="none" stroke="#991b1b" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 15v-1a4 4 0 00-4-4H8m0 0l3 3m-3-3l3-3"/></svg>
-                    </div>
-                </div>
-                <div class="text-[1.9rem] font-bold leading-none {{ $stafStats['refund_pending'] > 0 ? 'text-red-600' : 'text-slate-900' }}">{{ $stafStats['refund_total'] }}</div>
-                <div class="text-[0.7rem] mt-2 {{ $stafStats['refund_pending'] > 0 ? 'text-red-600 font-semibold' : 'text-slate-400' }}">
-                    {{ $stafStats['refund_pending'] > 0 ? $stafStats['refund_pending'] . ' belum dikembalikan' : 'tidak ada tagihan aktif' }}
-                </div>
-            </a>
-
-            {{-- Selesai / closed --}}
-            <a href="{{ route('fund-requests.index') }}" class="bg-white rounded-xl p-5 border border-slate-100 shadow-sm no-underline hover:shadow-md transition-shadow">
-                <div class="flex items-center justify-between mb-3.5">
-                    <span class="text-[0.78rem] font-medium text-slate-500">Selesai</span>
-                    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:#e9d5ff">
-                        <svg width="17" height="17" fill="none" stroke="#6b21a8" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                    </div>
-                </div>
-                <div class="text-[1.9rem] font-bold text-slate-900 leading-none">{{ $stafStats['closed'] }}</div>
-                <div class="text-[0.7rem] text-slate-400 mt-2">cair, laporan &amp; refund tuntas</div>
-            </a>
-
+        @if($stafStats)
+        <div class="flex gap-2.5 flex-wrap">
+            <a href="{{ route('fund-reports.index') }}" class="inline-flex items-center font-semibold text-sm px-4 py-2.5 rounded-[10px] whitespace-nowrap border border-slate-200 bg-white text-slate-900 no-underline hover:bg-slate-50 transition-colors">Buat Laporan</a>
+            <a href="{{ route('fund-requests.create') }}" class="inline-flex items-center font-semibold text-sm px-[18px] py-2.5 rounded-[10px] whitespace-nowrap border-0 bg-orange-500 text-white no-underline hover:bg-orange-600 transition-colors shadow-sm">+ Ajukan Dana</a>
         </div>
+        @endif
+    </div>
+
+    {{-- Alert defisit laba rugi --}}
+    @if($labaRugi && $labaRugi['laba'] < 0)
+    <div id="deficit-alert" class="flex items-center gap-3.5 px-4 py-3.5 rounded-xl bg-red-50 border border-red-200 flex-wrap mb-5">
+        <div class="w-8 h-8 rounded-full bg-red-100 text-red-700 flex items-center justify-center font-extrabold flex-shrink-0">!</div>
+        <div class="flex-1 min-w-[240px] text-sm leading-relaxed text-red-900">
+            <strong class="text-red-800">Laba rugi {{ $labaRugi['tahun'] }} defisit Rp {{ number_format(abs($labaRugi['laba']), 0, ',', '.') }}.</strong>
+            @if($labaRugi['pendapatan'] == 0)
+                Belum ada pendapatan yang tercatat sejak Januari. Periksa pencatatan pendapatan di Buku Besar.
+            @else
+                Beban lebih besar dari pendapatan tahun ini. Periksa Laba Rugi untuk detailnya.
+            @endif
+        </div>
+        <a href="{{ route('reports.income-statement') }}" class="text-[0.83rem] font-semibold text-red-800">Lihat Laba Rugi &rarr;</a>
+        <button type="button" onclick="document.getElementById('deficit-alert').remove()" class="border-0 bg-transparent text-red-400 text-lg leading-none cursor-pointer px-1">&times;</button>
     </div>
     @endif
 
-    {{-- Ringkasan Laba Rugi tahun berjalan --}}
-    @if($labaRugi)
-    <div class="mb-6">
-        <div class="flex items-center gap-2.5 mb-3.5">
-            <h3 class="text-[0.9rem] font-bold text-slate-900 m-0">Ringkasan Laba Rugi {{ $labaRugi['tahun'] }}</h3>
-            <span class="text-[0.72rem] text-slate-400">Jan &ndash; {{ now()->translatedFormat('M Y') }}</span>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    {{-- Row 1: Pengajuan Saya + Laba Rugi --}}
+    <div class="flex gap-5 flex-wrap mb-5">
 
-            <a href="{{ route('reports.income-statement') }}" class="bg-white rounded-xl p-5 border border-slate-100 shadow-sm no-underline hover:shadow-md transition-shadow">
-                <div class="flex items-center justify-between mb-3.5">
-                    <span class="text-[0.78rem] font-medium text-slate-500">Pendapatan</span>
-                    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:#d1fae5">
-                        <svg width="17" height="17" fill="none" stroke="#16a34a" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 19V5m0 0l-7 7m7-7l7 7"/></svg>
+        @if($stafStats)
+        @php
+            $total = max($stafStats['total_pengajuan'], 1);
+            $closedPct = round($stafStats['closed'] / $total * 100, 1);
+            $reportedPct = round($stafStats['sudah_laporan'] / $total * 100, 1);
+            $doneOfTotal = $stafStats['total_pengajuan'] > 0 ? round(($stafStats['closed'] / $stafStats['total_pengajuan']) * 100) : 0;
+            $statusTiles = [
+                ['label' => 'Proses approval', 'value' => $stafStats['sedang_proses'], 'note' => $stafStats['sedang_proses'] > 0 ? 'menunggu persetujuan' : 'tidak ada antrian', 'dot' => '#f59e0b'],
+                ['label' => 'Belum laporan', 'value' => $stafStats['belum_laporan'], 'note' => $stafStats['belum_laporan'] > 0 ? 'segera buat laporannya!' : 'semua sudah dilaporkan', 'dot' => '#eab308'],
+                ['label' => 'Sudah laporan', 'value' => $stafStats['sudah_laporan'], 'note' => 'terkirim / disetujui', 'dot' => '#3b82f6'],
+                ['label' => 'Pengembalian', 'value' => $stafStats['refund_total'], 'note' => $stafStats['refund_pending'] > 0 ? $stafStats['refund_pending'] . ' belum dikembalikan' : 'tidak ada tagihan aktif', 'dot' => '#ef4444'],
+                ['label' => 'Selesai', 'value' => $stafStats['closed'], 'note' => 'cair, laporan & refund tuntas', 'dot' => '#22a05a'],
+            ];
+        @endphp
+        <section class="flex-[3_1_520px] min-w-0 bg-white border border-slate-100 rounded-2xl p-6 flex flex-col gap-[18px] shadow-sm">
+            <div class="flex items-baseline gap-2.5 flex-wrap">
+                <h2 class="m-0 text-[1rem] font-bold text-slate-900">Pengajuan Saya</h2>
+                <span class="text-[0.78rem] text-slate-400">Tahun anggaran {{ now()->year }}</span>
+                <a href="{{ route('fund-requests.index') }}" class="ml-auto text-[0.8rem] font-semibold">Lihat semua</a>
+            </div>
+            <div class="flex items-end gap-6 flex-wrap">
+                <div class="flex flex-col gap-0.5">
+                    <span class="text-[2.5rem] font-extrabold leading-none tracking-tight text-slate-900 tabular-nums">{{ $stafStats['total_pengajuan'] }}</span>
+                    <span class="text-[0.8rem] text-slate-400">total pengajuan</span>
+                </div>
+                <div class="flex-1 min-w-[220px] flex flex-col gap-2">
+                    <div class="flex justify-between text-[0.8rem]">
+                        <span class="text-slate-600">{{ $stafStats['closed'] }} dari {{ $stafStats['total_pengajuan'] }} selesai</span>
+                        <span class="font-bold text-green-700">{{ $doneOfTotal }}%</span>
+                    </div>
+                    <div class="flex h-2.5 rounded-full overflow-hidden bg-slate-100 gap-0.5">
+                        <div style="width:{{ $closedPct }}%; background:#22a05a"></div>
+                        <div style="width:{{ $reportedPct }}%; background:#3b82f6"></div>
+                    </div>
+                    <div class="flex gap-3.5 text-[0.73rem] text-slate-400 flex-wrap">
+                        <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-sm inline-block" style="background:#22a05a"></span>Selesai</span>
+                        <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-sm inline-block" style="background:#3b82f6"></span>Laporan diverifikasi</span>
+                        <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-sm inline-block bg-slate-100 border border-slate-200"></span>Lainnya</span>
                     </div>
                 </div>
-                <div class="text-[1.5rem] font-bold text-slate-900 leading-none">Rp {{ number_format($labaRugi['pendapatan'], 0, ',', '.') }}</div>
-            </a>
-
-            <a href="{{ route('reports.income-statement') }}" class="bg-white rounded-xl p-5 border border-slate-100 shadow-sm no-underline hover:shadow-md transition-shadow">
-                <div class="flex items-center justify-between mb-3.5">
-                    <span class="text-[0.78rem] font-medium text-slate-500">Beban / Pengeluaran</span>
-                    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:#fee2e2">
-                        <svg width="17" height="17" fill="none" stroke="#dc2626" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14m0 0l-7-7m7 7l7-7"/></svg>
-                    </div>
+            </div>
+            <div class="grid gap-2.5" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr))">
+                @foreach($statusTiles as $t)
+                <div class="flex flex-col gap-1.5 px-3.5 py-3 rounded-xl border border-slate-100 bg-slate-50">
+                    <span class="flex items-center gap-1.5 text-[0.78rem] text-slate-500"><span class="w-2 h-2 rounded-full inline-block" style="background:{{ $t['dot'] }}"></span>{{ $t['label'] }}</span>
+                    <span class="text-[1.35rem] font-bold tabular-nums {{ $t['value'] > 0 ? 'text-slate-900' : 'text-slate-400' }}">{{ $t['value'] }}</span>
+                    <span class="text-[0.7rem] text-slate-400 leading-snug">{{ $t['note'] }}</span>
                 </div>
-                <div class="text-[1.5rem] font-bold text-slate-900 leading-none">Rp {{ number_format($labaRugi['beban'], 0, ',', '.') }}</div>
-            </a>
+                @endforeach
+            </div>
+        </section>
+        @endif
 
-            <a href="{{ route('reports.income-statement') }}" class="rounded-xl p-5 border shadow-sm no-underline hover:shadow-md transition-shadow {{ $labaRugi['laba'] >= 0 ? 'bg-blue-50 border-blue-200' : 'bg-red-50 border-red-200' }}">
-                <div class="flex items-center justify-between mb-3.5">
-                    <span class="text-[0.78rem] font-medium {{ $labaRugi['laba'] >= 0 ? 'text-blue-700' : 'text-red-700' }}">Laba (Rugi) Bersih</span>
-                    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:{{ $labaRugi['laba'] >= 0 ? '#dbeafe' : '#fecaca' }}">
-                        <svg width="17" height="17" fill="none" stroke="{{ $labaRugi['laba'] >= 0 ? '#1d4ed8' : '#991b1b' }}" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 012-2h2a2 2 0 012 2v6m-9 0h10a2 2 0 002-2V9.5M3 19h18"/></svg>
-                    </div>
+        @if($labaRugi)
+        <section class="flex-[2_1_340px] min-w-0 bg-white border border-slate-100 rounded-2xl p-6 flex flex-col gap-4 shadow-sm">
+            <div class="flex items-baseline gap-2.5">
+                <h2 class="m-0 text-[1rem] font-bold text-slate-900">Laba Rugi {{ $labaRugi['tahun'] }}</h2>
+                <span class="text-[0.78rem] text-slate-400">Jan &ndash; {{ now()->translatedFormat('M') }}</span>
+            </div>
+            <div class="flex flex-col gap-1 p-4 rounded-xl {{ $labaRugi['laba'] >= 0 ? 'bg-blue-50' : 'bg-red-50' }}">
+                <span class="text-[0.78rem] font-semibold {{ $labaRugi['laba'] >= 0 ? 'text-blue-800' : 'text-red-800' }}">Laba (Rugi) Bersih</span>
+                <span class="text-[1.8rem] font-extrabold tracking-tight tabular-nums {{ $labaRugi['laba'] >= 0 ? 'text-blue-700' : 'text-red-700' }}">Rp {{ number_format($labaRugi['laba'], 0, ',', '.') }}</span>
+            </div>
+            <div class="flex flex-col">
+                <div class="flex items-center gap-3 py-3 border-b border-slate-100">
+                    <span class="w-7 h-7 rounded-lg bg-green-50 text-green-700 flex items-center justify-center font-bold flex-shrink-0">&uarr;</span>
+                    <span class="flex-1 text-sm text-slate-600">Pendapatan</span>
+                    <span class="font-bold tabular-nums">Rp {{ number_format($labaRugi['pendapatan'], 0, ',', '.') }}</span>
                 </div>
-                <div class="text-[1.5rem] font-bold leading-none {{ $labaRugi['laba'] >= 0 ? 'text-blue-700' : 'text-red-700' }}">Rp {{ number_format($labaRugi['laba'], 0, ',', '.') }}</div>
-            </a>
-
-        </div>
+                <div class="flex items-center gap-3 py-3">
+                    <span class="w-7 h-7 rounded-lg bg-red-50 text-red-700 flex items-center justify-center font-bold flex-shrink-0">&darr;</span>
+                    <span class="flex-1 text-sm text-slate-600">Beban / Pengeluaran</span>
+                    <span class="font-bold tabular-nums">Rp {{ number_format($labaRugi['beban'], 0, ',', '.') }}</span>
+                </div>
+            </div>
+            <a href="{{ route('reports.income-statement') }}" class="text-[0.8rem] font-semibold mt-auto">Buka laporan lengkap &rarr;</a>
+        </section>
+        @endif
     </div>
-    @endif
 
-    {{-- Content Row --}}
-    <div class="grid grid-cols-[1fr_340px] gap-4">
+    {{-- Row 2: Beban per bulan + Organisasi --}}
+    <div class="flex gap-5 flex-wrap mb-5">
 
-        {{-- Aktivitas terbaru --}}
-        <div class="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
-            <div class="px-5 py-[18px] border-b border-slate-50 flex items-center justify-between">
-                <h3 class="text-[0.88rem] font-semibold text-slate-900 m-0">Aktivitas Terbaru</h3>
-                <span class="text-[0.72rem] text-slate-400">Hari ini</span>
+        @if($labaRugi)
+        @php
+            $monthNames = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+            $monthlyBeban = $labaRugi['monthlyBeban'];
+            $maxBeban = max(array_merge($monthlyBeban, [1]));
+            $avgBeban = count($monthlyBeban) > 0 ? array_sum($monthlyBeban) / count($monthlyBeban) : 0;
+        @endphp
+        <section class="flex-[3_1_520px] min-w-0 bg-white border border-slate-100 rounded-2xl p-6 flex flex-col gap-[18px] shadow-sm">
+            <div class="flex items-baseline gap-2.5 flex-wrap">
+                <h2 class="m-0 text-[1rem] font-bold text-slate-900">Beban per Bulan</h2>
+                <span class="text-[0.78rem] text-slate-400">Rata-rata Rp {{ number_format($avgBeban / 1000000, 1, ',', '.') }} jt / bulan</span>
             </div>
-            <div class="px-5 py-8 text-center text-slate-400">
-                <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" class="mx-auto mb-2.5 opacity-40">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                </svg>
-                <p class="text-[0.8rem] m-0">Belum ada aktivitas</p>
-            </div>
-        </div>
-
-        {{-- Info panel --}}
-        <div class="flex flex-col gap-4">
-
-            {{-- Organisasi list --}}
-            <div class="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
-                <div class="px-[18px] py-4 border-b border-slate-50">
-                    <h3 class="text-[0.85rem] font-semibold text-slate-900 m-0">Organisasi</h3>
+            <div class="flex gap-2.5 items-end border-b border-slate-100" style="height:200px">
+                @foreach($monthlyBeban as $m => $val)
+                <div class="flex-1 h-full flex flex-col justify-end items-center gap-1.5" title="{{ $monthNames[$m] }}: Rp {{ number_format($val, 0, ',', '.') }}">
+                    <span class="text-[0.68rem] font-semibold text-slate-600 tabular-nums">{{ number_format($val / 1000000, 1, ',', '.') }} jt</span>
+                    <div class="w-full rounded-t-md bg-orange-300 hover:bg-orange-500 transition-colors" style="max-width:44px; height:{{ $val > 0 ? max(round($val / $maxBeban * 150), 4) : 2 }}px; margin:0 auto"></div>
                 </div>
-                <div class="p-3">
-                    @foreach(\App\Models\Organization::where('is_active', true)->get() as $org)
-                    <div class="flex items-center gap-2.5 px-2 py-2 rounded-lg mb-0.5">
-                        <div class="w-[30px] h-[30px] rounded-[7px] flex-shrink-0 flex items-center justify-center text-[0.65rem] font-bold" style="background:{{ $org->type === 'yayasan' ? '#eff6ff' : '#fff7ed' }}; color:{{ $org->type === 'yayasan' ? '#1d4ed8' : '#c2410c' }};">
-                            {{ strtoupper(substr($org->code, 0, 2)) }}
-                        </div>
-                        <div>
-                            <div class="text-[0.8rem] font-medium text-slate-800">{{ $org->name }}</div>
-                            <div class="text-[0.68rem] text-slate-400 capitalize">{{ $org->type }}</div>
-                        </div>
-                        <div class="ml-auto">
-                            <span class="inline-block w-[7px] h-[7px] rounded-full bg-green-500"></span>
-                        </div>
+                @endforeach
+            </div>
+            <div class="flex gap-2.5 -mt-2.5">
+                @foreach($monthlyBeban as $m => $val)
+                <span class="flex-1 text-center text-[0.75rem] text-slate-400">{{ $monthNames[$m] }}</span>
+                @endforeach
+            </div>
+        </section>
+        @endif
+
+        <section class="flex-[2_1_340px] min-w-0 bg-white border border-slate-100 rounded-2xl p-6 flex flex-col gap-3 shadow-sm">
+            @php $organizations = \App\Models\Organization::where('is_active', true)->get(); @endphp
+            <div class="flex items-baseline gap-2.5">
+                <h2 class="m-0 text-[1rem] font-bold text-slate-900">Organisasi</h2>
+                <span class="text-[0.78rem] text-slate-400">{{ $organizations->count() }} aktif</span>
+            </div>
+            <div class="flex flex-col">
+                @foreach($organizations as $org)
+                <div class="flex items-center gap-3 py-2.5 {{ !$loop->last ? 'border-b border-slate-100' : '' }}">
+                    <span class="w-9 h-9 rounded-[10px] flex-shrink-0 flex items-center justify-center text-[0.7rem] font-bold" style="background:{{ $org->type === 'yayasan' ? '#eaf0ff' : '#fff1e7' }}; color:{{ $org->type === 'yayasan' ? '#1d3a8a' : '#c2410c' }}">{{ strtoupper(substr($org->code, 0, 2)) }}</span>
+                    <div class="flex-1 flex flex-col">
+                        <span class="text-sm font-semibold text-slate-800">{{ $org->name }}</span>
+                        <span class="text-[0.75rem] text-slate-400 capitalize">{{ $org->type }}</span>
                     </div>
-                    @endforeach
+                    <span class="text-[0.72rem] font-semibold text-green-700 bg-green-50 px-2 py-0.5 rounded-full">Aktif</span>
                 </div>
+                @endforeach
             </div>
+        </section>
+    </div>
 
-            {{-- Role summary --}}
-            <div class="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
-                <div class="px-[18px] py-4 border-b border-slate-50">
-                    <h3 class="text-[0.85rem] font-semibold text-slate-900 m-0">User per Role</h3>
-                </div>
-                <div class="p-3">
-                    @foreach(\App\Models\Role::withCount('users')->get() as $role)
-                    <div class="flex items-center justify-between px-2 py-[7px] rounded-lg">
-                        <span class="text-[0.8rem] text-gray-700 capitalize">{{ $role->name }}</span>
-                        <span class="text-[0.7rem] font-semibold px-[9px] py-0.5 rounded-full" style="background:{{ $role->slug === 'superadmin' ? '#eff6ff' : ($role->slug === 'keuangan' ? '#ecfdf5' : ($role->slug === 'akunting' ? '#faf5ff' : '#fff7ed')) }}; color:{{ $role->slug === 'superadmin' ? '#1d4ed8' : ($role->slug === 'keuangan' ? '#065f46' : ($role->slug === 'akunting' ? '#6b21a8' : '#c2410c')) }};">{{ $role->users_count }}</span>
-                    </div>
-                    @endforeach
-                </div>
+    {{-- Row 3: Aktivitas Terbaru + User per Role --}}
+    <div class="flex gap-5 flex-wrap">
+
+        <section class="flex-[3_1_520px] min-w-0 bg-white border border-slate-100 rounded-2xl p-6 flex flex-col gap-3 shadow-sm">
+            <div class="flex items-baseline gap-2.5">
+                <h2 class="m-0 text-[1rem] font-bold text-slate-900">Aktivitas Terbaru</h2>
+                <span class="text-[0.78rem] text-slate-400">Hari ini</span>
             </div>
+            <div class="flex flex-col items-center gap-2 py-9 px-3 text-center">
+                <div class="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400">
+                    <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                </div>
+                <span class="text-sm font-semibold text-slate-800">Belum ada aktivitas hari ini</span>
+                <span class="text-[0.8rem] text-slate-400 max-w-[340px]">Pengajuan, approval, dan laporan yang Anda proses akan muncul di sini.</span>
+            </div>
+        </section>
 
-        </div>
+        <section class="flex-[2_1_340px] min-w-0 bg-white border border-slate-100 rounded-2xl p-6 flex flex-col gap-4 shadow-sm">
+            @php
+                $roles = \App\Models\Role::withCount('users')->get();
+                $totalUsers = max($roles->sum('users_count'), 1);
+                $roleColors = ['superadmin' => '#3b82f6', 'keuangan' => '#22a05a', 'akunting' => '#8b5cf6'];
+            @endphp
+            <div class="flex items-baseline gap-2.5">
+                <h2 class="m-0 text-[1rem] font-bold text-slate-900">Pengguna per Role</h2>
+                <span class="text-[0.78rem] text-slate-400">{{ $roles->sum('users_count') }} pengguna</span>
+            </div>
+            <div class="flex h-2.5 rounded-full overflow-hidden gap-0.5">
+                @foreach($roles as $role)
+                <div style="width:{{ round($role->users_count / $totalUsers * 100, 1) }}%; background:{{ $roleColors[$role->slug] ?? '#f58a4b' }}"></div>
+                @endforeach
+            </div>
+            <div class="flex flex-col gap-0.5">
+                @foreach($roles as $role)
+                <div class="flex items-center gap-2.5 py-2 text-sm">
+                    <span class="w-2.5 h-2.5 rounded-[3px] flex-shrink-0" style="background:{{ $roleColors[$role->slug] ?? '#f58a4b' }}"></span>
+                    <span class="flex-1 capitalize">{{ $role->name }}</span>
+                    <span class="text-[0.75rem] text-slate-400">{{ round($role->users_count / $totalUsers * 100, 1) }}%</span>
+                    <span class="w-10 text-right font-bold tabular-nums">{{ $role->users_count }}</span>
+                </div>
+                @endforeach
+            </div>
+        </section>
     </div>
 
 </x-layouts.app>
