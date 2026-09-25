@@ -33,6 +33,31 @@
     </div>
     @endif
 
+    {{-- Ringkasan (seluruh data, lepas dari filter/halaman) --}}
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+        <div class="rounded-xl shadow-sm px-4 py-3.5 {{ $belumLaporanCount > 0 ? 'bg-amber-50 border border-amber-200' : 'bg-white' }}">
+            <div class="text-[10px] font-bold {{ $belumLaporanCount > 0 ? 'text-amber-500' : 'text-slate-400' }} uppercase tracking-widest mb-0.5">Belum Laporan</div>
+            <div class="text-2xl font-extrabold {{ $belumLaporanCount > 0 ? 'text-amber-600' : 'text-slate-300' }}">{{ $belumLaporanCount }}</div>
+            <div class="text-xs text-slate-400 mt-0.5 font-mono">Rp {{ number_format($belumLaporanTotal, 0, ',', '.') }}</div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm px-4 py-3.5">
+            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Sudah Laporan</div>
+            <div class="text-2xl font-extrabold text-green-500">{{ $sudahLaporanCount }}</div>
+            <div class="text-xs text-slate-400 mt-0.5 font-mono">Rp {{ number_format($sudahLaporanTotal, 0, ',', '.') }}</div>
+        </div>
+        <a href="{{ route('finance.laporan', ['status' => 'waiting']) }}"
+           class="rounded-xl shadow-sm px-4 py-3.5 no-underline block transition-colors {{ $menungguVerifikasi > 0 ? 'bg-red-50 border border-red-200 hover:bg-red-100' : 'bg-white hover:bg-slate-50' }}">
+            <div class="text-[10px] font-bold {{ $menungguVerifikasi > 0 ? 'text-red-400' : 'text-slate-400' }} uppercase tracking-widest mb-0.5">Menunggu Verifikasi</div>
+            <div class="text-2xl font-extrabold {{ $menungguVerifikasi > 0 ? 'text-red-500' : 'text-slate-300' }}">{{ $menungguVerifikasi }}</div>
+            <div class="text-xs {{ $menungguVerifikasi > 0 ? 'text-red-400' : 'text-slate-400' }} mt-0.5">{{ $menungguVerifikasi > 0 ? 'perlu diperiksa Keuangan' : 'semua sudah diverifikasi' }}</div>
+        </a>
+        <div class="bg-white rounded-xl shadow-sm px-4 py-3.5 col-span-2 sm:col-span-1">
+            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Total Semua</div>
+            <div class="text-lg font-extrabold text-slate-800 font-mono leading-tight">Rp {{ number_format($totalLaporanAmount, 0, ',', '.') }}</div>
+            <div class="text-xs text-slate-400 mt-0.5">{{ $totalLaporanCount }} pengajuan wajib laporan</div>
+        </div>
+    </div>
+
     {{-- Filter --}}
     <div style="background:#fff; border-radius:12px; border:1px solid #e2e8f0; padding:14px 18px; margin-bottom:20px;">
         <form method="GET" style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">

@@ -301,7 +301,32 @@ class FinanceController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        return view('finance.laporan', compact('reports'));
+        // Ringkasan (lepas dari filter/halaman): pengajuan yang sudah cair dan wajib laporan
+        // (jenis "pembayaran" tidak butuh laporan) dipisah jadi yang sudah vs belum dilaporkan.
+        // Laporan yang ditolak dianggap belum -- pengaju masih harus kirim ulang. Definisi sama
+        // dengan kartu "Belum/Sudah Laporan" di dashboard pengaju.
+        $needReportBase = FundRequest::whereNotNull('disbursed_at')
+            ->whereNotIn('status', FundRequest::VOID_STATUSES)
+            ->when($orgIds !== null, fn($q) => $q->whereIn('organization_id', $orgIds))
+            ->whereDoesntHave('budgetProgram', fn($p) => $p->where('type', 'pembayaran'));
+
+        $reportedScope = fn($q) => $q->whereHas('fundReports', fn($r) => $r->whereIn('status', ['waiting', 'approved']));
+
+        $belumLaporanCount = (clone $needReportBase)->whereDoesntHave('fundReports', fn($r) => $r->whereIn('status', ['waiting', 'approved']))->count();
+        $belumLaporanTotal = (float) (clone $needReportBase)->whereDoesntHave('fundReports', fn($r) => $r->whereIn('status', ['waiting', 'approved']))->sum('amount');
+        $sudahLaporanCount = $reportedScope(clone $needReportBase)->count();
+        $sudahLaporanTotal = (float) $reportedScope(clone $needReportBase)->sum('amount');
+        $totalLaporanCount = $belumLaporanCount + $sudahLaporanCount;
+        $totalLaporanAmount = $belumLaporanTotal + $sudahLaporanTotal;
+
+        $menungguVerifikasi = FundReport::where('status', 'waiting')
+            ->whereHas('fundRequest', fn($q) => $q->when($orgIds !== null, fn($sq) => $sq->whereIn('organization_id', $orgIds)))
+            ->count();
+
+        return view('finance.laporan', compact(
+            'reports', 'belumLaporanCount', 'belumLaporanTotal', 'sudahLaporanCount', 'sudahLaporanTotal',
+            'totalLaporanCount', 'totalLaporanAmount', 'menungguVerifikasi'
+        ));
     }
 
     public function approveReport(Request $request, FundReport $fundReport)

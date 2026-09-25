@@ -404,6 +404,10 @@
                 ->whereNull('disbursed_at')
                 ->when($financeOrgIds !== null, fn($q) => $q->whereIn('organization_id', $financeOrgIds))
                 ->count();
+            // Laporan penggunaan dana yang menunggu verifikasi Keuangan (untuk badge sidebar)
+            $laporanWaitingCountFinance = \App\Models\FundReport::where('status', 'waiting')
+                ->whereHas('fundRequest', fn($q) => $q->when($financeOrgIds !== null, fn($sq) => $sq->whereIn('organization_id', $financeOrgIds)))
+                ->count();
             // "Pengajuan Saldo" di sini cuma buat user yang benar-benar berperan di organisasi
             // anak (Kampus/STMIK) -- Yayasan/superadmin sudah punya "Approval Saldo" di menu
             // Approval, supaya tidak dua menu berbeda sama-sama aktif untuk halaman yang sama.
@@ -436,7 +440,12 @@
                 </a>
                 <a href="{{ route('finance.laporan') }}"
                    class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
-                          {{ request()->routeIs('finance.laporan*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Verifikasi Laporan</a>
+                          {{ request()->routeIs('finance.laporan*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">
+                    Verifikasi Laporan
+                    @if($laporanWaitingCountFinance > 0)
+                    <span class="ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full bg-red-500 text-white text-[10px] font-bold leading-none">{{ $laporanWaitingCountFinance }}</span>
+                    @endif
+                </a>
                 <a href="{{ route('finance.pengembalian') }}"
                    class="nav-subitem flex items-center gap-2 py-[7px] px-4 pl-[46px] mx-2.5 rounded-lg no-underline text-[0.8rem] transition-all
                           {{ request()->routeIs('finance.pengembalian*') ? 'active text-blue-300' : 'text-slate-400/80 hover:bg-white/5 hover:text-white' }}">Pengembalian Dana</a>
