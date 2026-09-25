@@ -33,20 +33,23 @@
     </div>
     @endif
 
-    {{-- Ringkasan (seluruh data, lepas dari filter/halaman) --}}
+    {{-- Ringkasan (seluruh data, lepas dari filter/halaman) -- klik kartu buat pindah daftar --}}
+    @php $cardLink = fn($st) => route('finance.laporan', ['status' => $st]); @endphp
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-        <div class="rounded-xl shadow-sm px-4 py-3.5 {{ $belumLaporanCount > 0 ? 'bg-amber-50 border border-amber-200' : 'bg-white' }}">
+        <a href="{{ $cardLink('belum') }}"
+           class="rounded-xl shadow-sm px-4 py-3.5 no-underline block transition-colors {{ $belumLaporanCount > 0 ? 'bg-amber-50 border border-amber-200 hover:bg-amber-100' : 'bg-white hover:bg-slate-50' }} {{ $filterStatus === 'belum' ? 'ring-2 ring-amber-400' : '' }}">
             <div class="text-[10px] font-bold {{ $belumLaporanCount > 0 ? 'text-amber-500' : 'text-slate-400' }} uppercase tracking-widest mb-0.5">Belum Laporan</div>
             <div class="text-2xl font-extrabold {{ $belumLaporanCount > 0 ? 'text-amber-600' : 'text-slate-300' }}">{{ $belumLaporanCount }}</div>
             <div class="text-xs text-slate-400 mt-0.5 font-mono">Rp {{ number_format($belumLaporanTotal, 0, ',', '.') }}</div>
-        </div>
-        <div class="bg-white rounded-xl shadow-sm px-4 py-3.5">
+        </a>
+        <a href="{{ $cardLink('sudah') }}"
+           class="bg-white rounded-xl shadow-sm px-4 py-3.5 no-underline block transition-colors hover:bg-slate-50 {{ $filterStatus === 'sudah' ? 'ring-2 ring-green-400' : '' }}">
             <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Sudah Laporan</div>
             <div class="text-2xl font-extrabold text-green-500">{{ $sudahLaporanCount }}</div>
             <div class="text-xs text-slate-400 mt-0.5 font-mono">Rp {{ number_format($sudahLaporanTotal, 0, ',', '.') }}</div>
-        </div>
-        <a href="{{ route('finance.laporan', ['status' => 'waiting']) }}"
-           class="rounded-xl shadow-sm px-4 py-3.5 no-underline block transition-colors {{ $menungguVerifikasi > 0 ? 'bg-red-50 border border-red-200 hover:bg-red-100' : 'bg-white hover:bg-slate-50' }}">
+        </a>
+        <a href="{{ $cardLink('waiting') }}"
+           class="rounded-xl shadow-sm px-4 py-3.5 no-underline block transition-colors {{ $menungguVerifikasi > 0 ? 'bg-red-50 border border-red-200 hover:bg-red-100' : 'bg-white hover:bg-slate-50' }} {{ $filterStatus === 'waiting' ? 'ring-2 ring-red-400' : '' }}">
             <div class="text-[10px] font-bold {{ $menungguVerifikasi > 0 ? 'text-red-400' : 'text-slate-400' }} uppercase tracking-widest mb-0.5">Menunggu Verifikasi</div>
             <div class="text-2xl font-extrabold {{ $menungguVerifikasi > 0 ? 'text-red-500' : 'text-slate-300' }}">{{ $menungguVerifikasi }}</div>
             <div class="text-xs {{ $menungguVerifikasi > 0 ? 'text-red-400' : 'text-slate-400' }} mt-0.5">{{ $menungguVerifikasi > 0 ? 'perlu diperiksa Keuangan' : 'semua sudah diverifikasi' }}</div>
@@ -66,10 +69,12 @@
                 <select name="status"
                         style="padding:7px 10px; border:1.5px solid #e2e8f0; border-radius:7px; font-size:0.8rem; color:#374151; outline:none;"
                         onchange="this.form.submit()">
-                    <option value="">Semua Status</option>
-                    <option value="waiting" {{ request('status') === 'waiting' ? 'selected' : '' }}>Menunggu</option>
-                    <option value="approved" {{ request('status') === 'approved' ? 'selected' : '' }}>Disetujui</option>
-                    <option value="rejected" {{ request('status') === 'rejected' ? 'selected' : '' }}>Ditolak</option>
+                    <option value="belum" {{ $filterStatus === 'belum' ? 'selected' : '' }}>Belum Laporan</option>
+                    <option value="sudah" {{ $filterStatus === 'sudah' ? 'selected' : '' }}>Sudah Laporan</option>
+                    <option value="waiting" {{ $filterStatus === 'waiting' ? 'selected' : '' }}>Menunggu Verifikasi</option>
+                    <option value="approved" {{ $filterStatus === 'approved' ? 'selected' : '' }}>Disetujui</option>
+                    <option value="rejected" {{ $filterStatus === 'rejected' ? 'selected' : '' }}>Ditolak</option>
+                    <option value="" {{ $filterStatus === '' ? 'selected' : '' }}>Semua Laporan</option>
                 </select>
             </div>
             <div style="flex:1; min-width:200px;">
@@ -83,6 +88,53 @@
             @endif
         </form>
     </div>
+
+    {{-- Daftar BELUM laporan (default) --}}
+    @if($filterStatus === 'belum')
+    @forelse($belumRequests as $fr)
+    @php
+        $hariLewat = (int) $fr->disbursed_at->diffInDays(now());
+        $pernahDitolak = $fr->fundReports->contains('status', 'rejected');
+    @endphp
+    <div style="background:#fff; border-radius:14px; border:1px solid #e2e8f0; overflow:hidden; margin-bottom:14px; display:flex;">
+        <div style="width:4px; background:#f59e0b; flex-shrink:0;"></div>
+        <div style="flex:1; padding:18px 20px;">
+            <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+                <div style="flex:1; min-width:0;">
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:5px;">
+                        <span style="font-size:0.72rem; font-weight:600; color:#64748b; font-family:monospace;">{{ $fr->reference }}</span>
+                        <span style="padding:2px 10px; border-radius:999px; font-size:0.68rem; font-weight:600; background:#fef3c7; color:#92400e;">{{ $pernahDitolak ? 'Laporan Ditolak, Perlu Kirim Ulang' : 'Belum Laporan' }}</span>
+                        @if($hariLewat >= 7)
+                        <span style="padding:2px 10px; border-radius:999px; font-size:0.68rem; font-weight:600; background:#fee2e2; color:#991b1b;">{{ $hariLewat }} hari sejak cair</span>
+                        @else
+                        <span style="font-size:0.7rem; color:#94a3b8;">{{ $hariLewat }} hari sejak cair</span>
+                        @endif
+                    </div>
+                    <div style="font-size:0.95rem; font-weight:700; color:#0f172a; line-height:1.3; margin-bottom:5px;">{{ $fr->title }}</div>
+                    <div style="display:flex; gap:14px; flex-wrap:wrap; font-size:0.75rem; color:#64748b;">
+                        <span><span style="font-weight:600;">Pengaju:</span> {{ $fr->requester?->name ?? '-' }}</span>
+                        <span><span style="font-weight:600;">Dept:</span> {{ $fr->department?->name ?? '-' }}</span>
+                        <span><span style="font-weight:600;">Tgl Cair:</span> {{ $fr->disbursed_at->format('d/m/Y') }}</span>
+                    </div>
+                </div>
+                <div style="text-align:right; flex-shrink:0;">
+                    <div style="font-size:0.7rem; color:#94a3b8; margin-bottom:2px;">Dana Dicairkan</div>
+                    <div style="font-size:0.95rem; font-weight:800; color:#0d2d6b;">Rp {{ number_format($fr->amount, 0, ',', '.') }}</div>
+                    <a href="{{ route('fund-requests.show', $fr) }}" style="display:inline-block; margin-top:8px; font-size:0.75rem; font-weight:600; color:#2563eb; text-decoration:none;">Lihat Detail &rarr;</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    @empty
+    <div style="background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:60px 24px; text-align:center;">
+        <div style="font-size:0.9rem; font-weight:600; color:#475569;">Semua pengajuan sudah dilaporkan</div>
+        <div style="font-size:0.78rem; color:#94a3b8; margin-top:4px;">Tidak ada pengajuan cair yang menunggu laporan penggunaan dana</div>
+    </div>
+    @endforelse
+    @if($belumRequests->hasPages())
+    <div style="margin-top:20px;">{{ $belumRequests->links() }}</div>
+    @endif
+    @else
 
     {{-- Cards --}}
     @forelse($reports as $report)
@@ -204,6 +256,7 @@
     <div style="margin-top:20px;">
         {{ $reports->links() }}
     </div>
+    @endif
     @endif
 
 {{-- Reject Modal --}}

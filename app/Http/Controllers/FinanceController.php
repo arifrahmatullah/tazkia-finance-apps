@@ -288,18 +288,27 @@ class FinanceController extends Controller
         $user   = auth()->user();
         $orgIds = $user->organizationIds();
 
-        $reports = FundReport::with(['fundRequest.organization', 'fundRequest.department', 'reporter', 'files'])
-            ->whereHas('fundRequest', function ($q) use ($orgIds) {
-                $q->when($orgIds !== null, fn($sq) => $sq->whereIn('organization_id', $orgIds));
-            })
-            ->when($request->filled('status'), fn($q) => $q->where('status', $request->status))
-            ->when($request->filled('search'), function ($q) use ($request) {
-                $s = '%' . $request->search . '%';
-                $q->whereHas('fundRequest', fn($sq) => $sq->where('reference', 'like', $s)->orWhere('title', 'like', $s));
-            })
-            ->latest()
-            ->paginate(15)
-            ->withQueryString();
+        // Default-nya nampilin yang BELUM laporan (pengajuan cair yang laporannya belum ada) --
+        // yang sudah laporan diakses lewat kartu/dropdown. $request->has() (bukan filled()) supaya
+        // milih "Semua" (value kosong) beda dari buka halaman polos.
+        $filterStatus = $request->has('status') ? (string) $request->get('status') : 'belum';
+
+        $reports = null;
+        if ($filterStatus !== 'belum') {
+            $reports = FundReport::with(['fundRequest.organization', 'fundRequest.department', 'reporter', 'files'])
+                ->whereHas('fundRequest', function ($q) use ($orgIds) {
+                    $q->when($orgIds !== null, fn($sq) => $sq->whereIn('organization_id', $orgIds));
+                })
+                ->when($filterStatus === 'sudah', fn($q) => $q->whereIn('status', ['waiting', 'approved']))
+                ->when(in_array($filterStatus, ['waiting', 'approved', 'rejected'], true), fn($q) => $q->where('status', $filterStatus))
+                ->when($request->filled('search'), function ($q) use ($request) {
+                    $s = '%' . $request->search . '%';
+                    $q->whereHas('fundRequest', fn($sq) => $sq->where('reference', 'like', $s)->orWhere('title', 'like', $s));
+                })
+                ->latest()
+                ->paginate(15)
+                ->withQueryString();
+        }
 
         // Ringkasan (lepas dari filter/halaman): pengajuan yang sudah cair dan wajib laporan
         // (jenis "pembayaran" tidak butuh laporan) dipisah jadi yang sudah vs belum dilaporkan.
@@ -323,8 +332,25 @@ class FinanceController extends Controller
             ->whereHas('fundRequest', fn($q) => $q->when($orgIds !== null, fn($sq) => $sq->whereIn('organization_id', $orgIds)))
             ->count();
 
+        $belumRequests = null;
+        if ($filterStatus === 'belum') {
+            // Yang paling lama belum melapor di urutan paling atas.
+            $belumRequests = (clone $needReportBase)
+                ->whereDoesntHave('fundReports', fn($r) => $r->whereIn('status', ['waiting', 'approved']))
+                ->with(['organization', 'department', 'requester', 'fundReports'])
+                ->when($request->filled('search'), function ($q) use ($request) {
+                    $s = '%' . $request->search . '%';
+                    $q->where(fn($sq) => $sq->where('reference', 'like', $s)
+                        ->orWhere('title', 'like', $s)
+                        ->orWhereHas('requester', fn($rq) => $rq->where('name', 'like', $s)));
+                })
+                ->orderBy('disbursed_at')
+                ->paginate(15)
+                ->withQueryString();
+        }
+
         return view('finance.laporan', compact(
-            'reports', 'belumLaporanCount', 'belumLaporanTotal', 'sudahLaporanCount', 'sudahLaporanTotal',
+            'reports', 'belumRequests', 'filterStatus', 'belumLaporanCount', 'belumLaporanTotal', 'sudahLaporanCount', 'sudahLaporanTotal',
             'totalLaporanCount', 'totalLaporanAmount', 'menungguVerifikasi'
         ));
     }
