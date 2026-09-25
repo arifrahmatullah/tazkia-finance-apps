@@ -17,6 +17,10 @@ class FundRequest extends Model
     // tempat yang menghitung "sisa pagu" atau "termin masih tersedia".
     public const VOID_STATUSES = ['rejected', 'cancelled'];
 
+    // Batas waktu pengaju mengirim laporan penggunaan dana sejak dana cair. Lewat dari ini
+    // dan masih ada yang belum dilaporkan, pengaju tidak bisa membuat pengajuan baru.
+    public const REPORT_DEADLINE_DAYS = 14;
+
     protected $fillable = [
         'organization_id', 'department_id', 'budget_period_id', 'budget_program_id',
         'budget_program_schedule_id',
@@ -26,7 +30,7 @@ class FundRequest extends Model
         'status', 'current_step', 'total_steps', 'notes',
         'submitted_at', 'approved_at', 'rejected_at',
         'cancelled_at', 'cancelled_by',
-        'disbursed_at', 'disbursement_notes', 'disbursed_by', 'disburse_account_id',
+        'disbursed_at', 'report_due_at', 'disbursement_notes', 'disbursed_by', 'disburse_account_id',
         'receipt_status', 'receipt_confirmed_at', 'receipt_notes', 'auto_confirmed',
     ];
 
@@ -38,6 +42,7 @@ class FundRequest extends Model
         'rejected_at'          => 'datetime',
         'cancelled_at'         => 'datetime',
         'disbursed_at'         => 'datetime',
+        'report_due_at'        => 'datetime',
         'receipt_confirmed_at' => 'datetime',
         'auto_confirmed'       => 'boolean',
     ];
@@ -135,6 +140,37 @@ class FundRequest extends Model
     public function needsReport(): bool
     {
         return $this->budgetProgram?->type !== 'pembayaran';
+    }
+
+    // Batas lapor: eksplisit (report_due_at, diisi saat jenis program diubah Keuangan) kalau ada,
+    // kalau tidak ya tanggal cair + REPORT_DEADLINE_DAYS. Null kalau belum cair.
+    public function reportDueAt(): ?\Carbon\Carbon
+    {
+        if ($this->report_due_at) {
+            return $this->report_due_at;
+        }
+
+        return $this->disbursed_at?->copy()->addDays(self::REPORT_DEADLINE_DAYS);
+    }
+
+    // Sudah cair, wajib laporan, belum ada laporan yang masuk (menunggu/disetujui) -- laporan
+    // yang ditolak dianggap belum. Sama dengan definisi kartu "Belum Laporan" di dashboard.
+    public function scopeUnreported($query)
+    {
+        return $query->whereNotNull('disbursed_at')
+            ->whereNotIn('status', self::VOID_STATUSES)
+            ->whereDoesntHave('budgetProgram', fn($p) => $p->where('type', 'pembayaran'))
+            ->whereDoesntHave('fundReports', fn($r) => $r->whereIn('status', ['waiting', 'approved']));
+    }
+
+    // Pengajuan belum-dilaporkan milik pengaju yang batas lapornya sudah lewat.
+    public static function overdueUnreportedFor(string $employeeId)
+    {
+        return self::unreported()
+            ->where('requester_id', $employeeId)
+            ->get()
+            ->filter(fn($fr) => $fr->reportDueAt()?->isPast())
+            ->values();
     }
 
     public function isDraft(): bool      { return $this->status === 'draft'; }

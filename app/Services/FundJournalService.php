@@ -245,6 +245,85 @@ class FundJournalService
         return [$childEntry, $yayasanEntry, null];
     }
 
+    public function hasAdvanceAccount(string $organizationId, string $type): bool
+    {
+        return isset(self::ADVANCE_CODES[$type]) && $this->advanceAccount($organizationId, $type) !== null;
+    }
+
+    /**
+     * Koreksi jurnal pencairan saat jenis program berubah dari "pembayaran" ke kegiatan/pengadaan
+     * SETELAH dana cair: pencairan lama sudah membebankan dana langsung ke akun Beban, padahal
+     * seharusnya masuk Uang Muka dulu (beban baru diakui saat laporan disetujui). Jurnal koreksi:
+     * Dr Uang Muka (jenis baru) / Cr akun-akun Beban yang dulu didebit -- nominal per akun persis
+     * sama dengan sisi debit jurnal pencairan asli. Idempoten per pengajuan.
+     */
+    public function correctPaymentToAdvance(FundRequest $fundRequest, string $newType, User $user): array
+    {
+        if ($existing = $this->existingEntry('fund_request.type_correction', $fundRequest->id)) {
+            return [$existing, null];
+        }
+
+        $original = $this->existingEntry('fund_request.disbursement', $fundRequest->id);
+        if (!$original) {
+            return [null, 'Jurnal koreksi ' . $fundRequest->reference . ' tidak dibuat: jurnal pencairan aslinya tidak ditemukan (kemungkinan dulu dilewati).'];
+        }
+
+        $advance = $this->advanceAccount($fundRequest->organization_id, $newType);
+        if (!$advance) {
+            return [null, 'Jurnal koreksi ' . $fundRequest->reference . ' tidak dibuat: akun "' . $this->advanceName($newType) . '" belum ada di COA organisasi ini.'];
+        }
+
+        $expenseLines = $original->lines()->where('debit', '>', 0)->get();
+        $total = (float) $expenseLines->sum('debit');
+        if ($total <= 0) {
+            return [null, 'Jurnal koreksi ' . $fundRequest->reference . ' tidak dibuat: jurnal pencairan asli tidak punya sisi debit.'];
+        }
+
+        $description = 'Koreksi jenis program (pembayaran -> ' . $newType . ') ' . $fundRequest->reference . ' — ' . $fundRequest->title;
+
+        $entry = DB::transaction(function () use ($fundRequest, $user, $advance, $expenseLines, $total, $description) {
+            $date = now()->toDateString();
+
+            $entry = JournalEntry::create([
+                'organization_id' => $fundRequest->organization_id,
+                'entry_date'      => $date,
+                'reference'       => JournalEntry::generateReference($fundRequest->organization_id, $date),
+                'description'     => $description,
+                'status'          => 'posted',
+                'source_type'     => 'fund_request.type_correction',
+                'source_id'       => $fundRequest->id,
+                'created_by'      => $user->id,
+                'posted_at'       => now(),
+                'posted_by'       => $user->id,
+            ]);
+
+            JournalEntryLine::create([
+                'journal_entry_id' => $entry->id,
+                'account_id'       => $advance->id,
+                'description'      => $description,
+                'debit'            => $total,
+                'credit'           => 0,
+                'sort_order'       => 0,
+            ]);
+
+            $sort = 1;
+            foreach ($expenseLines as $line) {
+                JournalEntryLine::create([
+                    'journal_entry_id' => $entry->id,
+                    'account_id'       => $line->account_id,
+                    'description'      => $description,
+                    'debit'            => 0,
+                    'credit'           => $line->debit,
+                    'sort_order'       => $sort++,
+                ]);
+            }
+
+            return $entry;
+        });
+
+        return [$entry, null];
+    }
+
     private function createEntry(
         string $organizationId,
         User $user,

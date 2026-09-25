@@ -93,6 +93,8 @@
     @if($filterStatus === 'belum')
     @forelse($belumRequests as $fr)
     @php
+        $dueAt = $fr->reportDueAt();
+        $terlambat = $dueAt->isPast();
         $hariLewat = (int) $fr->disbursed_at->diffInDays(now());
         $pernahDitolak = $fr->fundReports->contains('status', 'rejected');
     @endphp
@@ -104,10 +106,10 @@
                     <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:5px;">
                         <span style="font-size:0.72rem; font-weight:600; color:#64748b; font-family:monospace;">{{ $fr->reference }}</span>
                         <span style="padding:2px 10px; border-radius:999px; font-size:0.68rem; font-weight:600; background:#fef3c7; color:#92400e;">{{ $pernahDitolak ? 'Laporan Ditolak, Perlu Kirim Ulang' : 'Belum Laporan' }}</span>
-                        @if($hariLewat >= 7)
-                        <span style="padding:2px 10px; border-radius:999px; font-size:0.68rem; font-weight:600; background:#fee2e2; color:#991b1b;">{{ $hariLewat }} hari sejak cair</span>
+                        @if($terlambat)
+                        <span style="padding:2px 10px; border-radius:999px; font-size:0.68rem; font-weight:600; background:#fee2e2; color:#991b1b;">Lewat batas lapor ({{ $dueAt->format('d/m/Y') }})</span>
                         @else
-                        <span style="font-size:0.7rem; color:#94a3b8;">{{ $hariLewat }} hari sejak cair</span>
+                        <span style="font-size:0.7rem; color:#94a3b8;">Batas lapor {{ $dueAt->format('d/m/Y') }} &middot; {{ $hariLewat }} hari sejak cair</span>
                         @endif
                     </div>
                     <div style="font-size:0.95rem; font-weight:700; color:#0f172a; line-height:1.3; margin-bottom:5px;">{{ $fr->title }}</div>

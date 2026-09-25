@@ -85,11 +85,30 @@ class FundRequestController extends Controller
         return view('fund-requests.index', compact('fundRequests', 'organizations', 'stats', 'filterStatus'));
     }
 
+    // Pengaju yang punya pengajuan cair (wajib laporan) belum dilaporkan dan sudah lewat batas
+    // waktu lapor (14 hari) tidak boleh membuat pengajuan baru -- per orang, bukan satu organisasi.
+    private function overdueReportMessage(\App\Models\Employee $employee): ?string
+    {
+        $overdue = FundRequest::overdueUnreportedFor($employee->id);
+        if ($overdue->isEmpty()) {
+            return null;
+        }
+
+        $list = $overdue->map(fn($fr) => $fr->reference . ' (batas ' . $fr->reportDueAt()->format('d/m/Y') . ')')->implode(', ');
+
+        return 'Pengajuan dana baru belum bisa dibuat karena ada laporan penggunaan dana yang melewati batas waktu ' .
+            FundRequest::REPORT_DEADLINE_DAYS . ' hari: ' . $list . '. Silakan buat laporannya dulu.';
+    }
+
     public function create(Request $request)
     {
         $user     = auth()->user();
         $employee = $user->employee;
         abort_unless($employee, 403, 'Akun belum terhubung dengan data karyawan.');
+
+        if ($message = $this->overdueReportMessage($employee)) {
+            return redirect()->route('fund-requests.index')->withErrors(['blocked' => $message]);
+        }
 
         if ($employee->organization?->fund_request_blocked) {
             return redirect()->route('fund-requests.index')->withErrors([
@@ -135,6 +154,7 @@ class FundRequestController extends Controller
 
         $employee->loadMissing('organization');
         abort_if($employee->organization?->fund_request_blocked, 422, 'Pengajuan dana baru untuk organisasi ini sedang ditutup sementara.');
+        abort_if($message = $this->overdueReportMessage($employee), 422, $message);
 
         $request->validate([
             'budget_program_id'  => 'required|exists:budget_programs,id',

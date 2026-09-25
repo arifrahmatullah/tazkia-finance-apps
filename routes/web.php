@@ -159,6 +159,10 @@ Route::middleware(['auth', 'role.selected'])->group(function () {
         Route::get('finance', [FinanceController::class, 'index'])->name('finance.index');
         Route::post('finance/{fund_request}/disburse', [FinanceController::class, 'disburse'])->name('finance.disburse');
         Route::post('finance/{fund_request}/upload-proof', [FinanceController::class, 'uploadProof'])->name('finance.upload-proof');
+        // Verifikasi Pembayaran -- Keuangan mengecek program berjenis pembayaran yang dananya sudah cair
+        Route::get('finance/verifikasi-pembayaran', [\App\Http\Controllers\PaymentVerificationController::class, 'index'])->name('finance.verifikasi-pembayaran');
+        Route::post('finance/verifikasi-pembayaran/{budgetProgram}/verify', [\App\Http\Controllers\PaymentVerificationController::class, 'verify'])->name('finance.verifikasi-pembayaran.verify');
+        Route::post('finance/verifikasi-pembayaran/{budgetProgram}/change-type', [\App\Http\Controllers\PaymentVerificationController::class, 'changeType'])->name('finance.verifikasi-pembayaran.change-type');
         Route::delete('fund-request-files/{fundRequestFile}/proof', [FinanceController::class, 'deleteProof'])->name('finance.delete-proof');
         // Verifikasi laporan dana
         Route::get('finance/laporan', [FinanceController::class, 'laporanIndex'])->name('finance.laporan');

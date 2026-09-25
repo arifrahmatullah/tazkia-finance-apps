@@ -19,11 +19,13 @@ class BudgetProgram extends Model
 
     protected $fillable = [
         'budget_allocation_id', 'account_id', 'name', 'type', 'notes', 'frequency', 'is_active',
+        'payment_verified_at', 'payment_verified_by',
     ];
 
     protected $casts = [
         'is_active'  => 'boolean',
         'frequency'  => 'integer',
+        'payment_verified_at' => 'datetime',
     ];
 
     public function budgetAllocation()
@@ -44,6 +46,11 @@ class BudgetProgram extends Model
     public function schedules()
     {
         return $this->hasMany(BudgetProgramSchedule::class)->orderBy('termin');
+    }
+
+    public function fundRequests()
+    {
+        return $this->hasMany(FundRequest::class);
     }
 
     public function changeRequests()

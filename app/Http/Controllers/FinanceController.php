@@ -344,7 +344,7 @@ class FinanceController extends Controller
                         ->orWhere('title', 'like', $s)
                         ->orWhereHas('requester', fn($rq) => $rq->where('name', 'like', $s)));
                 })
-                ->orderBy('disbursed_at')
+                ->orderByRaw('COALESCE(report_due_at, DATE_ADD(disbursed_at, INTERVAL ' . \App\Models\FundRequest::REPORT_DEADLINE_DAYS . ' DAY))')
                 ->paginate(15)
                 ->withQueryString();
         }
