@@ -53,9 +53,10 @@ class DashboardController extends Controller
             ];
         }
 
-        // Ringkasan Laba Rugi tahun berjalan
+        // Ringkasan Laba Rugi tahun berjalan -- khusus role Akunting (superadmin & Keuangan
+        // tidak ditampilkan, meski punya izin laporan akuntansi).
         $labaRugi = null;
-        if ($user->hasPermission('menu.laporan-akuntansi')) {
+        if ($user->hasRole('akunting') && $user->hasPermission('menu.laporan-akuntansi')) {
             $orgIds  = $user->organizationIds();
             $from    = now()->startOfYear()->toDateString();
             $to      = now()->toDateString();
