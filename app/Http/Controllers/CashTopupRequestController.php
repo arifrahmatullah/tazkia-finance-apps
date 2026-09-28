@@ -256,14 +256,11 @@ class CashTopupRequestController extends Controller
         $debitAccount = Account::where('id', $data['yayasan_debit_account_id'])
             ->where('organization_id', $organization->parent_id)->firstOrFail();
 
+        // Isi saldo langsung oleh Yayasan = mencatat transfer yang SUDAH terjadi, jadi tidak
+        // diblokir walau saldo rekening sumber di sistem kurang (mis. Saldo Awal Yayasan belum
+        // diisi) -- jurnal tetap dicatat, saldonya boleh sementara minus. Cuma diberi peringatan.
         $balance = $sourceAccount->currentBalance();
         $amount  = (float) $data['amount'];
-        if ($balance < $amount) {
-            return back()->withErrors(['yayasan_source_account_id' =>
-                'Saldo rekening ' . $sourceAccount->name . ' (Rp ' . number_format($balance, 0, ',', '.') .
-                ') tidak cukup untuk mengisi Rp ' . number_format($amount, 0, ',', '.') . '.'])
-                ->with('insufficientBalanceOrgId', $organization->parent_id);
-        }
 
         $employee = $user->employee;
         abort_unless($employee, 403, 'Akun ini belum terhubung dengan data karyawan.');
@@ -303,6 +300,12 @@ class CashTopupRequestController extends Controller
         $message = 'Saldo rekening ' . $targetAccount->name . ' di ' . $organization->name . ' berhasil diisi langsung.';
         if ($childEntry && $yayasanEntry) {
             $message .= ' Jurnal ' . $childEntry->reference . ' & ' . $yayasanEntry->reference . ' diposting.';
+        }
+
+        if ($balance < $amount) {
+            $saldoWarning = 'Saldo rekening ' . $sourceAccount->name . ' di Yayasan sebelumnya Rp ' . number_format($balance, 0, ',', '.') .
+                ', kurang dari Rp ' . number_format($amount, 0, ',', '.') . ' yang dicatat -- saldonya sekarang minus di sistem. Lengkapi Saldo Awal Yayasan kalau belum diisi.';
+            $warning = trim(($warning ? $warning . ' ' : '') . $saldoWarning);
         }
 
         return redirect()->route('cash-topup-requests.show', $topup)
