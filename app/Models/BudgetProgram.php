@@ -111,6 +111,47 @@ class BudgetProgram extends Model
         }
     }
 
+    // Kebalikan growTotalAmountBy() -- turunkan total program (via rincian) sebesar $excess,
+    // dipakai saat satu termin diturunkan nominalnya TANPA dipindah ke termin lain (lihat
+    // BudgetProgramScheduleController::update()). Penurunan dibagi proporsional ke semua
+    // rincian sesuai porsinya saat ini; baris terakhir menyerap sisa pembulatan. Pemanggil
+    // wajib memastikan dulu hasil akhirnya tidak turun di bawah nominal yang sudah terpakai
+    // pengajuan dana -- method ini sendiri tidak mengecek itu.
+    public function shrinkTotalAmountBy(float $excess): void
+    {
+        if ($excess <= 0) {
+            return;
+        }
+
+        $details = $this->details;
+        if ($details->isEmpty()) {
+            return;
+        }
+
+        $currentTotal = (float) $details->sum('total_amount');
+        if ($currentTotal <= 0) {
+            return;
+        }
+        $lastIndex = $details->count() - 1;
+        $allocated = 0.0;
+
+        foreach ($details as $i => $detail) {
+            if ($i === $lastIndex) {
+                $lineDecrease = round($excess - $allocated, 2);
+            } else {
+                $share = (float) $detail->total_amount / $currentTotal;
+                $lineDecrease = round($excess * $share, 2);
+                $allocated += $lineDecrease;
+            }
+
+            $quantity = (float) $detail->quantity;
+            $newTotal = max((float) $detail->total_amount - $lineDecrease, 0);
+            $detail->update([
+                'unit_price' => $quantity > 0 ? round($newTotal / $quantity, 2) : $detail->unit_price,
+            ]);
+        }
+    }
+
     // "Kunci" termin yang amount-nya masih NULL (masih ikut nominal_per_termin secara implisit)
     // ke nilai efektifnya SAAT INI, kecuali termin yang sedang diedit. Dipanggil SEBELUM
     // growTotalAmountBy() supaya termin lain tidak ikut bergeser diam-diam gara-gara

@@ -154,16 +154,20 @@ class BudgetProgramChangeService
             return;
         }
 
-        // '_grow_excess'/'_lock_nominal_per_termin' cuma dititipkan waktu requestChange()
-        // dibuat (lihat BudgetProgramScheduleController::update()) supaya kenaikan total
-        // program (via rincian) ikut diterapkan begitu approval-nya disetujui -- bukan kolom
-        // schedule beneran, jangan ikut di-mass-assign.
+        // '_grow_excess'/'_shrink_excess'/'_lock_nominal_per_termin' cuma dititipkan waktu
+        // requestChange() dibuat (lihat BudgetProgramScheduleController::update()) supaya
+        // kenaikan/penurunan total program (via rincian) ikut diterapkan begitu approval-nya
+        // disetujui -- bukan kolom schedule beneran, jangan ikut di-mass-assign.
         if (isset($payload['_grow_excess'])) {
             $schedule->budgetProgram->lockImplicitScheduleAmounts($schedule->id, (float) $payload['_lock_nominal_per_termin']);
             $schedule->budgetProgram->growTotalAmountBy((float) $payload['_grow_excess']);
         }
+        if (isset($payload['_shrink_excess'])) {
+            $schedule->budgetProgram->lockImplicitScheduleAmounts($schedule->id, (float) $payload['_lock_nominal_per_termin']);
+            $schedule->budgetProgram->shrinkTotalAmountBy((float) $payload['_shrink_excess']);
+        }
 
-        $schedule->update(collect($payload)->except(['_grow_excess', '_lock_nominal_per_termin'])->toArray());
+        $schedule->update(collect($payload)->except(['_grow_excess', '_shrink_excess', '_lock_nominal_per_termin'])->toArray());
 
         foreach ($payload['details'] ?? [] as $d) {
             \App\Models\BudgetProgramScheduleDetail::updateOrCreate(

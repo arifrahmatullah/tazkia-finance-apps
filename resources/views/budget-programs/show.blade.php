@@ -658,8 +658,10 @@ function saveEdit() {
             closeEdit();
             if (data.pending) {
                 alert('Periode perencanaan sudah lewat. Perubahan nominal disimpan sebagai permintaan dan menunggu approval Keuangan.');
-            } else if (data.new_program_total) {
+            } else if (data.new_program_total && data.program_total_direction === 'grow') {
                 alert('Total program otomatis bertambah jadi Rp ' + Number(data.new_program_total).toLocaleString('id-ID') + ' untuk menampung kenaikan termin ini.');
+            } else if (data.new_program_total !== null && data.program_total_direction === 'shrink') {
+                alert('Total program otomatis berkurang jadi Rp ' + Number(data.new_program_total).toLocaleString('id-ID') + ' mengikuti penurunan termin ini. Sisa alokasi anggaran departemen ikut bertambah.');
             }
             window.location.reload();
         } else if (!ok) {

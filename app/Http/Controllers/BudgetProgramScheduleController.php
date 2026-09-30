@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\BudgetProgram;
 use App\Models\BudgetProgramSchedule;
 use App\Models\BudgetProgramScheduleDetail;
+use App\Models\FundRequest;
 use App\Services\BudgetProgramChangeService;
 use Illuminate\Http\Request;
 
@@ -63,6 +64,7 @@ class BudgetProgramScheduleController extends Controller
         $currentNominalPerTermin = (float) $program->nominal_per_termin;
         $currentProgramTotal     = (float) $program->total_amount;
         $growExcess              = null;
+        $shrinkExcess            = null;
 
         if ($amountChanged) {
             // Sum() SQL mentah mengabaikan termin yang 'amount'-nya masih NULL (belum pernah
@@ -100,6 +102,27 @@ class BudgetProgramScheduleController extends Controller
                 }
 
                 $growExcess = $requiredTotal - $currentProgramTotal;
+            } elseif ($requiredTotal < $currentProgramTotal) {
+                // Termin ini diturunkan TANPA dipindah ke termin lain (beda dari "Pindahkan
+                // Saldo Antar Termin" yang sengaja mempertahankan total) -- total program ikut
+                // diturunkan sebesar selisihnya (lewat rincian, lihat
+                // BudgetProgram::shrinkTotalAmountBy()), supaya sisa alokasi anggaran departemen
+                // kebuka lagi. Tidak boleh turun sampai di bawah nominal yang sudah terpakai
+                // pengajuan dana yang masih aktif di program ini.
+                $usedTotal = (float) FundRequest::where('budget_program_id', $program->id)
+                    ->whereNotIn('status', FundRequest::VOID_STATUSES)
+                    ->sum('amount');
+
+                if ($requiredTotal < $usedTotal) {
+                    $minTotal = number_format($usedTotal, 0, ',', '.');
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Penurunan ini bikin total program jadi Rp " . number_format($requiredTotal, 0, ',', '.') .
+                            ", tapi sudah ada Rp {$minTotal} yang terpakai pengajuan dana di program ini. Total program tidak bisa turun sampai di bawah itu.",
+                    ], 422);
+                }
+
+                $shrinkExcess = $currentProgramTotal - $requiredTotal;
             }
         }
 
@@ -107,6 +130,10 @@ class BudgetProgramScheduleController extends Controller
             $payload = $validated;
             if ($growExcess !== null) {
                 $payload['_grow_excess'] = $growExcess;
+                $payload['_lock_nominal_per_termin'] = $currentNominalPerTermin;
+            }
+            if ($shrinkExcess !== null) {
+                $payload['_shrink_excess'] = $shrinkExcess;
                 $payload['_lock_nominal_per_termin'] = $currentNominalPerTermin;
             }
 
@@ -118,10 +145,14 @@ class BudgetProgramScheduleController extends Controller
             return response()->json(['success' => true, 'pending' => true]);
         }
 
-        \DB::transaction(function () use ($schedule, $validated, $detailsProvided, $program, $growExcess, $currentNominalPerTermin) {
+        \DB::transaction(function () use ($schedule, $validated, $detailsProvided, $program, $growExcess, $shrinkExcess, $currentNominalPerTermin) {
             if ($growExcess !== null) {
                 $program->lockImplicitScheduleAmounts($schedule->id, $currentNominalPerTermin);
                 $program->growTotalAmountBy($growExcess);
+            }
+            if ($shrinkExcess !== null) {
+                $program->lockImplicitScheduleAmounts($schedule->id, $currentNominalPerTermin);
+                $program->shrinkTotalAmountBy($shrinkExcess);
             }
 
             $schedule->update($validated);
@@ -140,8 +171,11 @@ class BudgetProgramScheduleController extends Controller
         });
 
         return response()->json([
-            'success'           => true,
-            'new_program_total' => $growExcess !== null ? $currentProgramTotal + $growExcess : null,
+            'success'                => true,
+            'new_program_total'      => $growExcess !== null
+                ? $currentProgramTotal + $growExcess
+                : ($shrinkExcess !== null ? $currentProgramTotal - $shrinkExcess : null),
+            'program_total_direction' => $growExcess !== null ? 'grow' : ($shrinkExcess !== null ? 'shrink' : null),
         ]);
     }
 
