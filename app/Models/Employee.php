@@ -62,6 +62,19 @@ class Employee extends Model
             ->all();
     }
 
+    // Kumpulan position_id dari SEMUA jabatan aktif -- dipakai untuk approval, karena staf yang
+    // memegang lebih dari satu jabatan sekaligus bisa jadi approver untuk pengajuan manapun yang
+    // menunjuk salah satu jabatannya, bukan cuma satu jabatan "utama" (activePosition() tunggal).
+    public function activePositionIds(): array
+    {
+        return $this->activePositions()
+            ->pluck('position_id')
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
     // Data lama punya ID integer, bukan UUID — skip validasi format UUID
     public function resolveRouteBinding($value, $field = null)
     {

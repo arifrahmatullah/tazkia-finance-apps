@@ -19,8 +19,16 @@ class FundApprovalController extends Controller
         $employee = $user->employee;
         abort_unless($employee, 403, 'Akun belum terhubung dengan data karyawan.');
 
-        $activePosition = $employee->activePosition?->position;
-        if (!$activePosition) {
+        // Staf bisa memegang lebih dari satu jabatan aktif sekaligus (mis. merangkap) -- approval
+        // yang perlu ditampilkan adalah yang approver_position_id-nya cocok SALAH SATU dari
+        // jabatan-jabatan itu, bukan cuma satu jabatan "utama" (activePosition() tunggal, yang
+        // dipilih sembarang kalau ada beberapa start_date yang sama -- bisa beda dari jabatan yang
+        // sebenarnya jadi approver, dan pengajuan yang menunggu jadi tidak pernah muncul).
+        $activePositions = $employee->activePositions()->with('position')->get();
+        $positionIds     = $activePositions->pluck('position_id')->filter()->unique()->values()->all();
+        $positionName    = $activePositions->pluck('position.name')->filter()->unique()->implode(', ');
+
+        if (empty($positionIds)) {
             return view('fund-approvals.inbox', [
                 'approvals'    => new LengthAwarePaginator([], 0, 15),
                 'positionName' => null,
@@ -47,7 +55,7 @@ class FundApprovalController extends Controller
             'fundRequest.requester',
             'fundRequest.requesterPosition',
         ])
-        ->where('approver_position_id', $activePosition->id)
+        ->whereIn('approver_position_id', $positionIds)
         ->whereHas('fundRequest', function ($q) use ($orgIds, $request) {
             if ($orgIds !== null) {
                 $q->whereIn('organization_id', $orgIds);
@@ -74,8 +82,7 @@ class FundApprovalController extends Controller
         $organizations = Organization::when($orgIds !== null, fn($q) => $q->whereIn('id', $orgIds))
             ->orderBy('name')->get();
 
-        return view('fund-approvals.inbox', compact('approvals', 'organizations', 'filterStatus', 'sort'))
-            ->with('positionName', $activePosition->name);
+        return view('fund-approvals.inbox', compact('approvals', 'organizations', 'filterStatus', 'sort', 'positionName'));
     }
 
     public function approve(Request $request, FundRequestApproval $fundRequestApproval)
@@ -175,8 +182,8 @@ class FundApprovalController extends Controller
         $employee = $user->employee;
         abort_unless($employee, 403, 'Akun belum terhubung dengan data karyawan.');
 
-        $activePosition = $employee->activePosition?->position;
-        abort_unless($activePosition, 403, 'Anda tidak memiliki jabatan aktif.');
-        abort_unless($activePosition->id === $approval->approver_position_id, 403, 'Jabatan Anda tidak berwenang untuk approval ini.');
+        $positionIds = $employee->activePositionIds();
+        abort_unless(!empty($positionIds), 403, 'Anda tidak memiliki jabatan aktif.');
+        abort_unless(in_array($approval->approver_position_id, $positionIds, true), 403, 'Jabatan Anda tidak berwenang untuk approval ini.');
     }
 }
