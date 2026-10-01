@@ -233,14 +233,18 @@
             // Jumlah pengajuan yang menunggu approval user ini (untuk badge sidebar) --
             // didefinisikan di luar blok @if di bawah supaya tetap ada nilainya (dipakai lagi
             // nanti di grup "Approval") walau user tidak lolos kondisi menu Pengajuan Dana.
+            // Staf bisa merangkap >1 jabatan aktif sekaligus -- dicek terhadap SEMUA jabatan
+            // aktifnya (Employee::activePositionIds()), bukan cuma satu "jabatan utama"
+            // (activePosition() tunggal), supaya badge-nya tidak ketinggalan approval yang
+            // approver_position_id-nya cocok salah satu jabatan lain yang dia pegang.
             $inboxWaitingCount = 0;
-            $inboxPosition = auth()->user()->employee?->activePosition?->position;
+            $inboxPositionIds = auth()->user()->employee?->activePositionIds() ?? [];
         @endphp
-        @if(auth()->user()->hasPermission('menu.pengajuan-dana') || auth()->user()->hasPermission('menu.inbox-approval') || $inboxPosition)
+        @if(auth()->user()->hasPermission('menu.pengajuan-dana') || auth()->user()->hasPermission('menu.inbox-approval') || !empty($inboxPositionIds))
         @php
-            if ($inboxPosition) {
+            if (!empty($inboxPositionIds)) {
                 $inboxOrgIds = auth()->user()->organizationIds();
-                $inboxWaitingCount = \App\Models\FundRequestApproval::where('approver_position_id', $inboxPosition->id)
+                $inboxWaitingCount = \App\Models\FundRequestApproval::whereIn('approver_position_id', $inboxPositionIds)
                     ->where('status', 'waiting')
                     ->whereHas('fundRequest', function ($q) use ($inboxOrgIds) {
                         $q->where('status', 'pending')
@@ -321,7 +325,7 @@
         @php
             $canSeeInboxApproval = auth()->user()->hasPermission('menu.pengajuan-dana')
                 || auth()->user()->hasPermission('menu.inbox-approval')
-                || $inboxPosition;
+                || !empty($inboxPositionIds);
             $canSeeBudgetChangeApprovals = auth()->user()->hasPermission('menu.pencairan-dana')
                 || auth()->user()->isSuperAdmin()
                 || \App\Models\BudgetProgramApprovalPosition::whereIn(
