@@ -72,6 +72,7 @@
         'pending'    => ['Menunggu Approval', $stats['pending']],
         'diproses'   => ['Diproses',          $stats['diproses']],
         'sudah_cair' => ['Sudah Cair',        $stats['cair']],
+        'selesai'    => ['Selesai',           $stats['selesai']],
         'rejected'   => ['Ditolak',           $stats['rejected']],
         'cancelled'  => ['Dibatalkan',        $stats['cancelled']],
         'draft'      => ['Draft',             $stats['draft']],
@@ -131,6 +132,7 @@
             $fr->status === 'pending'                      => 'pending',
             $fr->status === 'rejected'                     => 'rejected',
             $fr->status === 'cancelled'                    => 'cancelled',
+            $isDisbursed && $fr->isClosed()                => 'selesai',
             $isDisbursed && is_null($fr->receipt_status)   => 'menunggu_konfirmasi',
             $isDisbursed                                   => 'sudah_cair',
             default                                        => 'diproses',
@@ -143,6 +145,7 @@
             'cancelled'           => ['label' => 'Dibatalkan',          'badge' => 'bg-slate-200 text-slate-600', 'bar' => '#94a3b8'],
             'menunggu_konfirmasi' => ['label' => 'Menunggu Konfirmasi', 'badge' => 'bg-amber-100 text-amber-800', 'bar' => '#3b82f6'],
             'sudah_cair'          => ['label' => 'Sudah Cair',          'badge' => 'bg-blue-100 text-blue-800',   'bar' => '#3b82f6'],
+            'selesai'             => ['label' => 'Selesai',             'badge' => 'bg-green-100 text-green-800', 'bar' => '#22a05a'],
         ][$state];
         $rejectedApproval = $fr->status === 'rejected' ? $fr->approvals->where('status', 'rejected')->first() : null;
         $approvalJson = $fr->approvals->sortBy('step')->map(fn($a) => [

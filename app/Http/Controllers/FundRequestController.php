@@ -32,7 +32,7 @@ class FundRequestController extends Controller
         $organizations = Organization::when($orgIds !== null, fn($q) => $q->whereIn('id', $orgIds))
             ->orderBy('name')->get();
 
-        $query = FundRequest::with(['organization', 'department', 'budgetProgram', 'requester', 'requesterPosition', 'approvals.approverPosition.activeHolder', 'approvals.approverUser', 'disbursementProofs'])
+        $query = FundRequest::with(['organization', 'department', 'budgetProgram', 'requester', 'requesterPosition', 'approvals.approverPosition.activeHolder', 'approvals.approverUser', 'disbursementProofs', 'fundReports', 'fundRefunds'])
             ->where('requester_id', $employee->id);
 
         if ($request->filled('organization_id')) {
@@ -54,6 +54,7 @@ class FundRequestController extends Controller
             'cancelled'           => $query->where('status', 'cancelled'),
             'menunggu_konfirmasi' => $query->whereNotNull('disbursed_at')->whereNull('receipt_status'),
             'sudah_cair'          => $query->whereNotNull('disbursed_at'),
+            'selesai'             => $query->closed(),
             default               => null,
         };
 
@@ -80,6 +81,7 @@ class FundRequestController extends Controller
             'diproses'     => (clone $statsBase)->where('status', 'approved')->whereNull('disbursed_at')->count(),
             'rejected'     => (clone $statsBase)->where('status', 'rejected')->count(),
             'cancelled'    => (clone $statsBase)->where('status', 'cancelled')->count(),
+            'selesai'      => (clone $statsBase)->closed()->count(),
         ];
 
         return view('fund-requests.index', compact('fundRequests', 'organizations', 'stats', 'filterStatus'));

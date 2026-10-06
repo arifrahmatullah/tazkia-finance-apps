@@ -173,6 +173,34 @@ class FundRequest extends Model
             ->values();
     }
 
+    // Selesai = sudah cair, kewajiban laporan tuntas (laporan disetujui, atau jenis pembayaran
+    // yang memang tidak perlu laporan), dan tidak ada pengembalian dana yang belum dikonfirmasi.
+    // Sama dengan definisi "Selesai" di dashboard pengaju.
+    public function scopeClosed($query)
+    {
+        return $query->whereNotNull('disbursed_at')
+            ->where(function ($q) {
+                $q->whereHas('budgetProgram', fn($p) => $p->where('type', 'pembayaran'))
+                  ->orWhereHas('fundReports', fn($r) => $r->where('status', 'approved'));
+            })
+            ->whereDoesntHave('fundRefunds', fn($r) => $r->where('status', '!=', 'confirmed'));
+    }
+
+    // Versi instance dari scopeClosed() -- pakai relasi yang sudah di-load (fundReports,
+    // fundRefunds, budgetProgram) supaya tidak nambah query per baris di daftar.
+    public function isClosed(): bool
+    {
+        if (!$this->isDisbursed()) {
+            return false;
+        }
+
+        $noReportNeeded = $this->budgetProgram?->type === 'pembayaran';
+        $reportApproved = $this->fundReports->contains('status', 'approved');
+        $refundOpen     = $this->fundRefunds->contains(fn($r) => $r->status !== 'confirmed');
+
+        return ($noReportNeeded || $reportApproved) && !$refundOpen;
+    }
+
     // Sudah ada laporan yang masih berlaku (menunggu verifikasi / disetujui). Laporan yang ditolak
     // tidak dihitung -- pengaju boleh kirim ulang.
     public function hasActiveReport(): bool
