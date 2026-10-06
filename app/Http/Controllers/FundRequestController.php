@@ -55,6 +55,7 @@ class FundRequestController extends Controller
             'menunggu_konfirmasi' => $query->whereNotNull('disbursed_at')->whereNull('receipt_status'),
             'sudah_cair'          => $query->whereNotNull('disbursed_at'),
             'selesai'             => $query->closed(),
+            'pengembalian'        => $query->whereHas('fundRefunds', fn($r) => $r->where('status', '!=', 'confirmed')),
             default               => null,
         };
 
@@ -82,6 +83,7 @@ class FundRequestController extends Controller
             'rejected'     => (clone $statsBase)->where('status', 'rejected')->count(),
             'cancelled'    => (clone $statsBase)->where('status', 'cancelled')->count(),
             'selesai'      => (clone $statsBase)->closed()->count(),
+            'pengembalian' => (clone $statsBase)->whereHas('fundRefunds', fn($r) => $r->where('status', '!=', 'confirmed'))->count(),
         ];
 
         return view('fund-requests.index', compact('fundRequests', 'organizations', 'stats', 'filterStatus'));

@@ -69,14 +69,14 @@
 {{-- Tab status -- tiap kategori punya daftarnya sendiri, tidak dicampur jadi satu --}}
 @php
     $statusTabs = [
-        'pending'    => ['Menunggu Approval', $stats['pending']],
-        'diproses'   => ['Diproses',          $stats['diproses']],
-        'sudah_cair' => ['Sudah Cair',        $stats['cair']],
-        'selesai'    => ['Selesai',           $stats['selesai']],
-        'rejected'   => ['Ditolak',           $stats['rejected']],
-        'cancelled'  => ['Dibatalkan',        $stats['cancelled']],
-        'draft'      => ['Draft',             $stats['draft']],
-        ''           => ['Semua',             $stats['total']],
+        'pending'      => ['Menunggu Disetujui', $stats['pending']],
+        'diproses'     => ['Diproses',           $stats['diproses']],
+        'sudah_cair'   => ['Sudah Cair',         $stats['cair']],
+        'rejected'     => ['Ditolak',            $stats['rejected']],
+        'cancelled'    => ['Dibatalkan',         $stats['cancelled']],
+        'pengembalian' => ['Pengembalian Dana',  $stats['pengembalian']],
+        'selesai'      => ['Selesai',            $stats['selesai']],
+        ''             => ['Semua',              $stats['total']],
     ];
     $statusLink = fn($status) => route('fund-requests.index', array_merge(request()->except(['status', 'page']), ['status' => $status]));
 @endphp
@@ -139,7 +139,7 @@
         };
         $cfg = [
             'draft'               => ['label' => 'Draft',               'badge' => 'bg-slate-100 text-slate-500', 'bar' => '#94a3b8'],
-            'pending'             => ['label' => 'Menunggu Approval',   'badge' => 'bg-amber-100 text-amber-800', 'bar' => '#f59e0b'],
+            'pending'             => ['label' => 'Menunggu Disetujui',   'badge' => 'bg-amber-100 text-amber-800', 'bar' => '#f59e0b'],
             'diproses'            => ['label' => 'Diproses',            'badge' => 'bg-blue-100 text-blue-800',   'bar' => '#3b82f6'],
             'rejected'            => ['label' => 'Ditolak',             'badge' => 'bg-red-100 text-red-700',     'bar' => '#ef4444'],
             'cancelled'           => ['label' => 'Dibatalkan',          'badge' => 'bg-slate-200 text-slate-600', 'bar' => '#94a3b8'],
