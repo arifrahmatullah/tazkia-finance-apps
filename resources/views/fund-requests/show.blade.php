@@ -73,7 +73,7 @@
                 Hapus
             </button>
         @endif
-        @if($isRequester && $fundRequest->isDisbursed() && $fundRequest->needsReport())
+        @if($isRequester && $fundRequest->isDisbursed() && $fundRequest->needsReport() && !$fundRequest->hasActiveReport())
             <a href="{{ route('fund-reports.create', ['fund_request' => $fundRequest->id]) }}"
                class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold text-white border-0 cursor-pointer no-underline"
                style="background:linear-gradient(135deg, #7c3aed, #8b5cf6);">

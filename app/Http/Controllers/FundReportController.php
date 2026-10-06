@@ -73,6 +73,11 @@ class FundReportController extends Controller
                 ->with('error', 'Pengajuan jenis Pembayaran tidak memerlukan laporan penggunaan dana.');
         }
 
+        if ($fundRequest->hasActiveReport()) {
+            return redirect()->route('fund-requests.show', $fundRequest)
+                ->with('error', 'Laporan untuk pengajuan ini sudah dikirim dan tidak perlu dibuat lagi.');
+        }
+
         return view('fund-reports.create', compact('fundRequest'));
     }
 

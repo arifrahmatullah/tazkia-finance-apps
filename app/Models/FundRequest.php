@@ -173,6 +173,13 @@ class FundRequest extends Model
             ->values();
     }
 
+    // Sudah ada laporan yang masih berlaku (menunggu verifikasi / disetujui). Laporan yang ditolak
+    // tidak dihitung -- pengaju boleh kirim ulang.
+    public function hasActiveReport(): bool
+    {
+        return $this->fundReports()->whereIn('status', ['waiting', 'approved'])->exists();
+    }
+
     public function isDraft(): bool      { return $this->status === 'draft'; }
     public function isDisbursed(): bool  { return !is_null($this->disbursed_at); }
     public function isAmountCorrected(): bool { return !is_null($this->original_amount); }
