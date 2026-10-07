@@ -11,6 +11,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class EmployeeController extends Controller
 {
@@ -71,6 +72,8 @@ class EmployeeController extends Controller
         // Input karyawan langsung dibuatkan akun user juga (kalau email diisi) -- sebelumnya
         // ini manual lewat perintah `employees:generate-users`. Role default "staf" karena
         // karyawan baru belum punya jabatan; role bisa disesuaikan lagi lewat menu User.
+        // Login-nya lewat Google (cocok by email, lihat GoogleAuthController) -- bukan password,
+        // jadi password cuma diisi acak supaya kolomnya terpenuhi, tidak ada yang perlu dipakai.
         $employee = DB::transaction(function () use ($validated) {
             $employee = Employee::create($validated);
 
@@ -78,7 +81,7 @@ class EmployeeController extends Controller
                 $user = User::create([
                     'name'      => $employee->name,
                     'email'     => $employee->email,
-                    'password'  => Hash::make('tazkia123'),
+                    'password'  => Hash::make(Str::random(40)),
                     'role_id'   => Role::where('slug', 'staf')->value('id'),
                     'is_active' => true,
                 ]);
@@ -90,7 +93,7 @@ class EmployeeController extends Controller
 
         $message = 'Karyawan berhasil ditambahkan.';
         if ($employee->user_id) {
-            $message .= ' Akun user juga dibuat otomatis (email: ' . $employee->email . ', password default: tazkia123).';
+            $message .= ' Akun user juga dibuat otomatis (email: ' . $employee->email . ') -- login pakai tombol "Login dengan Google" memakai email itu.';
         }
 
         return redirect()->route('employees.index')->with('success', $message);

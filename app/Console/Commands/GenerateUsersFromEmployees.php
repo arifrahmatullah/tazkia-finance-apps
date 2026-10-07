@@ -7,6 +7,7 @@ use App\Models\Role;
 use App\Models\User;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class GenerateUsersFromEmployees extends Command
 {
@@ -69,7 +70,9 @@ class GenerateUsersFromEmployees extends Command
                 $user = User::create([
                     'name'      => $employee->name,
                     'email'     => $employee->email,
-                    'password'  => Hash::make('tazkia123'),
+                    // Login lewat Google (cocok by email), bukan password -- diisi acak cuma
+                    // supaya kolomnya terpenuhi.
+                    'password'  => Hash::make(Str::random(40)),
                     'role_id'   => $roleId,
                     'is_active' => true,
                 ]);
@@ -87,7 +90,7 @@ class GenerateUsersFromEmployees extends Command
         if ($dryRun) {
             $this->warn('Mode dry-run: tidak ada data yang disimpan. Jalankan tanpa --dry-run untuk eksekusi.');
         } else {
-            $this->info('Password default semua akun baru: tazkia123');
+            $this->info('Akun baru login pakai "Login dengan Google" memakai email karyawan masing-masing, bukan password.');
         }
     }
 
