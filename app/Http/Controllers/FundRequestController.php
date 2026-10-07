@@ -53,7 +53,7 @@ class FundRequestController extends Controller
             'rejected'            => $query->where('status', 'rejected'),
             'cancelled'           => $query->where('status', 'cancelled'),
             'menunggu_konfirmasi' => $query->whereNotNull('disbursed_at')->whereNull('receipt_status'),
-            'sudah_cair'          => $query->whereNotNull('disbursed_at'),
+            'sudah_cair'          => $query->whereNotNull('disbursed_at')->whereNotIn('id', FundRequest::query()->closed()->select('id')),
             'selesai'             => $query->closed(),
             'pengembalian'        => $query->whereHas('fundRefunds', fn($r) => $r->where('status', '!=', 'confirmed')),
             default               => null,
@@ -76,7 +76,7 @@ class FundRequestController extends Controller
             // dipakai di seluruh perhitungan sisa pagu program) -- jangan ikut dijumlah di sini,
             // biar "Total Dana Diajukan" tidak menampilkan nominal yang sudah batal.
             'total_amount' => (float) (clone $statsBase)->whereNotIn('status', ['draft', ...FundRequest::VOID_STATUSES])->sum('amount'),
-            'cair'         => (clone $statsBase)->whereNotNull('disbursed_at')->count(),
+            'cair'         => (clone $statsBase)->whereNotNull('disbursed_at')->whereNotIn('id', FundRequest::query()->closed()->select('id'))->count(),
             'pending'      => (clone $statsBase)->where('status', 'pending')->count(),
             'draft'        => (clone $statsBase)->where('status', 'draft')->count(),
             'diproses'     => (clone $statsBase)->where('status', 'approved')->whereNull('disbursed_at')->count(),
