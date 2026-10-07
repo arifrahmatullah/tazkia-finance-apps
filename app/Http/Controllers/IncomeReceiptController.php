@@ -44,7 +44,7 @@ class IncomeReceiptController extends Controller
             if ($request->hasFile('proof')) {
                 $file = $request->file('proof');
                 $receipt->update([
-                    'proof_path' => $file->storeAs("income-receipts/{$receipt->id}", Str::random(40) . '.' . $file->getClientOriginalExtension(), 'public'),
+                    'proof_path' => $file->storeAs("income-receipts/{$receipt->id}", Str::random(40) . '.' . $file->getClientOriginalExtension(), 'local'),
                     'proof_name' => $file->getClientOriginalName(),
                 ]);
             }
@@ -82,10 +82,10 @@ class IncomeReceiptController extends Controller
         \DB::transaction(function () use ($request, $incomeReceipt, $data) {
             if ($request->hasFile('proof')) {
                 if ($incomeReceipt->proof_path) {
-                    Storage::disk('public')->delete($incomeReceipt->proof_path);
+                    Storage::disk('local')->delete($incomeReceipt->proof_path);
                 }
                 $file = $request->file('proof');
-                $data['proof_path'] = $file->storeAs("income-receipts/{$incomeReceipt->id}", Str::random(40) . '.' . $file->getClientOriginalExtension(), 'public');
+                $data['proof_path'] = $file->storeAs("income-receipts/{$incomeReceipt->id}", Str::random(40) . '.' . $file->getClientOriginalExtension(), 'local');
                 $data['proof_name'] = $file->getClientOriginalName();
             }
 
@@ -102,11 +102,20 @@ class IncomeReceiptController extends Controller
         abort_unless(auth()->user()->canAccessOrganization($estimate->organization_id), 403);
 
         if ($incomeReceipt->proof_path) {
-            Storage::disk('public')->delete($incomeReceipt->proof_path);
+            Storage::disk('local')->delete($incomeReceipt->proof_path);
         }
         $incomeReceipt->delete();
 
         return redirect()->route('income-estimates.show', $estimate)
             ->with('success', 'Realisasi penerimaan berhasil dihapus.');
+    }
+
+    public function viewProof(IncomeReceipt $incomeReceipt)
+    {
+        abort_unless($incomeReceipt->proof_path, 404);
+        $estimate = $incomeReceipt->incomeEstimate;
+        abort_unless(auth()->user()->canAccessOrganization($estimate->organization_id), 403);
+
+        return Storage::disk('local')->response($incomeReceipt->proof_path, $incomeReceipt->proof_name);
     }
 }

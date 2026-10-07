@@ -111,6 +111,7 @@ Route::middleware(['auth', 'role.selected'])->group(function () {
     // Realisasi Penerimaan (penerimaan real)
     Route::resource('income-receipts', \App\Http\Controllers\IncomeReceiptController::class)
         ->only(['create', 'store', 'edit', 'update', 'destroy']);
+    Route::get('income-receipts/{incomeReceipt}/proof', [\App\Http\Controllers\IncomeReceiptController::class, 'viewProof'])->name('income-receipts.proof');
 
     // Approval Settings
     Route::get('approval-settings/edit-chain', [ApprovalSettingController::class, 'editChain'])->name('approval-settings.edit-chain');
@@ -127,6 +128,7 @@ Route::middleware(['auth', 'role.selected'])->group(function () {
 
     // File lampiran & konfirmasi penerimaan
     Route::post('fund-requests/{fund_request}/files', [FundRequestController::class, 'uploadFile'])->name('fund-requests.files.upload');
+    Route::get('fund-request-files/{fundRequestFile}', [FundRequestController::class, 'viewFile'])->name('fund-requests.files.view');
     Route::delete('fund-request-files/{fundRequestFile}', [FundRequestController::class, 'deleteFile'])->name('fund-requests.files.delete');
     Route::post('fund-requests/{fund_request}/confirm-receipt', [FundRequestController::class, 'confirmReceipt'])->name('fund-requests.confirm-receipt');
     Route::post('fund-requests/{fund_request}/dispute-receipt', [FundRequestController::class, 'disputeReceipt'])->name('fund-requests.dispute-receipt');
@@ -142,12 +144,14 @@ Route::middleware(['auth', 'role.selected'])->group(function () {
     Route::get('fund-reports/create', [FundReportController::class, 'create'])->name('fund-reports.create');
     Route::post('fund-reports', [FundReportController::class, 'store'])->name('fund-reports.store');
     Route::get('fund-reports/{fundReport}', [FundReportController::class, 'show'])->name('fund-reports.show');
+    Route::get('fund-report-files/{fundReportFile}', [FundReportController::class, 'viewFile'])->name('fund-reports.files.view');
     Route::delete('fund-report-files/{fundReportFile}', [FundReportController::class, 'deleteFile'])->name('fund-reports.files.delete');
 
     // Pengembalian Dana (sisi pengaju)
     Route::get('fund-refunds', [FundRefundController::class, 'index'])->name('fund-refunds.index');
     Route::post('fund-refunds/pay-bulk', [FundRefundController::class, 'payBulk'])->name('fund-refunds.pay-bulk');
     Route::get('fund-refunds/{fundRefund}', [FundRefundController::class, 'show'])->name('fund-refunds.show');
+    Route::get('fund-refunds/{fundRefund}/proof', [FundRefundController::class, 'viewProof'])->name('fund-refunds.proof');
     Route::post('fund-refunds/{fundRefund}/pay', [FundRefundController::class, 'pay'])->name('fund-refunds.pay');
 
     // Audit Log
@@ -180,6 +184,7 @@ Route::middleware(['auth', 'role.selected'])->group(function () {
         Route::post('cash-topup-requests/direct', [CashTopupRequestController::class, 'directStore'])->name('cash-topup-requests.direct-store');
         Route::get('cash-topup-requests', [CashTopupRequestController::class, 'index'])->name('cash-topup-requests.index');
         Route::get('cash-topup-requests/{cashTopupRequest}', [CashTopupRequestController::class, 'show'])->name('cash-topup-requests.show');
+        Route::get('cash-topup-requests/{cashTopupRequest}/proof', [CashTopupRequestController::class, 'viewProof'])->name('cash-topup-requests.proof');
         Route::post('cash-topup-requests/{cashTopupRequest}/approve', [CashTopupRequestController::class, 'approve'])->name('cash-topup-requests.approve');
         Route::post('cash-topup-requests/{cashTopupRequest}/reject', [CashTopupRequestController::class, 'reject'])->name('cash-topup-requests.reject');
     });

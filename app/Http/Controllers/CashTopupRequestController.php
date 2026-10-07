@@ -16,6 +16,7 @@ use App\Services\FundJournalService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\File;
 
@@ -286,7 +287,7 @@ class CashTopupRequestController extends Controller
                 'yayasan_debit_account_id'   => $debitAccount->id,
             ]);
 
-            $path = $proof->storeAs('cash-topup-requests/' . $topup->id, Str::random(40) . '.' . $proof->getClientOriginalExtension(), 'public');
+            $path = $proof->storeAs('cash-topup-requests/' . $topup->id, Str::random(40) . '.' . $proof->getClientOriginalExtension(), 'local');
             $topup->update(['proof_path' => $path, 'proof_name' => $proof->getClientOriginalName()]);
 
             return $topup;
@@ -410,7 +411,7 @@ class CashTopupRequestController extends Controller
         }
 
         $proof = $request->file('proof');
-        $path  = $proof->storeAs('cash-topup-requests/' . $cashTopupRequest->id, Str::random(40) . '.' . $proof->getClientOriginalExtension(), 'public');
+        $path  = $proof->storeAs('cash-topup-requests/' . $cashTopupRequest->id, Str::random(40) . '.' . $proof->getClientOriginalExtension(), 'local');
 
         $cashTopupRequest->update([
             'status'                    => 'approved',
@@ -470,5 +471,20 @@ class CashTopupRequestController extends Controller
 
         return redirect()->route('cash-topup-requests.show', $cashTopupRequest)
             ->with('success', 'Pengajuan saldo ditolak.');
+    }
+
+    public function viewProof(CashTopupRequest $cashTopupRequest)
+    {
+        abort_unless($cashTopupRequest->proof_path, 404);
+
+        $user = auth()->user();
+        $requestingOrg = $cashTopupRequest->requestingOrganization;
+        $parentId      = $requestingOrg->parent_id;
+
+        $canView = $user->canAccessOrganization($requestingOrg->id)
+            || ($parentId && $user->canAccessOrganization($parentId));
+        abort_unless($canView, 403);
+
+        return Storage::disk('local')->response($cashTopupRequest->proof_path, $cashTopupRequest->proof_name);
     }
 }

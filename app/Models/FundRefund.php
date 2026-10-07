@@ -5,7 +5,6 @@ namespace App\Models;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
 
 class FundRefund extends Model
 {
@@ -55,6 +54,6 @@ class FundRefund extends Model
 
     public function getProofUrlAttribute(): ?string
     {
-        return $this->proof_path ? Storage::url($this->proof_path) : null;
+        return $this->proof_path ? route('fund-refunds.proof', $this) : null;
     }
 }

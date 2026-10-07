@@ -5,7 +5,6 @@ namespace App\Models;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
 
 class FundRequestFile extends Model
 {
@@ -28,7 +27,7 @@ class FundRequestFile extends Model
 
     public function getUrlAttribute(): string
     {
-        return Storage::url($this->file_path);
+        return route('fund-requests.files.view', $this);
     }
 
     public function getFileSizeLabelAttribute(): string

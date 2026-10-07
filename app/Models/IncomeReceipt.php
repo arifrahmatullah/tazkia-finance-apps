@@ -5,7 +5,6 @@ namespace App\Models;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
 
 class IncomeReceipt extends Model
 {
@@ -36,6 +35,6 @@ class IncomeReceipt extends Model
 
     public function getProofUrlAttribute(): ?string
     {
-        return $this->proof_path ? Storage::url($this->proof_path) : null;
+        return $this->proof_path ? route('income-receipts.proof', $this) : null;
     }
 }

@@ -77,7 +77,7 @@ class CashTopupRequest extends Model
 
     public function getProofUrlAttribute(): ?string
     {
-        return $this->proof_path ? \Illuminate\Support\Facades\Storage::url($this->proof_path) : null;
+        return $this->proof_path ? route('cash-topup-requests.proof', $this) : null;
     }
 
     public static function generateReference(string $orgId, string $date): string

@@ -127,7 +127,7 @@ class FundReportController extends Controller
         ]);
 
         foreach ($request->file('files', []) as $file) {
-            $path = $file->storeAs("fund-reports/{$report->id}", Str::random(40) . '.' . $file->getClientOriginalExtension(), 'public');
+            $path = $file->storeAs("fund-reports/{$report->id}", Str::random(40) . '.' . $file->getClientOriginalExtension(), 'local');
             FundReportFile::create([
                 'fund_report_id' => $report->id,
                 'uploaded_by'    => $user->id,
@@ -166,9 +166,20 @@ class FundReportController extends Controller
             return back()->with('error', 'File tidak bisa dihapus setelah laporan disetujui.');
         }
 
-        Storage::disk('public')->delete($fundReportFile->file_path);
+        Storage::disk('local')->delete($fundReportFile->file_path);
         $fundReportFile->delete();
 
         return back()->with('success', 'File berhasil dihapus.');
+    }
+
+    public function viewFile(FundReportFile $fundReportFile)
+    {
+        $user   = Auth::user();
+        $report = $fundReportFile->fundReport;
+
+        $canView = $report->reported_by === $user->id || $user->hasPermission('menu.pencairan-dana');
+        abort_unless($canView, 403);
+
+        return Storage::disk('local')->response($fundReportFile->file_path, $fundReportFile->file_name);
     }
 }

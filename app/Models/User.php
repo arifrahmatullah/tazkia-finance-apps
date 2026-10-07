@@ -161,7 +161,9 @@ class User extends Authenticatable
     {
         $active = $this->activeRole();
         if (!$active) {
-            return null;
+            // Tidak ada role aktif = gagal tertutup (tidak boleh akses organisasi apa pun),
+            // bukan null yang berarti "boleh akses semua organisasi".
+            return [];
         }
 
         $orgIds = $this->organizationRoles()

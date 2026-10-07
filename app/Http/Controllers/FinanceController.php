@@ -261,7 +261,7 @@ class FinanceController extends Controller
         // dan bikin file kesimpan TANPA ekstensi sama sekali (unduhannya jadi .bin, tidak
         // bisa dibuka).
         $filename = Str::random(40) . '.' . $file->getClientOriginalExtension();
-        $path = $file->storeAs('fund-requests/' . $fundRequest->id . '/proofs', $filename, 'public');
+        $path = $file->storeAs('fund-requests/' . $fundRequest->id . '/proofs', $filename, 'local');
 
         $fundRequest->files()->create([
             'uploaded_by' => $user->id,
@@ -277,7 +277,7 @@ class FinanceController extends Controller
     {
         abort_unless($fundRequestFile->type === 'disbursement_proof', 403);
 
-        Storage::disk('public')->delete($fundRequestFile->file_path);
+        Storage::disk('local')->delete($fundRequestFile->file_path);
         $fundRequestFile->delete();
 
         return back()->with('success', 'Bukti pencairan berhasil dihapus.');

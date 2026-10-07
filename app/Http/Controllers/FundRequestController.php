@@ -262,7 +262,7 @@ class FundRequestController extends Controller
 
         if ($request->hasFile('attachments')) {
             foreach ($request->file('attachments') as $file) {
-                $path = $file->storeAs('fund-requests/' . $fundRequest->id . '/attachments', Str::random(40) . '.' . $file->getClientOriginalExtension(), 'public');
+                $path = $file->storeAs('fund-requests/' . $fundRequest->id . '/attachments', Str::random(40) . '.' . $file->getClientOriginalExtension(), 'local');
                 $fundRequest->files()->create([
                     'uploaded_by' => $user->id,
                     'type'        => 'attachment',
@@ -589,7 +589,7 @@ class FundRequestController extends Controller
         ]);
 
         $file = $request->file('file');
-        $path = $file->storeAs('fund-requests/' . $fundRequest->id . '/attachments', Str::random(40) . '.' . $file->getClientOriginalExtension(), 'public');
+        $path = $file->storeAs('fund-requests/' . $fundRequest->id . '/attachments', Str::random(40) . '.' . $file->getClientOriginalExtension(), 'local');
 
         $fundRequest->files()->create([
             'uploaded_by' => $user->id,
@@ -614,10 +614,18 @@ class FundRequestController extends Controller
             abort_unless($user->hasPermission('menu.pencairan-dana'), 403);
         }
 
-        Storage::disk('public')->delete($fundRequestFile->file_path);
+        Storage::disk('local')->delete($fundRequestFile->file_path);
         $fundRequestFile->delete();
 
         return back()->with('success', 'File berhasil dihapus.');
+    }
+
+    public function viewFile(FundRequestFile $fundRequestFile)
+    {
+        $user = auth()->user();
+        abort_unless($this->canViewFundRequest($fundRequestFile->fundRequest, $user), 403);
+
+        return Storage::disk('local')->response($fundRequestFile->file_path, $fundRequestFile->file_name);
     }
 
     public function confirmReceipt(FundRequest $fundRequest)

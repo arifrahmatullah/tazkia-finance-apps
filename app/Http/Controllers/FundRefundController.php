@@ -93,11 +93,11 @@ class FundRefundController extends Controller
 
         // Hapus bukti lama jika kirim ulang setelah ditolak
         if ($fundRefund->proof_path) {
-            Storage::disk('public')->delete($fundRefund->proof_path);
+            Storage::disk('local')->delete($fundRefund->proof_path);
         }
 
         $file = $request->file('proof');
-        $path = $file->storeAs("fund-refunds/{$fundRefund->id}", Str::random(40) . '.' . $file->getClientOriginalExtension(), 'public');
+        $path = $file->storeAs("fund-refunds/{$fundRefund->id}", Str::random(40) . '.' . $file->getClientOriginalExtension(), 'local');
 
         $fundRefund->update([
             'status'            => 'waiting',
@@ -149,11 +149,11 @@ class FundRefundController extends Controller
             foreach ($refunds as $refund) {
                 // Hapus bukti lama jika kirim ulang setelah ditolak
                 if ($refund->proof_path) {
-                    Storage::disk('public')->delete($refund->proof_path);
+                    Storage::disk('local')->delete($refund->proof_path);
                 }
 
                 // Simpan salinan bukti per pengembalian agar aman dihapus/dikirim ulang satu per satu
-                $path = $file->storeAs("fund-refunds/{$refund->id}", Str::random(40) . '.' . $file->getClientOriginalExtension(), 'public');
+                $path = $file->storeAs("fund-refunds/{$refund->id}", Str::random(40) . '.' . $file->getClientOriginalExtension(), 'local');
 
                 $refund->update([
                     'status'            => 'waiting',
@@ -171,5 +171,16 @@ class FundRefundController extends Controller
 
         return redirect()->route('fund-refunds.index')
             ->with('success', $refunds->count() . ' pengembalian dana (total Rp ' . number_format($total, 0, ',', '.') . ') terkirim, menunggu konfirmasi keuangan.');
+    }
+
+    public function viewProof(FundRefund $fundRefund)
+    {
+        $user = Auth::user();
+        abort_unless($fundRefund->proof_path, 404);
+
+        $isRequester = $fundRefund->fundRequest->requester_id === $user->employee?->id;
+        abort_unless($isRequester || $user->hasPermission('menu.pencairan-dana'), 403);
+
+        return Storage::disk('local')->response($fundRefund->proof_path, $fundRefund->proof_name);
     }
 }
