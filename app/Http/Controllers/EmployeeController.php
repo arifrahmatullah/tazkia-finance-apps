@@ -6,7 +6,11 @@ use App\Models\Employee;
 use App\Models\EmployeePosition;
 use App\Models\Organization;
 use App\Models\Position;
+use App\Models\Role;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 class EmployeeController extends Controller
 {
@@ -57,17 +61,39 @@ class EmployeeController extends Controller
             'gender'          => 'nullable|in:L,P',
             'birth_date'      => 'nullable|date',
             'nidn'            => 'nullable|string|max:20',
-            'email'           => 'nullable|email|max:100',
+            'email'           => 'nullable|email|max:100|unique:users,email',
             'phone'           => 'nullable|string|max:20',
             'rfid'            => 'nullable|string|max:50',
         ]);
 
         $validated['is_active'] = true;
 
-        Employee::create($validated);
+        // Input karyawan langsung dibuatkan akun user juga (kalau email diisi) -- sebelumnya
+        // ini manual lewat perintah `employees:generate-users`. Role default "staf" karena
+        // karyawan baru belum punya jabatan; role bisa disesuaikan lagi lewat menu User.
+        $employee = DB::transaction(function () use ($validated) {
+            $employee = Employee::create($validated);
 
-        return redirect()->route('employees.index')
-            ->with('success', 'Karyawan berhasil ditambahkan.');
+            if (!empty($validated['email'])) {
+                $user = User::create([
+                    'name'      => $employee->name,
+                    'email'     => $employee->email,
+                    'password'  => Hash::make('tazkia123'),
+                    'role_id'   => Role::where('slug', 'staf')->value('id'),
+                    'is_active' => true,
+                ]);
+                $employee->update(['user_id' => $user->id]);
+            }
+
+            return $employee;
+        });
+
+        $message = 'Karyawan berhasil ditambahkan.';
+        if ($employee->user_id) {
+            $message .= ' Akun user juga dibuat otomatis (email: ' . $employee->email . ', password default: tazkia123).';
+        }
+
+        return redirect()->route('employees.index')->with('success', $message);
     }
 
     public function show(Employee $employee)
