@@ -16,7 +16,7 @@
 @else
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
     @foreach($allocations as $alloc)
-    <a href="{{ route('budget-programs.create', ['department_id' => $alloc->department_id]) }}"
+    <a href="{{ route('budget-programs.index', ['department_id' => $alloc->department_id]) }}"
         class="block bg-white rounded-xl shadow-sm p-5 border border-slate-100 hover:border-orange-300 hover:-translate-y-px transition-all no-underline">
         <div class="text-sm font-bold text-slate-800">{{ $alloc->department->name }}</div>
         <div class="text-xs text-slate-400 mt-1">{{ $alloc->budgetPeriod->name }} — Pagu Rp {{ number_format($alloc->amount, 0, ',', '.') }}</div>
