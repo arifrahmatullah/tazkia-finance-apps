@@ -72,3 +72,29 @@
         </label>
     </div>
 </div>
+
+@if($pos)
+{{-- Departemen tambahan yang bisa dilihat & dikelola -- buat jabatan atasan (mis. Wakil
+     Rektor) yang perlu akses ke program kerja departemen di bawah bidangnya, tanpa
+     jabatannya sendiri harus pindah/terdaftar di departemen itu. --}}
+@php $viewableIds = old('viewable_department_ids', $pos->viewableDepartments->pluck('id')->all()); @endphp
+<div class="mt-5">
+    <div class="text-xs font-semibold text-slate-600 mb-1">Departemen Tambahan yang Bisa Dilihat & Dikelola</div>
+    <div class="text-xs text-slate-400 mb-2.5">Di luar departemen jabatan ini sendiri -- untuk jabatan atasan yang perlu akses ke program kerja departemen di bawah bidangnya.</div>
+    <div class="max-h-[220px] overflow-y-auto flex flex-col gap-1 border border-slate-200 rounded-xl p-2.5">
+        @foreach($departments->groupBy(fn($d) => $d->organization->name) as $orgName => $depts)
+            @foreach($depts as $dept)
+                @if($dept->id !== $pos->department_id)
+                <label class="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-slate-50 cursor-pointer">
+                    <input type="checkbox" name="viewable_department_ids[]" value="{{ $dept->id }}"
+                        {{ in_array($dept->id, $viewableIds) ? 'checked' : '' }}
+                        class="w-4 h-4 cursor-pointer accent-orange-500">
+                    <span class="text-sm text-slate-700">{{ $dept->name }}</span>
+                    <span class="text-[11px] text-slate-400">({{ $orgName }})</span>
+                </label>
+                @endif
+            @endforeach
+        @endforeach
+    </div>
+</div>
+@endif

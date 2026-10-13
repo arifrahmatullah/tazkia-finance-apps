@@ -41,4 +41,11 @@ class Position extends Model
     {
         return $this->hasOne(EmployeePosition::class)->where('is_active', true)->with('employee');
     }
+
+    // Departemen tambahan yang boleh dilihat jabatan ini (mis. Wakil Rektor melihat
+    // departemen-departemen di bawah bidangnya) -- di luar departemennya sendiri.
+    public function viewableDepartments()
+    {
+        return $this->belongsToMany(Department::class, 'position_department_views');
+    }
 }

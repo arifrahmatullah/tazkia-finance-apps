@@ -49,13 +49,17 @@ class Employee extends Model
     }
 
     // Kumpulan department_id dari semua jabatan aktif — dipakai untuk scoping akses
-    // staf yang memegang lebih dari satu jabatan sekaligus (mis. di dept berbeda).
+    // staf yang memegang lebih dari satu jabatan sekaligus (mis. di dept berbeda) --
+    // ditambah departemen lain yang sengaja dibuka untuk jabatan itu lewat
+    // PositionDepartmentView (mis. Wakil Rektor melihat departemen di bawah bidangnya).
     public function activeDepartmentIds(): array
     {
-        return $this->activePositions()
-            ->with('position')
-            ->get()
-            ->pluck('position.department_id')
+        $positions = $this->activePositions()->with('position.viewableDepartments')->get();
+
+        $ownDeptIds   = $positions->pluck('position.department_id');
+        $extraDeptIds = $positions->flatMap(fn($ep) => $ep->position?->viewableDepartments->pluck('id') ?? collect());
+
+        return $ownDeptIds->merge($extraDeptIds)
             ->filter()
             ->unique()
             ->values()

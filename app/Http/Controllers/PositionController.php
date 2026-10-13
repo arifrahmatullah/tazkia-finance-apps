@@ -81,6 +81,7 @@ class PositionController extends Controller
     {
         abort_unless($this->deptBelongsToUser($position->department), 403);
 
+        $position->load('viewableDepartments');
         $departments = $this->allowedDepartments()->orderBy('name')->get();
         return view('positions.edit', compact('position', 'departments'));
     }
@@ -93,13 +94,15 @@ class PositionController extends Controller
         abort_unless($this->deptBelongsToUser($newDept), 403);
 
         $validated = $request->validate([
-            'department_id'      => 'required|exists:departments,id',
-            'code'               => 'required|string|max:50',
-            'name'               => 'required|string|max:100',
-            'description'        => 'nullable|string|max:255',
-            'is_finance_related' => 'boolean',
-            'can_create_program' => 'boolean',
-            'is_active'          => 'boolean',
+            'department_id'          => 'required|exists:departments,id',
+            'code'                   => 'required|string|max:50',
+            'name'                   => 'required|string|max:100',
+            'description'            => 'nullable|string|max:255',
+            'is_finance_related'     => 'boolean',
+            'can_create_program'     => 'boolean',
+            'is_active'              => 'boolean',
+            'viewable_department_ids'   => 'array',
+            'viewable_department_ids.*' => 'exists:departments,id',
         ]);
 
         $validated['is_finance_related'] = $request->boolean('is_finance_related');
@@ -107,7 +110,16 @@ class PositionController extends Controller
         $validated['is_active']          = $request->boolean('is_active');
         $validated['code']               = strtoupper($validated['code']);
 
-        $position->update($validated);
+        // Departemen tambahan boleh dari organisasi lain yang bisa diakses user (mis. superadmin
+        // ngatur Warek 2 yang lihat departemen di organisasi sama); tetap dibatasi ke organisasi
+        // yang dia boleh akses, bukan asal ambil ID dari luar sama sekali.
+        $viewableDeptIds = $this->allowedDepartments()
+            ->whereIn('id', $validated['viewable_department_ids'] ?? [])
+            ->pluck('id')
+            ->all();
+
+        $position->update(\Illuminate\Support\Arr::except($validated, ['viewable_department_ids']));
+        $position->viewableDepartments()->sync($viewableDeptIds);
 
         return redirect()->route('positions.index')
             ->with('success', 'Jabatan berhasil diperbarui.');
