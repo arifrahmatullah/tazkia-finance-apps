@@ -90,11 +90,20 @@
             </div>
         </div>
         @if(auth()->user()->isSuperAdmin())
-        <a href="{{ route('budget-programs.create', ['department_id' => $s['department_id']]) }}"
-            class="mt-3 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-orange-50 text-orange-600 text-xs font-semibold hover:bg-orange-100 transition-colors no-underline">
-            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-            Buat Program Kerja (dibantu Superadmin)
-        </a>
+            @if($selectedDeptId === $s['department_id'])
+            <a href="{{ route('budget-programs.create', ['department_id' => $s['department_id']]) }}"
+                class="mt-3 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-orange-50 text-orange-600 text-xs font-semibold hover:bg-orange-100 transition-colors no-underline">
+                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+                Buat Program Kerja (dibantu Superadmin)
+            </a>
+            @else
+            {{-- Belum difilter ke departemen ini -- lihat daftar program departemennya dulu sebelum bikin baru --}}
+            <a href="{{ route('budget-programs.index', ['department_id' => $s['department_id']]) }}"
+                class="mt-3 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-slate-50 text-slate-500 text-xs font-semibold hover:bg-slate-100 transition-colors no-underline">
+                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+                Lihat Program Departemen Ini
+            </a>
+            @endif
         @endif
     </div>
     @endforeach
