@@ -349,7 +349,7 @@ class BudgetProgramController extends Controller
 
     public function show(BudgetProgram $budgetProgram)
     {
-        $budgetProgram->load(['budgetAllocation.department.organization', 'budgetAllocation.budgetPeriod', 'account', 'details.account', 'schedules.fundRequests', 'schedules.detailOverrides']);
+        $budgetProgram->load(['budgetAllocation.department.organization', 'budgetAllocation.budgetPeriod', 'account', 'details.account', 'details.termins', 'schedules.fundRequests', 'schedules.detailOverrides']);
 
         abort_unless(
             auth()->user()->canAccessOrganization($budgetProgram->budgetAllocation->department->organization_id),
@@ -430,12 +430,15 @@ class BudgetProgramController extends Controller
         \DB::transaction(function () use ($budgetProgram, $payload) {
             $budgetProgram->update($payload);
 
-            $budgetProgram->load('details');
-            foreach ($budgetProgram->details as $detail) {
-                $detail->update(['quantity' => $payload['frequency']]);
-            }
-
+            // regenerateSchedules() dulu (tambah/hapus termin sesuai frekuensi baru, cascade
+            // bersihkan pilihan termin rincian yang ikut terhapus), baru samakan quantity tiap
+            // rincian ke jumlah termin efektifnya -- rincian yang sudah di-custom pilih termin
+            // tertentu TIDAK direset ke frekuensi baru, cuma rincian yang masih default.
             $budgetProgram->regenerateSchedules();
+            $budgetProgram->load('details.termins');
+            foreach ($budgetProgram->details as $detail) {
+                $detail->syncQuantityFromTermins();
+            }
         });
 
         return redirect()

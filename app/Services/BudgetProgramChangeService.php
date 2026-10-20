@@ -124,8 +124,8 @@ class BudgetProgramChangeService
 
         match ($request->action) {
             'update_info' => $this->applyUpdateInfo($program, $payload),
-            'add_detail'  => $program->details()->create(array_merge($payload, ['quantity' => $program->frequency])),
-            'update_detail' => BudgetProgramDetail::find($request->subject_id)?->update($payload),
+            'add_detail'  => $this->applyAddDetail($program, $payload),
+            'update_detail' => $this->applyUpdateDetail($request->subject_id, $payload),
             'delete_detail' => BudgetProgramDetail::find($request->subject_id)?->delete(),
             'update_schedule'   => $this->applyUpdateSchedule($request->subject_id, $payload),
             'transfer_schedule' => $this->applyTransferSchedule($request->subject_id, $payload),
@@ -142,9 +142,39 @@ class BudgetProgramChangeService
         $program->update($payload);
 
         if (array_key_exists('frequency', $payload)) {
-            $program->details()->update(['quantity' => $payload['frequency']]);
-            $program->refresh()->regenerateSchedules();
+            $program = $program->refresh();
+            $program->regenerateSchedules();
+            $program->load('details.termins');
+            foreach ($program->details as $detail) {
+                $detail->syncQuantityFromTermins();
+            }
         }
+    }
+
+    // '_termin_ids' cuma dititipkan waktu requestChange() dibuat (lihat
+    // BudgetProgramDetailController::store()/update()) buat rincian yang di-custom cuma
+    // berlaku di sebagian termin -- bukan kolom beneran, jangan ikut di-mass-assign.
+    private function applyAddDetail(BudgetProgram $program, array $payload): void
+    {
+        $terminIds = $payload['_termin_ids'] ?? null;
+        $detail = $program->details()->create(collect($payload)->except('_termin_ids')->toArray());
+        $detail->update(['quantity' => $terminIds ? count($terminIds) : $program->frequency]);
+        if ($terminIds) {
+            $detail->termins()->sync($terminIds);
+        }
+    }
+
+    private function applyUpdateDetail(string $detailId, array $payload): void
+    {
+        $detail = BudgetProgramDetail::find($detailId);
+        if (!$detail) {
+            return;
+        }
+
+        $terminIds = $payload['_termin_ids'] ?? null;
+        $detail->update(collect($payload)->except('_termin_ids')->toArray());
+        $detail->termins()->sync($terminIds ?? []);
+        $detail->syncQuantityFromTermins();
     }
 
     private function applyUpdateSchedule(string $scheduleId, array $payload): void

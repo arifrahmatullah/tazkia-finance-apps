@@ -156,7 +156,12 @@
                             <span class="text-slate-300 text-xs">—</span>
                         @endif
                     </td>
-                    <td class="px-4 py-3 text-sm text-slate-800 font-medium align-middle">{{ $detail->description }}</td>
+                    <td class="px-4 py-3 text-sm text-slate-800 font-medium align-middle">
+                        {{ $detail->description }}
+                        @if($detail->termins->isNotEmpty())
+                        <div class="text-[10px] text-slate-400 font-normal mt-0.5">Cuma termin {{ $detail->termins->pluck('termin')->sort()->implode(', ') }}</div>
+                        @endif
+                    </td>
                     <td class="px-4 py-3 text-right font-mono text-sm text-slate-600 align-middle">
                         Rp {{ number_format($detail->unit_price, 0, ',', '.') }}
                     </td>
@@ -369,7 +374,7 @@
             <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-1.5">
                     Nominal/Termin (Rp) <span class="text-red-500">*</span>
-                    <span class="font-normal text-slate-400">× {{ $freq }}×</span>
+                    <span class="font-normal text-slate-400">× <span id="freqLabelAdd">{{ $freq }}</span>×</span>
                 </label>
                 <input type="text" id="nominalDisplay" placeholder="0"
                     class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-700 bg-white outline-none focus:border-orange-400 transition-colors font-mono @error('unit_price') border-red-400 @enderror"
@@ -378,6 +383,25 @@
                 @error('unit_price') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
             </div>
         </div>
+
+        @if($freq > 1)
+        <div class="mt-4">
+            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Berlaku di Termin</label>
+            <div class="flex flex-wrap gap-3">
+                @foreach($schedules as $sch)
+                <label class="inline-flex items-center gap-1.5 text-xs text-slate-600">
+                    <input type="checkbox" name="termin_ids[]" value="{{ $sch->id }}"
+                        {{ in_array($sch->id, old('termin_ids', $schedules->pluck('id')->all())) ? 'checked' : '' }}
+                        onchange="recalcFreqAdd()" class="w-3.5 h-3.5 accent-orange-500">
+                    Termin {{ $sch->termin }}{{ $sch->monthLabel() ? ' ('.$sch->monthLabel().')' : '' }}
+                </label>
+                @endforeach
+            </div>
+            <input type="hidden" name="termin_ids_submitted" value="1">
+            @error('termin_ids') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+            <div class="text-[11px] text-slate-400 mt-1">Uncek termin yang tidak dipakai rincian ini (mis. biaya sekali bayar).</div>
+        </div>
+        @endif
 
         <div class="flex items-center gap-3 mt-4">
             <button type="submit"
@@ -535,16 +559,28 @@
 <script>
 const sisaPagu = {{ $sisa }};
 const hasPagu  = {{ $pagu > 0 ? 'true' : 'false' }};
-const freqCountAdd = {{ $freq }};
+let freqCountAdd = {{ $freq }};
 const hasMultipleDetails = {{ $hasMultipleDetails ? 'true' : 'false' }};
 const scheduleDetailsMap = @json($scheduleDetailsMap);
+
+// Dihitung ulang dari checklist "Berlaku di Termin" -- kalau checklist-nya ada (freq > 1)
+// dan semua tercentang berarti default, tetap pakai frekuensi program.
+function recalcFreqAdd() {
+    const boxes = document.querySelectorAll('input[name="termin_ids[]"]');
+    if (boxes.length > 0) {
+        const checked = document.querySelectorAll('input[name="termin_ids[]"]:checked').length;
+        freqCountAdd = checked > 0 ? checked : {{ $freq }};
+        document.getElementById('freqLabelAdd').textContent = freqCountAdd;
+    }
+    fmtNominal(document.getElementById('nominalDisplay'));
+}
 
 function fmtNominal(input) {
     const raw = input.value.replace(/[^\d]/g, '');
     document.getElementById('nominalHidden').value = raw || '0';
     input.value = raw ? parseInt(raw).toLocaleString('id-ID') : '';
     if (hasPagu) {
-        // Nominal yang diisi per termin -- total barisnya (sesuai server) = nominal × frekuensi.
+        // Nominal yang diisi per termin -- total barisnya (sesuai server) = nominal × jumlah termin efektif.
         const totalBaris = (parseInt(raw) || 0) * freqCountAdd;
         const warn = document.getElementById('budgetWarning');
         if (warn) warn.classList.toggle('hidden', totalBaris <= sisaPagu);

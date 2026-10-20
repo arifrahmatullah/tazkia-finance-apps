@@ -170,15 +170,28 @@ class BudgetProgram extends Model
         $freq = max(1, (int) $this->frequency);
         $existing = $this->schedules()->orderBy('termin')->get()->keyBy('termin');
 
-        // Hapus termin yang melebihi frekuensi baru
+        // Hapus termin yang melebihi frekuensi baru (cascade otomatis bersihkan baris
+        // budget_program_detail_schedules yang nempel ke termin yang dihapus).
         $this->schedules()->where('termin', '>', $freq)->delete();
 
-        // Tambah termin yang belum ada, nominal default dibagi rata
+        // Tambah termin yang belum ada, nominal default = total rincian yang masih default
+        // (belum di-custom pilih termin tertentu) -- rincian yang sudah di-custom ke termin
+        // lain tidak ikut kehitung di termin baru ini sampai staf sengaja menambahkannya.
+        $this->load('details.termins');
+        $defaultTotal = $this->defaultModeDetailsTotal();
+
         for ($i = 1; $i <= $freq; $i++) {
             if (!$existing->has($i)) {
-                $this->schedules()->create(['termin' => $i, 'estimated_date' => null, 'amount' => $this->nominal_per_termin]);
+                $this->schedules()->create(['termin' => $i, 'estimated_date' => null, 'amount' => $defaultTotal]);
             }
         }
+    }
+
+    // Total unit_price rincian yang masih default (belum pernah di-custom pilih termin
+    // tertentu) -- lihat regenerateSchedules().
+    public function defaultModeDetailsTotal(): float
+    {
+        return (float) $this->details->filter(fn($d) => $d->termins->isEmpty())->sum('unit_price');
     }
 
     // Kalau nominal rincian berubah (nominal_per_termin ikut berubah), sinkronkan nominal

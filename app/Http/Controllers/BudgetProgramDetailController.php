@@ -11,7 +11,7 @@ class BudgetProgramDetailController extends Controller
 {
     public function store(Request $request)
     {
-        $program = BudgetProgram::with('budgetAllocation.department', 'budgetAllocation.budgetPeriod')->findOrFail($request->budget_program_id);
+        $program = BudgetProgram::with('budgetAllocation.department', 'budgetAllocation.budgetPeriod', 'schedules')->findOrFail($request->budget_program_id);
 
         abort_unless(
             auth()->user()->canAccessOrganization($program->budgetAllocation->department->organization_id),
@@ -23,12 +23,19 @@ class BudgetProgramDetailController extends Controller
             'account_id'        => 'nullable|exists:accounts,id',
             'description'       => 'required|string|max:255',
             'unit_price'        => 'required|numeric|min:0.01',
+            'termin_ids'        => 'nullable|array',
+            'termin_ids.*'      => 'exists:budget_program_schedules,id',
         ], [
             'unit_price.min' => 'Nominal harus lebih dari 0.',
         ]);
 
-        // unit_price adalah nominal per termin -- total baris ini = unit_price × frekuensi program
-        $newItemTotal = (float) $validated['unit_price'] * $program->frequency;
+        [$selectedTerminIds, $isDefaultSelection, $effectiveQty] = $this->resolveTerminSelection($request, $program, $validated['termin_ids'] ?? null);
+        if ($selectedTerminIds === null) {
+            return back()->withInput()->withErrors(['termin_ids' => 'Pilih minimal satu termin untuk rincian ini.']);
+        }
+
+        // unit_price adalah nominal per termin -- total baris ini = unit_price × jumlah termin efektif
+        $newItemTotal = (float) $validated['unit_price'] * $effectiveQty;
         $currentTotal = $this->allocationUsedTotal($program);
         $paguAmount   = $program->budgetAllocation->amount;
 
@@ -48,7 +55,8 @@ class BudgetProgramDetailController extends Controller
 
         if (!$program->isWithinPlanningWindow()) {
             app(BudgetProgramChangeService::class)->requestChange(
-                $program, $request->user(), 'add_detail', null, $payload,
+                $program, $request->user(), 'add_detail', null,
+                $isDefaultSelection ? $payload : array_merge($payload, ['_termin_ids' => $selectedTerminIds]),
                 'Tambah rincian: ' . $validated['description']
             );
 
@@ -57,7 +65,10 @@ class BudgetProgramDetailController extends Controller
         }
 
         $oldNominalPerTermin = $program->nominal_per_termin;
-        BudgetProgramDetail::create(array_merge($payload, ['quantity' => $program->frequency]));
+        $detail = BudgetProgramDetail::create(array_merge($payload, ['quantity' => $effectiveQty]));
+        if (!$isDefaultSelection) {
+            $detail->termins()->sync($selectedTerminIds);
+        }
         $program->syncScheduleAmountsAfterTotalChange($oldNominalPerTermin);
 
         return redirect()
@@ -65,11 +76,35 @@ class BudgetProgramDetailController extends Controller
             ->with('success', 'Rincian berhasil ditambahkan.');
     }
 
+    // Tentukan termin mana yang berlaku buat rincian ini dari checklist "Berlaku di Termin"
+    // (lihat form Tambah/Edit Rincian) -- null di posisi pertama berarti input tidak valid
+    // (checklist ditampilkan tapi tidak ada yang dicentang sama sekali). Checklist cuma
+    // ditampilkan kalau program frekuensinya > 1, jadi kalau "termin_ids_submitted" tidak ada,
+    // anggap default (berlaku di semua termin) -- sama seperti perilaku sebelum fitur ini ada.
+    private function resolveTerminSelection(Request $request, BudgetProgram $program, ?array $terminIds): array
+    {
+        $allTerminIds = $program->schedules->pluck('id')->all();
+
+        if (!$request->boolean('termin_ids_submitted') || empty($allTerminIds)) {
+            return [$allTerminIds, true, max(1, (int) $program->frequency)];
+        }
+
+        $selected = array_values(array_intersect($terminIds ?? [], $allTerminIds));
+        if (empty($selected)) {
+            return [null, true, 0];
+        }
+
+        $isDefault = count($selected) === count($allTerminIds);
+        return [$selected, $isDefault, count($selected)];
+    }
+
     public function edit(BudgetProgramDetail $budgetProgramDetail)
     {
         $budgetProgramDetail->load([
             'budgetProgram.budgetAllocation.department.organization',
             'budgetProgram.budgetAllocation.budgetPeriod',
+            'budgetProgram.schedules',
+            'termins',
             'account',
         ]);
 
@@ -90,7 +125,7 @@ class BudgetProgramDetailController extends Controller
 
     public function update(Request $request, BudgetProgramDetail $budgetProgramDetail)
     {
-        $budgetProgramDetail->load('budgetProgram.budgetAllocation.department', 'budgetProgram.budgetAllocation.budgetPeriod');
+        $budgetProgramDetail->load('budgetProgram.budgetAllocation.department', 'budgetProgram.budgetAllocation.budgetPeriod', 'budgetProgram.schedules');
 
         abort_unless(
             auth()->user()->canAccessOrganization($budgetProgramDetail->budgetProgram->budgetAllocation->department->organization_id),
@@ -98,16 +133,24 @@ class BudgetProgramDetailController extends Controller
         );
 
         $validated = $request->validate([
-            'account_id'  => 'nullable|exists:accounts,id',
-            'description' => 'required|string|max:255',
-            'unit_price'  => 'required|numeric|min:0.01',
+            'account_id'   => 'nullable|exists:accounts,id',
+            'description'  => 'required|string|max:255',
+            'unit_price'   => 'required|numeric|min:0.01',
+            'termin_ids'   => 'nullable|array',
+            'termin_ids.*' => 'exists:budget_program_schedules,id',
         ], [
             'unit_price.min' => 'Nominal harus lebih dari 0.',
         ]);
 
-        $program      = $budgetProgramDetail->budgetProgram;
-        // unit_price adalah nominal per termin -- total baris ini = unit_price × frekuensi program
-        $newItemTotal = (float) $validated['unit_price'] * $program->frequency;
+        $program = $budgetProgramDetail->budgetProgram;
+
+        [$selectedTerminIds, $isDefaultSelection, $effectiveQty] = $this->resolveTerminSelection($request, $program, $validated['termin_ids'] ?? null);
+        if ($selectedTerminIds === null) {
+            return back()->withInput()->withErrors(['termin_ids' => 'Pilih minimal satu termin untuk rincian ini.']);
+        }
+
+        // unit_price adalah nominal per termin -- total baris ini = unit_price × jumlah termin efektif
+        $newItemTotal = (float) $validated['unit_price'] * $effectiveQty;
         $currentTotal = $this->allocationUsedTotal($program, $budgetProgramDetail->id);
         $paguAmount   = $program->budgetAllocation->amount;
 
@@ -126,7 +169,8 @@ class BudgetProgramDetailController extends Controller
 
         if (!$program->isWithinPlanningWindow()) {
             app(BudgetProgramChangeService::class)->requestChange(
-                $program, $request->user(), 'update_detail', $budgetProgramDetail->id, $payload,
+                $program, $request->user(), 'update_detail', $budgetProgramDetail->id,
+                $isDefaultSelection ? $payload : array_merge($payload, ['_termin_ids' => $selectedTerminIds]),
                 'Ubah rincian: ' . $budgetProgramDetail->description . ' → ' . $validated['description']
             );
 
@@ -135,7 +179,8 @@ class BudgetProgramDetailController extends Controller
         }
 
         $oldNominalPerTermin = $program->nominal_per_termin;
-        $budgetProgramDetail->update(array_merge($payload, ['quantity' => $program->frequency]));
+        $budgetProgramDetail->update(array_merge($payload, ['quantity' => $effectiveQty]));
+        $budgetProgramDetail->termins()->sync($isDefaultSelection ? [] : $selectedTerminIds);
         $program->syncScheduleAmountsAfterTotalChange($oldNominalPerTermin);
 
         return redirect()

@@ -44,10 +44,18 @@
                 @error('description') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
             </div>
 
+            @php
+                $editSchedules = $budgetProgramDetail->budgetProgram->schedules;
+                $editFreq = $budgetProgramDetail->budgetProgram->frequency;
+                $isCustomTermin = $budgetProgramDetail->termins->isNotEmpty();
+                $currentTerminIds = old('termin_ids', $budgetProgramDetail->termins->pluck('id')->all());
+                $effFreq = $isCustomTermin ? count($currentTerminIds) : $editFreq;
+            @endphp
+
             <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-1.5">
                     Nominal/Termin (Rp) <span class="text-red-500">*</span>
-                    <span class="font-normal text-slate-400">× {{ $budgetProgramDetail->budgetProgram->frequency }}× (frekuensi program)</span>
+                    <span class="font-normal text-slate-400">× <span id="freqLabel">{{ $effFreq }}</span>× {{ $isCustomTermin ? '(custom termin)' : '(frekuensi program)' }}</span>
                 </label>
                 <input type="text" id="nominalDisplay"
                     value="{{ old('unit_price') ? number_format((int)old('unit_price'), 0, ',', '.') : number_format((int)$budgetProgramDetail->unit_price, 0, ',', '.') }}"
@@ -55,9 +63,28 @@
                     oninput="fmtNominal(this)" onfocus="this.select()">
                 <input type="hidden" name="unit_price" id="nominalHidden"
                     value="{{ old('unit_price', (int)$budgetProgramDetail->unit_price) }}">
-                <div class="text-[11px] text-slate-400 mt-1">Total <span id="nominalTotal" class="font-semibold text-slate-600"></span> untuk {{ $budgetProgramDetail->budgetProgram->frequency }} termin. Ini nominal per termin, bukan total keseluruhan.</div>
+                <div class="text-[11px] text-slate-400 mt-1">Total <span id="nominalTotal" class="font-semibold text-slate-600"></span> untuk <span id="freqLabel2">{{ $effFreq }}</span> termin. Ini nominal per termin, bukan total keseluruhan.</div>
                 @error('unit_price') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
             </div>
+
+            @if($editFreq > 1)
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1.5">Berlaku di Termin</label>
+                <div class="flex flex-wrap gap-3">
+                    @foreach($editSchedules as $sch)
+                    <label class="inline-flex items-center gap-1.5 text-xs text-slate-600">
+                        <input type="checkbox" name="termin_ids[]" value="{{ $sch->id }}"
+                            {{ (!$isCustomTermin || in_array($sch->id, $currentTerminIds)) ? 'checked' : '' }}
+                            onchange="recalcFreq()" class="w-3.5 h-3.5 accent-orange-500">
+                        Termin {{ $sch->termin }}{{ $sch->monthLabel() ? ' ('.$sch->monthLabel().')' : '' }}
+                    </label>
+                    @endforeach
+                </div>
+                <input type="hidden" name="termin_ids_submitted" value="1">
+                @error('termin_ids') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                <div class="text-[11px] text-slate-400 mt-1">Uncek termin yang tidak dipakai rincian ini (mis. biaya sekali bayar).</div>
+            </div>
+            @endif
 
             <div class="flex gap-2.5 pt-1">
                 <button type="submit"
@@ -74,7 +101,19 @@
 </div>
 
 <script>
-const freqCount = {{ $budgetProgramDetail->budgetProgram->frequency }};
+let freqCount = {{ $effFreq }};
+
+// Dihitung ulang dari checklist "Berlaku di Termin" tiap kali dicentang/di-uncek.
+function recalcFreq() {
+    const boxes = document.querySelectorAll('input[name="termin_ids[]"]');
+    if (boxes.length > 0) {
+        const checked = document.querySelectorAll('input[name="termin_ids[]"]:checked').length;
+        freqCount = checked > 0 ? checked : {{ $editFreq }};
+        document.getElementById('freqLabel').textContent = freqCount;
+        document.getElementById('freqLabel2').textContent = freqCount;
+    }
+    fmtNominal(document.getElementById('nominalDisplay'));
+}
 
 function fmtNominal(input) {
     const raw = input.value.replace(/[^\d]/g, '');
