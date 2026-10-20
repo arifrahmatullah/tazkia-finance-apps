@@ -69,6 +69,27 @@
 
             @if($editFreq > 1)
             <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1.5">
+                    Frekuensi Rincian <span class="text-red-500">*</span>
+                    <span class="font-normal text-slate-400 ml-1">maks. {{ $editFreq }}× (ikut frekuensi program)</span>
+                </label>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <input type="number" id="rincian-freq-input" min="1" max="{{ $editFreq }}" value="{{ $effFreq }}"
+                        class="w-20 px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-700 bg-white outline-none focus:border-orange-400 transition-colors font-mono"
+                        oninput="applyFreqToCheckboxes(parseInt(this.value) || 1)">
+                    <div class="flex gap-1.5 flex-wrap">
+                        @for ($f = 1; $f <= $editFreq; $f++)
+                        <button type="button" data-val="{{ $f }}"
+                            class="freq-btn-rincian px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer
+                                {{ $effFreq == $f ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-slate-600 border-slate-200 hover:border-orange-300 hover:text-orange-600' }}"
+                            onclick="applyFreqToCheckboxes({{ $f }})">{{ $f }}×</button>
+                        @endfor
+                    </div>
+                </div>
+                <p class="text-[11px] text-slate-400 mt-1.5">Otomatis pakai termin pertama sejumlah ini. Mau pilih termin tertentu (bukan yang pertama)? Atur langsung di checklist di bawah.</p>
+            </div>
+
+            <div>
                 <label class="block text-xs font-semibold text-slate-600 mb-1.5">Berlaku di Termin</label>
                 <div class="flex flex-wrap gap-3">
                     @foreach($editSchedules as $sch)
@@ -103,7 +124,19 @@
 <script>
 let freqCount = {{ $effFreq }};
 
-// Dihitung ulang dari checklist "Berlaku di Termin" tiap kali dicentang/di-uncek.
+// Isi input "Frekuensi Rincian" -- centang N termin PERTAMA (urut), sisanya diuncek.
+// Dipanggil dari input angka / tombol cepat. Kalau mau termin tertentu yang bukan
+// urutan pertama, staf tinggal uncek/centang manual di checklist (recalcFreq() di bawah
+// yang nyambungin balik ke angka & tombolnya).
+function applyFreqToCheckboxes(n) {
+    n = Math.max(1, Math.min(n, {{ $editFreq }}));
+    const boxes = Array.from(document.querySelectorAll('input[name="termin_ids[]"]'));
+    boxes.forEach((box, idx) => { box.checked = idx < n; });
+    recalcFreq();
+}
+
+// Dihitung ulang dari checklist "Berlaku di Termin" tiap kali dicentang/di-uncek --
+// sekaligus sinkronkan balik ke input angka & tombol cepat "Frekuensi Rincian".
 function recalcFreq() {
     const boxes = document.querySelectorAll('input[name="termin_ids[]"]');
     if (boxes.length > 0) {
@@ -111,6 +144,18 @@ function recalcFreq() {
         freqCount = checked > 0 ? checked : {{ $editFreq }};
         document.getElementById('freqLabel').textContent = freqCount;
         document.getElementById('freqLabel2').textContent = freqCount;
+
+        const freqInput = document.getElementById('rincian-freq-input');
+        if (freqInput) freqInput.value = freqCount;
+        document.querySelectorAll('.freq-btn-rincian').forEach(btn => {
+            const active = parseInt(btn.dataset.val) === freqCount;
+            btn.classList.toggle('bg-orange-500', active);
+            btn.classList.toggle('text-white', active);
+            btn.classList.toggle('border-orange-500', active);
+            btn.classList.toggle('bg-white', !active);
+            btn.classList.toggle('text-slate-600', !active);
+            btn.classList.toggle('border-slate-200', !active);
+        });
     }
     fmtNominal(document.getElementById('nominalDisplay'));
 }

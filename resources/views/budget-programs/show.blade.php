@@ -385,13 +385,35 @@
         </div>
 
         @if($freq > 1)
+        @php $addDefaultTerminIds = old('termin_ids', $schedules->pluck('id')->all()); @endphp
+        <div class="mt-4">
+            <label class="block text-xs font-semibold text-slate-600 mb-1.5">
+                Frekuensi Rincian <span class="text-red-500">*</span>
+                <span class="font-normal text-slate-400 ml-1">maks. {{ $freq }}× (ikut frekuensi program)</span>
+            </label>
+            <div class="flex items-center gap-2 flex-wrap">
+                <input type="number" id="rincian-freq-input-add" min="1" max="{{ $freq }}" value="{{ count($addDefaultTerminIds) }}"
+                    class="w-20 px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-700 bg-white outline-none focus:border-orange-400 transition-colors font-mono"
+                    oninput="applyFreqToCheckboxesAdd(parseInt(this.value) || 1)">
+                <div class="flex gap-1.5 flex-wrap">
+                    @for ($f = 1; $f <= $freq; $f++)
+                    <button type="button" data-val="{{ $f }}"
+                        class="freq-btn-rincian-add px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer
+                            {{ count($addDefaultTerminIds) == $f ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-slate-600 border-slate-200 hover:border-orange-300 hover:text-orange-600' }}"
+                        onclick="applyFreqToCheckboxesAdd({{ $f }})">{{ $f }}×</button>
+                    @endfor
+                </div>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-1.5">Otomatis pakai termin pertama sejumlah ini. Mau pilih termin tertentu (bukan yang pertama)? Atur langsung di checklist di bawah.</p>
+        </div>
+
         <div class="mt-4">
             <label class="block text-xs font-semibold text-slate-600 mb-1.5">Berlaku di Termin</label>
             <div class="flex flex-wrap gap-3">
                 @foreach($schedules as $sch)
                 <label class="inline-flex items-center gap-1.5 text-xs text-slate-600">
                     <input type="checkbox" name="termin_ids[]" value="{{ $sch->id }}"
-                        {{ in_array($sch->id, old('termin_ids', $schedules->pluck('id')->all())) ? 'checked' : '' }}
+                        {{ in_array($sch->id, $addDefaultTerminIds) ? 'checked' : '' }}
                         onchange="recalcFreqAdd()" class="w-3.5 h-3.5 accent-orange-500">
                     Termin {{ $sch->termin }}{{ $sch->monthLabel() ? ' ('.$sch->monthLabel().')' : '' }}
                 </label>
@@ -563,14 +585,35 @@ let freqCountAdd = {{ $freq }};
 const hasMultipleDetails = {{ $hasMultipleDetails ? 'true' : 'false' }};
 const scheduleDetailsMap = @json($scheduleDetailsMap);
 
+// Isi input "Frekuensi Rincian" -- centang N termin PERTAMA (urut), sisanya diuncek.
+function applyFreqToCheckboxesAdd(n) {
+    n = Math.max(1, Math.min(n, {{ $freq }}));
+    const boxes = Array.from(document.querySelectorAll('input[name="termin_ids[]"]'));
+    boxes.forEach((box, idx) => { box.checked = idx < n; });
+    recalcFreqAdd();
+}
+
 // Dihitung ulang dari checklist "Berlaku di Termin" -- kalau checklist-nya ada (freq > 1)
-// dan semua tercentang berarti default, tetap pakai frekuensi program.
+// dan semua tercentang berarti default, tetap pakai frekuensi program. Sekaligus
+// sinkronkan balik ke input angka & tombol cepat "Frekuensi Rincian".
 function recalcFreqAdd() {
     const boxes = document.querySelectorAll('input[name="termin_ids[]"]');
     if (boxes.length > 0) {
         const checked = document.querySelectorAll('input[name="termin_ids[]"]:checked').length;
         freqCountAdd = checked > 0 ? checked : {{ $freq }};
         document.getElementById('freqLabelAdd').textContent = freqCountAdd;
+
+        const freqInput = document.getElementById('rincian-freq-input-add');
+        if (freqInput) freqInput.value = freqCountAdd;
+        document.querySelectorAll('.freq-btn-rincian-add').forEach(btn => {
+            const active = parseInt(btn.dataset.val) === freqCountAdd;
+            btn.classList.toggle('bg-orange-500', active);
+            btn.classList.toggle('text-white', active);
+            btn.classList.toggle('border-orange-500', active);
+            btn.classList.toggle('bg-white', !active);
+            btn.classList.toggle('text-slate-600', !active);
+            btn.classList.toggle('border-slate-200', !active);
+        });
     }
     fmtNominal(document.getElementById('nominalDisplay'));
 }
