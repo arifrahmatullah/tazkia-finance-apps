@@ -46,9 +46,17 @@
             <div style="font-size:1.05rem; font-weight:700; color:#0f172a;">{{ $fr->title ?? '-' }}</div>
             <div style="font-size:0.78rem; color:#64748b; margin-top:2px; font-family:monospace;">{{ $fr->reference ?? '-' }}</div>
         </div>
-        <span style="padding:6px 16px; border-radius:999px; font-size:0.78rem; font-weight:700; background:{{ $statusBg }}; color:{{ $statusColor }};">
-            {{ $statusLabel }}
-        </span>
+        <div style="display:flex; align-items:center; gap:10px;">
+            @if($fundReport->reported_by === auth()->id() && $fundReport->isWaiting())
+            <a href="{{ route('fund-reports.edit', $fundReport) }}"
+               style="padding:7px 16px; border-radius:8px; font-size:0.78rem; font-weight:700; background:#eff6ff; color:#1d4ed8; text-decoration:none;">
+                Edit Laporan
+            </a>
+            @endif
+            <span style="padding:6px 16px; border-radius:999px; font-size:0.78rem; font-weight:700; background:{{ $statusBg }}; color:{{ $statusColor }};">
+                {{ $statusLabel }}
+            </span>
+        </div>
     </div>
 
     {{-- Info Grid --}}

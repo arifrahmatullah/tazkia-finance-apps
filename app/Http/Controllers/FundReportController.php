@@ -142,6 +142,68 @@ class FundReportController extends Controller
             ->with('success', 'Laporan penggunaan dana berhasil dikirim.');
     }
 
+    // Laporan cuma bisa diedit sama pembuatnya sendiri, dan cuma selama masih "waiting"
+    // (belum diverifikasi Keuangan) -- begitu disetujui/ditolak, isinya dianggap final.
+    private function assertEditable(FundReport $fundReport): void
+    {
+        $user = Auth::user();
+        abort_unless($fundReport->reported_by === $user->id, 403);
+        abort_unless($fundReport->isWaiting(), 403, 'Laporan sudah diverifikasi, tidak bisa diedit lagi.');
+    }
+
+    public function edit(FundReport $fundReport)
+    {
+        $this->assertEditable($fundReport);
+
+        $fundReport->load(['fundRequest', 'files']);
+
+        return view('fund-reports.edit', compact('fundReport'));
+    }
+
+    public function update(Request $request, FundReport $fundReport)
+    {
+        $this->assertEditable($fundReport);
+
+        $validated = $request->validate([
+            'report_date' => 'required|date',
+            'description' => 'required|string|max:2000',
+            'amount_used' => 'required|numeric|min:0',
+            'files'       => 'nullable|array',
+            'files.*'     => ['file', (new File())->extensions(['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx', 'xls', 'xlsx'])->max(10240)],
+        ], [
+            'files.*.max' => 'Ukuran file maksimal 10 MB.',
+        ]);
+
+        $fundRequest = $fundReport->fundRequest;
+        if ($validated['amount_used'] > (float) $fundRequest->amount) {
+            return back()->withInput()->withErrors([
+                'amount_used' => 'Total penggunaan dana tidak boleh melebihi dana yang diajukan (Rp ' . number_format($fundRequest->amount, 0, ',', '.') . ').',
+            ]);
+        }
+
+        $fundReport->update([
+            'report_date' => $validated['report_date'],
+            'description' => $validated['description'],
+            'amount_used' => $validated['amount_used'],
+        ]);
+
+        $user = Auth::user();
+        foreach ($request->file('files', []) as $file) {
+            $path = $file->storeAs("fund-reports/{$fundReport->id}", Str::random(40) . '.' . $file->getClientOriginalExtension(), 'local');
+            FundReportFile::create([
+                'fund_report_id' => $fundReport->id,
+                'uploaded_by'    => $user->id,
+                'file_path'      => $path,
+                'file_name'      => $file->getClientOriginalName(),
+                'mime_type'      => $file->getMimeType(),
+                'file_size'      => $file->getSize(),
+            ]);
+        }
+
+        return redirect()->route('fund-reports.show', $fundReport)
+            ->with('success', 'Laporan berhasil diperbarui.');
+    }
+
     public function show(FundReport $fundReport)
     {
         $user = Auth::user();

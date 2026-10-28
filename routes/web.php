@@ -144,6 +144,8 @@ Route::middleware(['auth', 'role.selected'])->group(function () {
     Route::get('fund-reports/create', [FundReportController::class, 'create'])->name('fund-reports.create');
     Route::post('fund-reports', [FundReportController::class, 'store'])->name('fund-reports.store');
     Route::get('fund-reports/{fundReport}', [FundReportController::class, 'show'])->name('fund-reports.show');
+    Route::get('fund-reports/{fundReport}/edit', [FundReportController::class, 'edit'])->name('fund-reports.edit');
+    Route::put('fund-reports/{fundReport}', [FundReportController::class, 'update'])->name('fund-reports.update');
     Route::get('fund-report-files/{fundReportFile}', [FundReportController::class, 'viewFile'])->name('fund-reports.files.view');
     Route::delete('fund-report-files/{fundReportFile}', [FundReportController::class, 'deleteFile'])->name('fund-reports.files.delete');
 
