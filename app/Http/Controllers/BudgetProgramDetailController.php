@@ -39,7 +39,10 @@ class BudgetProgramDetailController extends Controller
         $currentTotal = $this->allocationUsedTotal($program);
         $paguAmount   = $program->budgetAllocation->amount;
 
-        if ($paguAmount > 0 && ($currentTotal + $newItemTotal) > $paguAmount) {
+        // round() -- recehan di bawah Rp 1 cuma noise pembulatan dari redistribusi proporsional
+        // nominal antar rincian (lihat growTotalAmountBy()/shrinkTotalAmountBy()), bukan sisa
+        // pagu yang beneran.
+        if ($paguAmount > 0 && round($currentTotal + $newItemTotal) > round($paguAmount)) {
             $sisa = number_format($paguAmount - $currentTotal, 0, ',', '.');
             return back()->withInput()->withErrors([
                 'unit_price' => "Nominal melebihi sisa pagu alokasi (dipakai bersama program lain di departemen ini). Sisa: Rp {$sisa}",
@@ -154,7 +157,10 @@ class BudgetProgramDetailController extends Controller
         $currentTotal = $this->allocationUsedTotal($program, $budgetProgramDetail->id);
         $paguAmount   = $program->budgetAllocation->amount;
 
-        if ($paguAmount > 0 && ($currentTotal + $newItemTotal) > $paguAmount) {
+        // round() -- recehan di bawah Rp 1 cuma noise pembulatan dari redistribusi proporsional
+        // nominal antar rincian (lihat growTotalAmountBy()/shrinkTotalAmountBy()), bukan sisa
+        // pagu yang beneran.
+        if ($paguAmount > 0 && round($currentTotal + $newItemTotal) > round($paguAmount)) {
             $sisa = number_format($paguAmount - $currentTotal, 0, ',', '.');
             return back()->withInput()->withErrors([
                 'unit_price' => "Nominal melebihi sisa pagu alokasi (dipakai bersama program lain di departemen ini). Sisa: Rp {$sisa}",

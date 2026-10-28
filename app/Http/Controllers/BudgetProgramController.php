@@ -245,12 +245,16 @@ class BudgetProgramController extends Controller
 
         abort_if(!$allocation, 403, 'Pagu anggaran untuk departemen ' . $department->name . ' belum tersedia. Hubungi bagian Keuangan.');
 
-        // Hitung sisa pagu setelah dikurangi program yang sudah ada
+        // Hitung sisa pagu setelah dikurangi program yang sudah ada -- dibulatkan ke rupiah
+        // penuh, karena sisa recehan di bawah Rp 1 cuma noise pembulatan dari redistribusi
+        // proporsional nominal antar rincian (lihat growTotalAmountBy()/shrinkTotalAmountBy()),
+        // bukan sisa pagu yang beneran -- tanpa ini, sisa yang ditampilkan (dibulatkan) bisa
+        // kelihatan cukup tapi ditolak pas dipakai pas-pasan gara-gara recehan itu.
         $usedByPrograms = BudgetProgram::with('details')
             ->where('budget_allocation_id', $allocation->id)
             ->get()
             ->sum(fn($p) => (float) $p->total_amount);
-        $sisaAlokasi = (float) $allocation->amount - $usedByPrograms;
+        $sisaAlokasi = round((float) $allocation->amount - $usedByPrograms);
 
         $accounts = Account::where('account_type', 'beban')
             ->where('organization_id', $department->organization_id)
@@ -308,9 +312,9 @@ class BudgetProgramController extends Controller
             ->where('budget_allocation_id', $allocation->id)
             ->get()
             ->sum(fn($p) => (float) $p->total_amount);
-        $sisaAlokasi = $pagu - $usedByOthers;
+        $sisaAlokasi = round($pagu - $usedByOthers);
 
-        if ($pagu > 0 && $grandTotal > $sisaAlokasi) {
+        if ($pagu > 0 && round($grandTotal) > $sisaAlokasi) {
             return back()->withInput()->withErrors([
                 'lines' => "Total rincian (Rp " . number_format($grandTotal, 0, ',', '.') . ") melebihi sisa pagu (Rp " . number_format($sisaAlokasi, 0, ',', '.') . ").",
             ]);
@@ -369,11 +373,13 @@ class BudgetProgramController extends Controller
         // Sisa pagu ALOKASI (departemen), bukan sisa program ini saja -- satu alokasi
         // dipakai bersama oleh banyak program, jadi harus dikurangi total SEMUA program
         // di alokasi yang sama supaya konsisten dengan ringkasan di daftar Program Kerja.
-        $terpakaiAlokasi = BudgetProgram::with('details')
+        // Dibulatkan ke rupiah penuh -- lihat catatan di create() soal recehan pembulatan
+        // dari redistribusi proporsional nominal antar rincian.
+        $terpakaiAlokasi = round(BudgetProgram::with('details')
             ->where('budget_allocation_id', $budgetProgram->budget_allocation_id)
             ->get()
-            ->sum(fn($p) => (float) $p->total_amount);
-        $sisaAlokasi = (float) $budgetProgram->budgetAllocation->amount - $terpakaiAlokasi;
+            ->sum(fn($p) => (float) $p->total_amount));
+        $sisaAlokasi = round((float) $budgetProgram->budgetAllocation->amount) - $terpakaiAlokasi;
 
         return view('budget-programs.show', compact('budgetProgram', 'accounts', 'pendingChangeRequests', 'terpakaiAlokasi', 'sisaAlokasi'));
     }
