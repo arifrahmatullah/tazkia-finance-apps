@@ -204,6 +204,40 @@ class FundReportController extends Controller
             ->with('success', 'Laporan berhasil diperbarui.');
     }
 
+    // Ganti satu file jadi satu langkah (hapus lama + upload baru) -- supaya tidak perlu
+    // hapus dulu baru upload lagi terpisah. File lama cuma dihapus dari disk SETELAH file
+    // baru berhasil divalidasi & record-nya ter-update, jadi kalau upload baru gagal validasi,
+    // file lama tetap aman.
+    public function replaceFile(Request $request, FundReportFile $fundReportFile)
+    {
+        $report = $fundReportFile->fundReport;
+        $this->assertEditable($report);
+
+        $validated = $request->validate([
+            'file' => ['required', 'file', (new File())->extensions(['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx', 'xls', 'xlsx'])->max(10240)],
+        ], [
+            'file.max' => 'Ukuran file maksimal 10 MB.',
+        ]);
+
+        $user    = Auth::user();
+        $file    = $validated['file'];
+        $oldPath = $fundReportFile->file_path;
+
+        $newPath = $file->storeAs("fund-reports/{$report->id}", Str::random(40) . '.' . $file->getClientOriginalExtension(), 'local');
+
+        $fundReportFile->update([
+            'uploaded_by' => $user->id,
+            'file_path'   => $newPath,
+            'file_name'   => $file->getClientOriginalName(),
+            'mime_type'   => $file->getMimeType(),
+            'file_size'   => $file->getSize(),
+        ]);
+
+        Storage::disk('local')->delete($oldPath);
+
+        return back()->with('success', 'File berhasil diganti.');
+    }
+
     public function show(FundReport $fundReport)
     {
         $user = Auth::user();

@@ -109,6 +109,10 @@
                        style="padding:5px 12px; background:#eff6ff; color:#1d4ed8; border-radius:6px; font-size:0.73rem; font-weight:600; text-decoration:none; white-space:nowrap;">
                         Lihat
                     </a>
+                    <button type="button" onclick="document.getElementById('replace-input-{{ $file->id }}').click()"
+                            style="padding:5px 10px; background:#fffbeb; color:#92400e; border:none; border-radius:6px; font-size:0.73rem; font-weight:600; cursor:pointer; white-space:nowrap;">
+                        Ganti
+                    </button>
                     <button type="submit" form="delete-file-{{ $file->id }}"
                             onclick="return confirm('Hapus file ini?')"
                             style="padding:5px 10px; background:#fee2e2; color:#991b1b; border:none; border-radius:6px; font-size:0.73rem; font-weight:600; cursor:pointer; white-space:nowrap;">
@@ -161,11 +165,19 @@
         </form>
     </div>
 
-    {{-- Form hapus file -- di luar form utama (HTML tidak boleh form bersarang), ditembak
-         lewat atribut form="..." pada tombol Hapus di dalam daftar file di atas. --}}
+    {{-- Form hapus & ganti file -- di luar form utama (HTML tidak boleh form bersarang).
+         Hapus ditembak lewat atribut form="..." pada tombolnya; Ganti dipicu klik tombol
+         yang buka file picker-nya (input di sini), lalu auto-submit begitu file dipilih --
+         satu langkah, file lama baru kehapus di server kalau upload barunya valid. --}}
     @foreach($fundReport->files as $file)
     <form id="delete-file-{{ $file->id }}" action="{{ route('fund-reports.files.delete', $file) }}" method="POST" style="display:none;">
         @csrf @method('DELETE')
+    </form>
+    <form id="replace-file-{{ $file->id }}" action="{{ route('fund-reports.files.replace', $file) }}" method="POST" enctype="multipart/form-data" style="display:none;">
+        @csrf
+        <input type="file" id="replace-input-{{ $file->id }}" name="file"
+               accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
+               onchange="if (this.files.length) this.form.submit()">
     </form>
     @endforeach
 </div>

@@ -148,6 +148,7 @@ Route::middleware(['auth', 'role.selected'])->group(function () {
     Route::put('fund-reports/{fundReport}', [FundReportController::class, 'update'])->name('fund-reports.update');
     Route::get('fund-report-files/{fundReportFile}', [FundReportController::class, 'viewFile'])->name('fund-reports.files.view');
     Route::delete('fund-report-files/{fundReportFile}', [FundReportController::class, 'deleteFile'])->name('fund-reports.files.delete');
+    Route::post('fund-report-files/{fundReportFile}/replace', [FundReportController::class, 'replaceFile'])->name('fund-reports.files.replace');
 
     // Pengembalian Dana (sisi pengaju)
     Route::get('fund-refunds', [FundRefundController::class, 'index'])->name('fund-refunds.index');
