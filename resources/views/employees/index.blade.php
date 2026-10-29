@@ -3,19 +3,36 @@
     <div class="flex items-center justify-between mb-5">
         <div>
             <h2 class="text-lg font-bold text-slate-900 m-0 mb-0.5">Daftar Karyawan</h2>
-            <p class="text-xs text-slate-400 m-0">Manajemen data karyawan aktif</p>
+            <p class="text-xs text-slate-400 m-0">{{ $trashed ? 'Karyawan yang sudah dihapus' : 'Manajemen data karyawan aktif' }}</p>
         </div>
+        @unless($trashed)
         <a href="{{ route('employees.create') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-br from-orange-400 to-orange-500 text-white text-sm font-semibold shadow-sm hover:-translate-y-px transition-all no-underline">
             <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
             Tambah Karyawan
         </a>
+        @endunless
     </div>
 
     @if(session('success'))
         <div class="flex items-center gap-2.5 px-4 py-3 bg-green-50 border border-green-200 rounded-xl mb-4 text-sm text-green-700">{{ session('success') }}</div>
     @endif
 
+    {{-- Tab Aktif / Terhapus --}}
+    <div class="flex gap-1.5 mb-4 border-b border-slate-200">
+        <a href="{{ route('employees.index', array_filter(['search' => $search])) }}"
+           class="px-4 py-2.5 text-sm font-semibold no-underline border-b-2 transition-colors
+               {{ !$trashed ? 'text-orange-600 border-orange-500' : 'text-slate-400 border-transparent hover:text-slate-600' }}">
+            Karyawan Aktif
+        </a>
+        <a href="{{ route('employees.index', array_filter(['search' => $search, 'trashed' => 1])) }}"
+           class="px-4 py-2.5 text-sm font-semibold no-underline border-b-2 transition-colors
+               {{ $trashed ? 'text-orange-600 border-orange-500' : 'text-slate-400 border-transparent hover:text-slate-600' }}">
+            Karyawan Terhapus
+        </a>
+    </div>
+
     <form method="GET" action="{{ route('employees.index') }}" class="mb-4">
+        @if($trashed)<input type="hidden" name="trashed" value="1">@endif
         <div class="flex gap-2">
             <div class="relative flex-1">
                 <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
@@ -24,7 +41,7 @@
             </div>
             <button type="submit" class="px-4 py-2.5 rounded-xl bg-orange-500 text-white text-sm font-semibold border-0 cursor-pointer hover:bg-orange-600 transition-colors">Cari</button>
             @if($search)
-            <a href="{{ route('employees.index') }}" class="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-600 text-sm font-semibold no-underline hover:bg-slate-200 transition-colors">Reset</a>
+            <a href="{{ route('employees.index', array_filter(['trashed' => $trashed ? 1 : null])) }}" class="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-600 text-sm font-semibold no-underline hover:bg-slate-200 transition-colors">Reset</a>
             @endif
         </div>
     </form>
@@ -32,7 +49,7 @@
     <div class="bg-white rounded-xl shadow-sm overflow-hidden">
         <div class="px-4 py-3.5 border-b border-slate-100 flex items-center justify-between">
             <span class="text-sm font-semibold text-slate-700">
-                Karyawan
+                {{ $trashed ? 'Karyawan Terhapus' : 'Karyawan' }}
                 @if($search) <span class="text-slate-400 font-normal text-xs ml-1">— hasil pencarian "{{ $search }}"</span> @endif
             </span>
             <span class="bg-slate-100 text-slate-500 text-[11px] font-semibold px-2.5 py-0.5 rounded-full">{{ $employees->total() }} data</span>
@@ -40,7 +57,7 @@
         @if($employees->isEmpty())
             <div class="py-12 px-5 text-center text-slate-400">
                 <div class="text-4xl mb-3">👥</div>
-                <p class="text-sm m-0">Belum ada karyawan. Klik "Tambah Karyawan" untuk mulai.</p>
+                <p class="text-sm m-0">{{ $trashed ? 'Tidak ada karyawan yang terhapus.' : 'Belum ada karyawan. Klik "Tambah Karyawan" untuk mulai.' }}</p>
             </div>
         @else
             <table class="w-full border-collapse">
@@ -91,6 +108,15 @@
                         </td>
                         <td class="px-4 py-3 text-sm text-slate-600 align-middle">
                             <div class="flex gap-1.5 flex-wrap">
+                                @if($trashed)
+                                <form id="restore-emp-{{ $emp->id }}" method="POST" action="{{ route('employees.restore', $emp) }}">
+                                    @csrf
+                                </form>
+                                <button type="button" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-green-50 text-green-700 hover:bg-green-100 transition-colors border-0 cursor-pointer"
+                                    onclick="if(confirm('Pulihkan {{ addslashes($emp->name) }}?')) document.getElementById('restore-emp-{{ $emp->id }}').submit()">
+                                    Pulihkan
+                                </button>
+                                @else
                                 <a href="{{ route('employees.show', $emp) }}" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors no-underline">Detail</a>
                                 <a href="{{ route('employees.edit', $emp) }}" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors no-underline">Edit</a>
                                 <form id="del-emp-{{ $emp->id }}" method="POST" action="{{ route('employees.destroy', $emp) }}">
@@ -100,6 +126,7 @@
                                     onclick="confirmDelete('del-emp-{{ $emp->id }}', '{{ addslashes($emp->name) }}')">
                                     Hapus
                                 </button>
+                                @endif
                             </div>
                         </td>
                     </tr>

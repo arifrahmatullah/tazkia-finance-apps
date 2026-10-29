@@ -17,10 +17,12 @@ class EmployeeController extends Controller
 {
     public function index(Request $request)
     {
-        $orgIds = auth()->user()->organizationIds();
-        $search = $request->input('search');
+        $orgIds  = auth()->user()->organizationIds();
+        $search  = $request->input('search');
+        $trashed = $request->boolean('trashed');
 
         $employees = Employee::with(['organization', 'activePositions.position.department'])
+            ->when($trashed, fn($q) => $q->onlyTrashed(), fn($q) => $q)
             ->when($orgIds !== null, fn($q) => $q->whereIn('organization_id', $orgIds))
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($q2) use ($search) {
@@ -34,7 +36,7 @@ class EmployeeController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        return view('employees.index', compact('employees', 'search'));
+        return view('employees.index', compact('employees', 'search', 'trashed'));
     }
 
     private function allowedOrgs(): \Illuminate\Database\Eloquent\Builder
@@ -163,6 +165,19 @@ class EmployeeController extends Controller
 
         return redirect()->route('employees.index')
             ->with('success', 'Karyawan berhasil dihapus.');
+    }
+
+    // $employee di sini cuma soft-deleted (route-nya pakai withTrashed() di routes/web.php),
+    // jadi tidak ikut data yang beneran masih aktif. Akun User terkait (kalau ada) tidak pernah
+    // disentuh waktu soft-delete, jadi tidak perlu dipulihkan juga di sini.
+    public function restore(Employee $employee)
+    {
+        abort_unless(auth()->user()->canAccessOrganization($employee->organization_id), 403);
+
+        $employee->restore();
+
+        return redirect()->route('employees.index', ['trashed' => 1])
+            ->with('success', 'Karyawan berhasil dipulihkan.');
     }
 
     public function assignPosition(Request $request, Employee $employee)

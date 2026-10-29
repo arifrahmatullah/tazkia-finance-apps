@@ -227,6 +227,7 @@ Route::middleware(['auth', 'role.selected'])->group(function () {
     Route::get('fund-approvals/inbox', [FundApprovalController::class, 'inbox'])->name('fund-approvals.inbox');
     Route::post('fund-approvals/{fundRequestApproval}/approve', [FundApprovalController::class, 'approve'])->name('fund-approvals.approve');
     Route::post('fund-approvals/{fundRequestApproval}/reject', [FundApprovalController::class, 'reject'])->name('fund-approvals.reject');
+    Route::post('employees/{employee}/restore', [EmployeeController::class, 'restore'])->withTrashed()->name('employees.restore');
     Route::post('employees/{employee}/positions', [EmployeeController::class, 'assignPosition'])->name('employees.positions.assign');
     Route::put('employees/{employee}/positions/{position}', [EmployeeController::class, 'updatePosition'])->name('employees.positions.update');
     Route::delete('employees/{employee}/positions/{position}', [EmployeeController::class, 'removePosition'])->name('employees.positions.remove');
