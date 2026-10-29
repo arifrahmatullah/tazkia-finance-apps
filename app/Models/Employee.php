@@ -84,4 +84,12 @@ class Employee extends Model
     {
         return $this->where($field ?? $this->getRouteKeyName(), $value)->first();
     }
+
+    // Route yang pakai withTrashed() (contoh: restore karyawan) lewat resolveSoftDeletableRouteBinding(),
+    // yang panggil resolveRouteBindingQuery() langsung -- bukan resolveRouteBinding() di atas. Tanpa override
+    // ini, validasi format UUID dari trait HasUuids tetap jalan dan bikin ID lama (integer) selalu 404.
+    public function resolveRouteBindingQuery($query, $value, $field = null)
+    {
+        return $query->where($field ?? $this->getRouteKeyName(), $value);
+    }
 }
